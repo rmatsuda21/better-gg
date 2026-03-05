@@ -1,0 +1,31 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  border-radius: 8px;
+  background-color: rgba(255, 50, 50, 0.08);
+  border: 1px solid rgba(255, 50, 50, 0.2);
+}
+
+.message {
+  color: #ff6b6b;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.retryButton {
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  border: 1px solid #ff6b6b;
+  background: transparent;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.retryButton:hover {
+  background-color: rgba(255, 50, 50, 0.12);
+}

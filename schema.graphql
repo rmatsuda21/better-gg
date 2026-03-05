@@ -1,0 +1,68 @@
+type Query {
+  user(id: ID, slug: String): User
+}
+
+type User {
+  id: ID
+  slug: String
+  tournaments(query: UserTournamentsPaginationQuery): UserTournamentConnection
+}
+
+input UserTournamentsPaginationQuery {
+  page: Int
+  perPage: Int
+  filter: UserTournamentsPaginationFilter
+}
+
+input UserTournamentsPaginationFilter {
+  past: Boolean
+  upcoming: Boolean
+  search: PaginationSearchType
+  tournamentView: String
+}
+
+input PaginationSearchType {
+  fieldsToSearch: [String]
+  searchString: String
+}
+
+type UserTournamentConnection {
+  pageInfo: PageInfo
+  nodes: [Tournament]
+}
+
+type PageInfo {
+  total: Int
+  totalPages: Int
+  page: Int
+  perPage: Int
+}
+
+type Tournament {
+  id: ID
+  name: String
+  slug: String
+  startAt: Timestamp
+  endAt: Timestamp
+  numAttendees: Int
+  city: String
+  addrState: String
+  countryCode: String
+  isOnline: Boolean
+  venueName: String
+  images(type: String): [Image]
+  events: [Event]
+}
+
+type Event {
+  id: ID
+  name: String
+  numEntrants: Int
+}
+
+type Image {
+  id: ID
+  url: String
+}
+
+scalar Timestamp

@@ -1,0 +1,86 @@
+.card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  transition: border-color 0.2s;
+}
+
+.card:hover {
+  border-color: #3a3a3a;
+}
+
+.image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #2a2a2a;
+}
+
+.imagePlaceholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background-color: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-size: 1.8rem;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name:hover {
+  color: #646cff;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.onlineBadge {
+  color: #4ade80;
+  font-weight: 500;
+}
+
+.events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.eventPill {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background-color: #2a2a3a;
+  color: #aaa;
+  white-space: nowrap;
+}
