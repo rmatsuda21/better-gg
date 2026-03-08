@@ -1,36 +1,71 @@
+import { useEffect, useRef } from 'react'
+import { Link } from '@tanstack/react-router'
 import { formatPlacement } from '../../lib/format'
 import styles from './PlacementList.module.css'
 
-interface PlacementEntry {
+export interface PlacementEntry {
   placement: number
   eventName: string
   tournamentName: string
   numEntrants?: number | null
+  eventId?: string | null
+  playerId?: string | null
 }
 
 interface PlacementListProps {
   placements: PlacementEntry[]
+  isLoadingMore?: boolean
 }
 
-export function PlacementList({ placements }: PlacementListProps) {
-  if (placements.length === 0) {
+export function PlacementList({ placements, isLoadingMore }: PlacementListProps) {
+  const prevCountRef = useRef(0)
+  const animateOffset = prevCountRef.current
+
+  useEffect(() => {
+    prevCountRef.current = placements.length
+  }, [placements.length])
+
+  if (placements.length === 0 && !isLoadingMore) {
     return <p className={styles.empty}>No recent placements</p>
   }
 
   return (
     <div className={styles.list}>
-      {placements.map((p, i) => (
-        <div key={i} className={styles.item}>
-          <span className={styles.placement}>{formatPlacement(p.placement)}</span>
-          <div className={styles.eventInfo}>
-            <span className={styles.eventName}>{p.eventName}</span>
-            <span className={styles.tournamentName}>{p.tournamentName}</span>
+      {placements.map((p, i) => {
+        const isNew = i >= animateOffset
+        return (
+          <div
+            key={p.eventId ?? i}
+            className={`${styles.item} ${isNew ? styles.itemAnimated : ''}`}
+            style={isNew ? { animationDelay: `${(i - animateOffset) * 40}ms` } : undefined}
+          >
+            <span className={styles.placement}>{formatPlacement(p.placement)}</span>
+            <div className={styles.eventInfo}>
+              <span className={styles.eventName}>{p.eventName}</span>
+              {p.eventId && p.playerId ? (
+                <Link
+                  to="/player/$playerId/event/$eventId"
+                  params={{ playerId: p.playerId, eventId: p.eventId }}
+                  className={styles.tournamentLink}
+                >
+                  {p.tournamentName}
+                </Link>
+              ) : (
+                <span className={styles.tournamentName}>{p.tournamentName}</span>
+              )}
+            </div>
+            {p.numEntrants != null && (
+              <span className={styles.entrants}>/ {p.numEntrants}</span>
+            )}
           </div>
-          {p.numEntrants != null && (
-            <span className={styles.entrants}>/ {p.numEntrants}</span>
-          )}
+        )
+      })}
+      {isLoadingMore && (
+        <div className={styles.loadingMore}>
+          <div className={styles.spinner} />
+          Loading more events...
         </div>
-      ))}
+      )}
     </div>
   )
 }

@@ -78,15 +78,34 @@ function extractPrereq(slot: SlotNode | null | undefined): SlotPrereq | null {
 
 export function buildBracketData(
   phaseGroup: PhaseGroupInfo,
-  userEntrantId: string,
+  userEntrantId?: string,
 ): BracketData {
   const allSets = phaseGroup.allSets
   const parsedSets: Array<{ set: SetNode; round: number; index: number }> = []
+  const unparsedSets: Array<{ set: SetNode; signedRound: number }> = []
 
   for (const set of allSets) {
-    const parsed = parsePreviewSetId(set.id ?? '')
-    if (!parsed) continue
-    parsedSets.push({ set, round: parsed.round, index: parsed.index })
+    const parsed = parsePreviewSetId(String(set.id ?? ''))
+    if (parsed) {
+      parsedSets.push({ set, round: parsed.round, index: parsed.index })
+    } else if (set.round != null) {
+      unparsedSets.push({ set, signedRound: set.round })
+    }
+  }
+
+  // For non-preview sets (ACTIVE/COMPLETED events), group by signed round
+  // and assign sequential indices within each round
+  if (parsedSets.length === 0 && unparsedSets.length > 0) {
+    const byRound = new Map<number, SetNode[]>()
+    for (const { set, signedRound } of unparsedSets) {
+      if (!byRound.has(signedRound)) byRound.set(signedRound, [])
+      byRound.get(signedRound)!.push(set)
+    }
+    for (const [signedRound, sets] of byRound) {
+      sets.forEach((set, index) => {
+        parsedSets.push({ set, round: Math.abs(signedRound), index })
+      })
+    }
   }
 
   const winnersMap = new Map<number, Array<{ set: SetNode; index: number }>>()
@@ -116,7 +135,7 @@ export function buildBracketData(
         const involvesUser = e0?.id === userEntrantId || e1?.id === userEntrantId
 
         return {
-          id: set.id!,
+          id: String(set.id!),
           round: roundNum,
           index,
           fullRoundText: set.fullRoundText ?? null,
@@ -171,7 +190,8 @@ function resolvePrereq(
   prereq: SlotPrereq,
   projected: Map<string, ProjectedSet>,
 ): BracketEntrant | null {
-  const { prereqId, prereqPlacement } = prereq
+  const { prereqPlacement } = prereq
+  const prereqId = prereq.prereqId ? String(prereq.prereqId) : null
   if (!prereqId) return null
 
   // Check if the prereq set is in our projected results
@@ -196,7 +216,7 @@ function resolvePrereq(
   //
   // We trace by: index → 2*index+1 for each hidden level, until we reach a
   // round that references a WR1 set (positive round) in its prereq.
-  const parsed = parsePreviewSetId(prereqId)
+  const parsed = parsePreviewSetId(String(prereqId))
   if (!parsed) return null
 
   let currentIndex = parsed.index

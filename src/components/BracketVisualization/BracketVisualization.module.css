@@ -43,16 +43,9 @@
 }
 
 .bracket {
-  display: flex;
-  gap: 0;
+  display: grid;
   min-width: fit-content;
-}
-
-.roundColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 200px;
+  gap: 0;
 }
 
 .roundLabel {
@@ -62,17 +55,16 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.3rem 0.5rem;
-  margin-bottom: 0.5rem;
   white-space: nowrap;
+  text-align: center;
 }
 
-.roundSets {
+.setWrapper {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  flex: 1;
-  width: 100%;
-  gap: 4px;
+  justify-content: center;
+  min-height: 0;
+  padding: 2px 0;
 }
 
 .setCard {
@@ -143,57 +135,54 @@
   font-weight: 600;
 }
 
-.connectorColumn {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  width: 24px;
-  flex-shrink: 0;
-}
-
-.connector {
+/* Merge connector: pair of sets feeding one set in next round.
+   Draws bracket shape:
+   ──┐
+     │
+   ──┘
+   Top horizontal at 25%, bottom horizontal at 75%, vertical on right from 25% to 75%. */
+.connectorPair {
   position: relative;
-  flex: 1;
-  min-height: 20px;
 }
 
-.connectorLine {
+.connectorPair::before {
+  content: '';
   position: absolute;
-  border-color: var(--border-subtle);
-  border-style: solid;
-}
-
-.connectorTop {
-  right: 0;
+  top: 25%;
   bottom: 50%;
-  width: 50%;
-  height: 50%;
-  border-right: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  border-top: none;
-  border-left: none;
-}
-
-.connectorBottom {
+  left: 0;
   right: 0;
-  top: 50%;
-  width: 50%;
-  height: 50%;
-  border-right: 1px solid var(--border-subtle);
   border-top: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
   border-bottom: none;
   border-left: none;
 }
 
-.connectorStraight {
+.connectorPair::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  bottom: 25%;
+  left: 0;
   right: 0;
-  top: 0;
-  bottom: 0;
-  width: 50%;
+  border-bottom: 1px solid var(--border-subtle);
   border-right: 1px solid var(--border-subtle);
   border-top: none;
-  border-bottom: none;
   border-left: none;
+}
+
+/* Straight connector: horizontal line at vertical center */
+.connectorStraight {
+  position: relative;
+}
+
+.connectorStraight::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .sectionLabel {

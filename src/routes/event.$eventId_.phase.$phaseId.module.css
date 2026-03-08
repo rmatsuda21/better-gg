@@ -16,47 +16,17 @@
   color: var(--accent-hover);
 }
 
-.phases {
+.phaseHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.25rem;
 }
 
-.sectionTitle {
-  font-size: 1.1rem;
+.phaseTitle {
+  font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
-}
-
-.phaseList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.phaseItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.6rem 0.9rem;
-  border-radius: 6px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s;
-}
-
-.phaseItem:hover {
-  border-color: var(--accent);
-  background-color: var(--bg-elevated);
-}
-
-.phaseName {
-  font-size: 0.9rem;
-  font-weight: 500;
 }
 
 .phaseMeta {
@@ -88,19 +58,15 @@
   color: var(--accent);
 }
 
-.analysis {
+.phaseGroupSection {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.notEntered {
+.phaseGroupLabel {
+  font-size: 1rem;
+  font-weight: 500;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  padding: 1rem;
-  text-align: center;
-  background-color: var(--bg-card);
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
   margin: 0;
 }

@@ -77,6 +77,8 @@ export function OpponentCard({
       tournamentName:
         (s.container as { tournament?: { name?: string } })?.tournament?.name ?? '',
       numEntrants: (s.container as { numEntrants?: number })?.numEntrants,
+      eventId: (s.container as { id?: string })?.id ?? null,
+      playerId: playerId ?? null,
     }))
 
   return (

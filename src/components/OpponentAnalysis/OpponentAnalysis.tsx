@@ -72,6 +72,7 @@ export function OpponentAnalysis({
             key={pg.phaseGroupId}
             phaseGroup={pg}
             entrantId={entrantId}
+            eventState={eventState}
           />
         ))}
       </div>
@@ -296,9 +297,11 @@ function buildProjectedOpponents(
 function PhaseGroupSection({
   phaseGroup,
   entrantId,
+  eventState,
 }: {
   phaseGroup: PhaseGroupInfo
   entrantId: string
+  eventState?: string | null
 }) {
   const [viewMode, setViewMode] = useState<'list' | 'bracket'>('list')
   const [showProjected, setShowProjected] = useState(false)
@@ -311,7 +314,7 @@ function PhaseGroupSection({
   // Build set lookup by round_index for feeder resolution
   const setMap = new Map<string, (typeof phaseGroup.allSets)[number]>()
   for (const set of phaseGroup.allSets) {
-    const parsed = parsePreviewSetId(set.id ?? '')
+    const parsed = parsePreviewSetId(String(set.id ?? ''))
     if (parsed) setMap.set(`${parsed.round}_${parsed.index}`, set)
   }
 
@@ -328,7 +331,7 @@ function PhaseGroupSection({
     if (!opponentEntrant) {
       // Try to resolve feeder set for TBD opponents
       let name = 'TBD'
-      const parsed = parsePreviewSetId(set.id ?? '')
+      const parsed = parsePreviewSetId(String(set.id ?? ''))
       if (parsed && parsed.round > 1) {
         const feederDesc = getFeederEntrants(setMap, parsed.round, parsed.index)
         if (feederDesc) {
@@ -358,7 +361,7 @@ function PhaseGroupSection({
       playerId: opponentEntrant.participants?.[0]?.player?.id ?? null,
       setResult: set.displayScore ?? null,
       roundText: set.fullRoundText ?? null,
-      won: undefined,
+      won: set.winnerId != null ? set.winnerId === Number(entrantId) : undefined,
       round: set.round ?? 0,
       seedNum: opponentSlot?.seed?.seedNum ?? opponentEntrant.initialSeedNum ?? null,
       isTBD: false,
@@ -371,6 +374,8 @@ function PhaseGroupSection({
     if (a.round < 0 && b.round > 0) return 1
     return Math.abs(a.round) - Math.abs(b.round)
   })
+
+  const completedSets = phaseGroup.sets.filter(s => s.winnerId != null)
 
   const opponents = showProjected && viewMode === 'list'
     ? buildProjectedOpponents(phaseGroup, entrantId)
@@ -392,7 +397,7 @@ function PhaseGroupSection({
         {phaseGroup.userSeedNum != null && (
           <span className={styles.seedBadge}>Seed #{phaseGroup.userSeedNum}</span>
         )}
-        {viewMode === 'list' && (
+        {viewMode === 'list' && eventState === 'CREATED' && (
           <div className={styles.viewToggle}>
             <button
               className={`${styles.viewToggleBtn} ${!showProjected ? styles.viewToggleBtnActive : ''}`}
@@ -428,6 +433,7 @@ function PhaseGroupSection({
         <BracketVisualization
           phaseGroup={phaseGroup}
           userEntrantId={entrantId}
+          showProjectionToggle={eventState === 'CREATED'}
         />
       ) : (
         opponents.map((op) => (
@@ -435,8 +441,15 @@ function PhaseGroupSection({
             key={op.setId ?? `${op.entrantId}-${op.round}`}
             name={op.name}
             playerId={op.playerId}
+            setResult={op.setResult}
             roundText={op.roundText}
+            won={op.won}
             seedNum={op.seedNum}
+            headToHead={
+              op.entrantId
+                ? computeH2H(completedSets, entrantId, op.entrantId)
+                : undefined
+            }
             isTBD={op.isTBD}
           />
         ))

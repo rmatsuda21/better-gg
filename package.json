@@ -9,11 +9,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "codegen": "graphql-codegen",
-    "codegen:watch": "graphql-codegen --watch"
+    "codegen:watch": "graphql-codegen --watch",
+    "crawl": "npx tsx scripts/crawl-players.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.166.2",
+    "fuse.js": "^7.1.0",
     "graphql": "^16.13.1",
     "graphql-request": "^7.4.0",
     "react": "^19.2.0",

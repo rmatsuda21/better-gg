@@ -57,7 +57,13 @@ function EventPage() {
             {event.phases.map(
               (phase) =>
                 phase && (
-                  <div key={phase.id} className={styles.phaseItem}>
+                  <Link
+                    key={phase.id}
+                    to="/event/$eventId/phase/$phaseId"
+                    params={{ eventId, phaseId: phase.id! }}
+                    search={{ user }}
+                    className={styles.phaseItem}
+                  >
                     <span className={styles.phaseName}>{phase.name}</span>
                     <span className={styles.phaseMeta}>
                       {phase.bracketType && (
@@ -77,7 +83,7 @@ function EventPage() {
                         </span>
                       )}
                     </span>
-                  </div>
+                  </Link>
                 ),
             )}
           </div>

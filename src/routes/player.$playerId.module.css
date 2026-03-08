@@ -16,29 +16,73 @@
   color: var(--accent-hover);
 }
 
-.playerHeader {
+/* Skeleton loading state */
+.skeletonCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.skeletonContent {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.skeletonRow {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.skeletonInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  padding-top: 0.5rem;
+}
+
+/* Fallback header when profile data unavailable */
+.fallbackHeader {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.gamerTag {
+.fallbackGamerTag {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
 }
 
-.statsGrid {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.section {
+/* Content sections */
+.sectionCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+}
+
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sectionCardAnimated {
+  animation: sectionFadeIn 0.4s ease;
 }
 
 .sectionTitle {

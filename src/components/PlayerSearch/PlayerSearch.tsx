@@ -1,0 +1,150 @@
+import { useState, useRef, useEffect, useCallback } from 'react'
+import type { KeyboardEvent } from 'react'
+import { usePlayerSearch } from '../../hooks/use-player-search'
+import { useCharacters } from '../../hooks/use-characters'
+import { buildCharacterMap } from '../../lib/character-utils'
+import { countryCodeToFlag } from '../../lib/country-utils'
+import { Skeleton } from '../Skeleton/Skeleton'
+import type { PlayerRecord } from '../../lib/player-search-types'
+import styles from './PlayerSearch.module.css'
+
+const ULTIMATE_VIDEOGAME_ID = '1386'
+
+interface PlayerSearchProps {
+  onSelect: (player: PlayerRecord) => void
+}
+
+export function PlayerSearch({ onSelect }: PlayerSearchProps) {
+  const [query, setQuery] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const { results, isLoading } = usePlayerSearch(query)
+  const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
+  const characterMap = buildCharacterMap(charData?.videogame?.characters)
+
+  const showDropdown = isOpen && query.trim().length >= 2
+
+  // Close on click outside
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [])
+
+  const selectPlayer = useCallback(
+    (player: PlayerRecord) => {
+      setIsOpen(false)
+      setQuery('')
+      onSelect(player)
+    },
+    [onSelect],
+  )
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (!showDropdown) return
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex((i) => (i < results.length - 1 ? i + 1 : 0))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex((i) => (i > 0 ? i - 1 : results.length - 1))
+    } else if (e.key === 'Enter' && activeIndex >= 0 && results[activeIndex]) {
+      e.preventDefault()
+      selectPlayer(results[activeIndex])
+    } else if (e.key === 'Escape') {
+      setIsOpen(false)
+      inputRef.current?.blur()
+    }
+  }
+
+  return (
+    <div className={styles.wrapper} ref={wrapperRef}>
+      <input
+        ref={inputRef}
+        className={styles.input}
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setIsOpen(true)
+          setActiveIndex(-1)
+        }}
+        onFocus={() => {
+          if (query.trim().length >= 2) setIsOpen(true)
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder="Search by gamer tag"
+        autoComplete="off"
+      />
+      {showDropdown && (
+        <div className={styles.dropdown}>
+          {isLoading ? (
+            <div className={styles.loadingRows}>
+              {Array.from({ length: 3 }, (_, i) => (
+                <Skeleton key={i} width="100%" height={44} borderRadius={6} />
+              ))}
+            </div>
+          ) : results.length === 0 ? (
+            <div className={styles.emptyMessage}>No players found</div>
+          ) : (
+            results.map((player, index) => (
+              <div
+                key={player.pid}
+                className={`${styles.resultItem} ${index === activeIndex ? styles.active : ''}`}
+                onMouseEnter={() => setActiveIndex(index)}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  selectPlayer(player)
+                }}
+              >
+                <div className={styles.resultLeft}>
+                  <div className={styles.topLine}>
+                    {player.pfx && (
+                      <>
+                        <span className={styles.prefix}>{player.pfx}</span>
+                        <span className={styles.prefix}>|</span>
+                      </>
+                    )}
+                    <span className={styles.gamerTag}>{player.tag}</span>
+                    {player.cc && countryCodeToFlag(player.cc) && (
+                      <span className={styles.flag}>
+                        {countryCodeToFlag(player.cc)}
+                      </span>
+                    )}
+                  </div>
+                  {player.chars.length > 0 && (
+                    <div className={styles.charLine}>
+                      {player.chars.map((ch, ci) => (
+                        <span key={ch.id}>
+                          {ci > 0 && <span className={styles.charSep}> · </span>}
+                          {characterMap.get(ch.id) ?? `Character ${ch.id}`}
+                          {ch.role === 'co-main' && (
+                            <span className={styles.coMain}> (co)</span>
+                          )}
+                          {ch.role === 'secondary' && (
+                            <span className={styles.secondary}> (2nd)</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {player.disc && (
+                  <span className={styles.discriminator}>{player.disc}</span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

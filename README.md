@@ -1,73 +1,88 @@
-# React + TypeScript + Vite
+# better.gg
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern tournament companion for [start.gg](https://start.gg). Search for any player, browse their tournament history, and dive into bracket analysis with projected matchups, head-to-head records, and character usage data.
 
-Currently, two official plugins are available:
+Built for the competitive Smash community.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- **Player search** &mdash; Find players by tag with fuzzy search powered by a pre-crawled dataset
+- **Tournament history** &mdash; View a player's upcoming, active, and past tournaments at a glance
+- **Bracket visualization** &mdash; Interactive bracket trees for single and double elimination events
+- **Projected matchups** &mdash; For unseeded brackets, see who you're likely to face based on seeding
+- **Head-to-head stats** &mdash; Win rates, set counts, and historical results against each opponent
+- **Character data** &mdash; Track character usage across sets with automatic role classification (main, co-main, secondary)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Quick Start
 
-## Expanding the ESLint configuration
+```sh
+# Install dependencies
+npm install
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Add your start.gg API token
+echo "VITE_START_GG_TOKEN=your_token_here" > .env
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Get a token at [start.gg/admin/profile/developer](https://start.gg/admin/profile/developer).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Type-check + production build |
+| `npm run lint` | Run ESLint |
+| `npm run codegen` | Generate GraphQL types from `schema.graphql` |
+| `npm run crawl` | Incremental crawl of start.gg player data |
+
+### Crawl Script
+
+The crawl script builds a local player database for search. It's **incremental** &mdash; each run picks up where the last one left off.
+
+```sh
+npm run crawl                        # Incremental, up to 50 pages
+npm run crawl -- 5                   # Limit to 5 pages
+npm run crawl -- --all               # Full historical crawl
+npm run crawl -- --fresh             # Ignore saved state, start over
+npm run crawl -- --watch             # Daemon mode (runs every 30 min)
+npm run crawl -- --watch 60          # Daemon mode with custom interval
 ```
+
+State is persisted in `public/data/crawl-state.json`. For higher throughput, set multiple API keys:
+
+```sh
+# .env
+START_GG_CRAWL_TOKENS=key1,key2,key3
+```
+
+## Tech Stack
+
+| Layer | Tool |
+|-------|------|
+| Framework | React 19 |
+| Language | TypeScript 5.9 (strict) |
+| Build | Vite 7 |
+| Routing | TanStack Router (file-based) |
+| Data Fetching | TanStack Query + graphql-request |
+| Type Generation | GraphQL Codegen (client-preset) |
+| Styling | CSS Modules |
+
+## Project Structure
+
+```
+src/
+  routes/           File-based routes (auto-generates routeTree.gen.ts)
+  hooks/            React Query hooks, one per GraphQL query
+  components/       UI components, each with a .module.css file
+  lib/              Pure utilities (formatting, stats, bracket math)
+  gql/              Auto-generated GraphQL types (do not edit)
+scripts/
+  crawl-players.ts  Player data crawler with incremental state
+```
+
+## License
+
+MIT

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import type { EventDetailsQuery } from '../../gql/graphql'
 import { formatDateRange } from '../../lib/format'
 import styles from './EventHeader.module.css'
@@ -6,9 +7,10 @@ type EventData = NonNullable<EventDetailsQuery['event']>
 
 interface EventHeaderProps {
   event: EventData
+  eventId?: string
 }
 
-export function EventHeader({ event }: EventHeaderProps) {
+export function EventHeader({ event, eventId }: EventHeaderProps) {
   const tournament = event.tournament
   const profileImage = tournament?.images?.[0]?.url
   const location = [tournament?.city, tournament?.addrState, tournament?.countryCode]
@@ -37,7 +39,13 @@ export function EventHeader({ event }: EventHeaderProps) {
             {tournament.name}
           </a>
         )}
-        <h2 className={styles.eventName}>{event.name}</h2>
+        {eventId ? (
+          <Link to="/event/$eventId" params={{ eventId }} search={{ user: undefined }} className={styles.eventNameLink}>
+            <h2 className={styles.eventName}>{event.name}</h2>
+          </Link>
+        ) : (
+          <h2 className={styles.eventName}>{event.name}</h2>
+        )}
         <div className={styles.meta}>
           {event.videogame?.name && <span>{event.videogame.name}</span>}
           {tournament?.startAt && tournament?.endAt && (

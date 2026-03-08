@@ -1,0 +1,131 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+}
+
+.input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input::placeholder {
+  color: #666;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.15s;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover,
+.resultItem.active {
+  background-color: var(--bg-card);
+}
+
+.resultLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.topLine {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.prefix {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.gamerTag {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.flag {
+  font-size: 0.85rem;
+}
+
+.charLine {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.charSep {
+  color: #555;
+}
+
+.coMain {
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+.secondary {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.discriminator {
+  color: var(--text-secondary);
+  font-family: monospace;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  margin-left: 0.8rem;
+}
+
+.emptyMessage {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.loadingRows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+}

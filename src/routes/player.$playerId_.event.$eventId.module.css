@@ -1,0 +1,32 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notEntered {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  margin: 0;
+}

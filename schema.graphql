@@ -4,14 +4,68 @@ type Query {
   entrant(id: ID): Entrant
   player(id: ID!): Player
   videogame(id: ID, slug: String): Videogame
+  phase(id: ID): Phase
   phaseGroup(id: ID): PhaseGroup
+  tournaments(query: TournamentQuery): TournamentConnection
+}
+
+input TournamentQuery {
+  page: Int
+  perPage: Int
+  sortBy: String
+  filter: TournamentPageFilter
+}
+
+input TournamentPageFilter {
+  past: Boolean
+  upcoming: Boolean
+  videogameIds: [ID]
+  name: String
+  countryCode: String
+  afterDate: Timestamp
+  beforeDate: Timestamp
+}
+
+type TournamentConnection {
+  pageInfo: PageInfo
+  nodes: [Tournament]
+}
+
+type Address {
+  country: String
+  city: String
+  state: String
+}
+
+type ProfileAuthorization {
+  id: ID
+  type: String
+  url: String
+  externalUsername: String
+}
+
+type PlayerRank {
+  rank: Int
+  title: String
 }
 
 type User {
   id: ID
   slug: String
+  name: String
+  bio: String
   player: Player
+  location: Address
+  images(type: String): [Image]
+  authorizations(types: [SocialConnectionType]): [ProfileAuthorization]
   tournaments(query: UserTournamentsPaginationQuery): UserTournamentConnection
+}
+
+enum SocialConnectionType {
+  TWITCH
+  TWITTER
+  DISCORD
+  YOUTUBE
 }
 
 input UserTournamentsPaginationQuery {
@@ -23,6 +77,7 @@ input UserTournamentsPaginationQuery {
 input UserTournamentsPaginationFilter {
   past: Boolean
   upcoming: Boolean
+  videogameId: [ID]
   search: PaginationSearchType
   tournamentView: String
 }
@@ -44,6 +99,10 @@ type PageInfo {
   perPage: Int
 }
 
+input EventFilter {
+  videogameId: [ID]
+}
+
 type Tournament {
   id: ID
   name: String
@@ -57,7 +116,7 @@ type Tournament {
   isOnline: Boolean
   venueName: String
   images(type: String): [Image]
-  events: [Event]
+  events(limit: Int, filter: EventFilter): [Event]
 }
 
 type Event {
@@ -70,6 +129,7 @@ type Event {
   isOnline: Boolean
   tournament: Tournament
   videogame: Videogame
+  userEntrant(userId: ID): Entrant
   entrants(query: EventEntrantPageQuery): EntrantConnection
   sets(page: Int, perPage: Int, sortType: SetSortType, filters: SetFilters): SetConnection
   standings(query: StandingPaginationQuery): StandingConnection
@@ -121,6 +181,7 @@ type Player {
   gamerTag: String
   prefix: String
   user: User
+  rankings(limit: Int, videogameId: ID): [PlayerRank]
   recentStandings(limit: Int, videogameId: ID): [Standing]
   sets(page: Int, perPage: Int): SetConnection
 }
@@ -211,6 +272,12 @@ type Phase {
   groupCount: Int
   numSeeds: Int
   event: Event
+  phaseGroups: PhaseGroupConnection
+}
+
+type PhaseGroupConnection {
+  pageInfo: PageInfo
+  nodes: [PhaseGroup]
 }
 
 type PhaseGroup {

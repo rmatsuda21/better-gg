@@ -54,6 +54,15 @@
   color: var(--text-primary);
 }
 
+.eventNameLink {
+  text-decoration: none;
+  color: inherit;
+}
+
+.eventNameLink:hover .eventName {
+  color: var(--accent);
+}
+
 .meta {
   display: flex;
   flex-wrap: wrap;

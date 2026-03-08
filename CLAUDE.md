@@ -25,12 +25,25 @@ npm run build         # Type-check + build (tsc -b && vite build)
 npm run lint          # ESLint
 npm run codegen       # Run graphql-codegen (reads schema.graphql, outputs to src/gql/)
 npm run codegen:watch # Codegen in watch mode
+npm run crawl         # Incremental crawl, max 50 pages (resumes from state)
+npm run crawl -- 5    # Incremental crawl, max 5 pages
+npm run crawl -- --all    # Fetch ALL available pages (full historical)
+npm run crawl -- --fresh  # Ignore state, start over
+npm run crawl -- --watch  # Daemon mode, 30 min interval
+npm run crawl -- --watch 60  # Daemon mode, custom interval (minutes)
 npx tsc --noEmit      # Type-check only
 ```
 
 ## Environment Variables
 
-- `VITE_START_GG_TOKEN` — start.gg API bearer token (stored in `.env`, gitignored)
+- `VITE_START_GG_TOKEN` — start.gg API bearer token, used by the app and as fallback for the crawl script (stored in `.env`, gitignored)
+- `START_GG_CRAWL_TOKENS` — comma-separated start.gg API tokens for the crawl script. Each key gets its own rate limiter + GraphQL client, distributed via round-robin for N× throughput. Falls back to `VITE_START_GG_TOKEN` if unset.
+
+```
+# .env example
+VITE_START_GG_TOKEN=primary_token
+START_GG_CRAWL_TOKENS=token1,token2,token3
+```
 
 ## Project Structure
 
@@ -42,6 +55,8 @@ better-gg/
   package.json
   tsconfig.json                # References tsconfig.app.json + tsconfig.node.json
   tsconfig.app.json            # App TS config (strict, erasableSyntaxOnly, etc.)
+  scripts/
+    crawl-players.ts           # Incremental crawl start.gg → public/data/players.json + crawl-state.json
   src/
     main.tsx                   # Entry: QueryClientProvider + RouterProvider
     index.css                  # Global styles + CSS custom properties (dark theme)
@@ -63,6 +78,7 @@ better-gg/
       use-event-details.ts     # EventDetails query (by event ID)
       use-user-entrant.ts      # Two-step: resolve gamerTag -> find entrant in event
       use-entrant-sets.ts      # EntrantSets / EntrantPhaseGroupSets (bracket data)
+      use-phase-bracket.ts     # PhaseBracketMeta + PhaseBracketSets (phase-level bracket)
       use-characters.ts        # VideogameCharacters query (cacheable, 24h stale)
       use-opponent-stats.ts    # PlayerStats query (standings + sets + character picks)
     routes/
@@ -70,8 +86,10 @@ better-gg/
       __root.module.css
       index.tsx                # Home: search by discriminator -> tournament list
       index.module.css
-      event.$eventId.tsx       # Event detail: header, phases, opponent analysis
+      event.$eventId.tsx       # Event detail: header, clickable phases, opponent analysis
       event.$eventId.module.css
+      event.$eventId_.phase.$phaseId.tsx       # Phase bracket visualization
+      event.$eventId_.phase.$phaseId.module.css
     components/
       Skeleton/                # Loading placeholder
       ErrorMessage/            # Error display with optional retry
@@ -131,9 +149,14 @@ File-based routing via `@tanstack/react-router`. Routes use `validateSearch` for
 ### Data Flow
 
 1. Home page (`/`): User enters a discriminator -> `useUserTournaments` fetches their tournaments -> categorized into upcoming/current/past
-2. Event page (`/event/$eventId?user=...`): `useEventDetails` loads event info, `useUserEntrant` resolves the user's entrant in that event, `OpponentAnalysis` shows bracket opponents via `useEntrantSets`
-3. Opponent cards can expand to show stats via `useOpponentStats` and character data via `useCharacters`
-4. For CREATED events, each phase group has a **List/Bracket** toggle. Bracket view uses `BracketVisualization` with an **Actual/Projected** sub-toggle. Projected mode fills empty slots by propagating higher-seeded winners through the bracket tree (`bracket-utils.ts`)
+2. Event page (`/event/$eventId?user=...`): `useEventDetails` loads event info, `useUserEntrant` resolves the user's entrant in that event, `OpponentAnalysis` shows bracket opponents via `useEntrantSets`. Phase items are clickable links to the phase bracket route.
+3. Phase bracket page (`/event/$eventId/phase/$phaseId?user=...`): `usePhaseBracket` fetches phase metadata + per-phase-group sets (two query variants: slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). Renders `BracketVisualization` for each phase group. If `?user=` is present, highlights user's path via `useUserEntrant`. `userEntrantId` is optional throughout `BracketVisualization` and `buildBracketData`.
+4. Opponent cards can expand to show stats via `useOpponentStats` and character data via `useCharacters`
+5. For CREATED events, each phase group has a **List/Bracket** toggle. Bracket view uses `BracketVisualization` with an **Actual/Projected** sub-toggle. Projected mode fills empty slots by propagating higher-seeded winners through the bracket tree (`bracket-utils.ts`)
+
+### Crawl Script
+
+The crawl script (`scripts/crawl-players.ts`) is **incremental** — it persists state in `public/data/crawl-state.json` (cursor, processed tournament IDs, raw player data with `Set`/`Map` fields). On subsequent runs it uses `afterDate` (cursor minus 7-day buffer) to skip old tournaments, deduplicates via tournament ID set, and saves state progressively after each page of tournaments. Supports `--fresh` (ignore state), `--all` (full historical), and `--watch` (daemon mode with configurable interval). Graceful shutdown via SIGINT/SIGTERM saves state after current page completes.
 
 ---
 
@@ -725,3 +748,11 @@ All mutations require OAuth. `tournament.reporter` for set reporting, `tournamen
 27. **Hidden bye rounds in DE brackets**: For brackets with byes, `phaseGroup.sets` (without `showByes: true` filter) omits hidden bye rounds (e.g., rounds -1, -2, -3 for a 24-seed DE). These are structural passthrough rounds with no real matches. Visible losers round slots reference them via `prereqId`. To include them, pass `filters: { showByes: true }`, but this significantly increases set count (40 → 88 for a 24-seed pool). Better to trace the bye chain programmatically: hidden round-3[i] → round-2[2i+1] → WR1[2i+1] loser.
 
 28. **WR1 set indices with byes**: In brackets with byes, WR1 set indices are ODD only (1,3,5,...,15 for a 24-seed bracket). Even indices (0,2,4,...) are bye slots for seeded players who skip WR1. WR2 has consecutive indices (0-7) and receives winners from WR1 via prereqs.
+
+29. **`TournamentPageFilter.afterDate` must be omitted, not `null`**: Passing `afterDate: null` in the filter causes the API to return zero results. When no date filter is needed, omit the field entirely from the filter object (use a separate query without the `$afterDate` variable).
+
+30. **`Set.id` and `SetSlot.prereqId` are numbers at runtime**: Despite GraphQL `ID` scalar being typed as `string` by codegen, the start.gg API returns numeric IDs for ACTIVE/COMPLETED event sets (e.g., `12345` not `"12345"`). CREATED events use string preview IDs (`"preview_123_2_1"`). Always wrap with `String()` before calling string methods like `.split()` or using as Map keys. Pattern: `String(set.id ?? '')`.
+
+31. **Query complexity with `seed.entrant`**: Including `slot.entrant` AND `slot.seed.entrant` (both with nested `participants.player`) costs ~17 objects per set — at `perPage: 80` that's ~1360 objects, exceeding the 1000 limit. Split into two query variants: slim (ACTIVE/COMPLETED, omit `seed.entrant`, ~11 obj/set, `perPage: 80`) and full (CREATED, include `seed.entrant`, `perPage: 50`). See `use-phase-bracket.ts` and `use-entrant-sets.ts` for the pattern.
+
+32. **`Address.country` not `countryCode`**: The `Address` type (used by `user.location`) has a `country` field, not `countryCode`. Querying `countryCode` returns `"Cannot query field \"countryCode\" on type \"Address\""`. Use `location { country }` instead.
