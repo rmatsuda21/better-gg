@@ -34,6 +34,7 @@ interface SerializedPlayerData {
 interface CrawlState {
   version: 1
   cursor: number
+  resumeBeforeDate?: number
   processedTournamentIds: string[]
   players: Array<[string, SerializedPlayerData]>
   lastRunAt: string
@@ -220,10 +221,12 @@ function saveState(
   processedTournamentIds: Set<string>,
   cursor: number,
   totalEventsProcessed: number,
+  resumeBeforeDate?: number,
 ): void {
   const state: CrawlState = {
     version: 1,
     cursor,
+    resumeBeforeDate,
     processedTournamentIds: [...processedTournamentIds],
     players: [...players.entries()].map(([pid, data]) => [
       pid,
@@ -568,6 +571,7 @@ async function crawlCycle(
   cursor: number,
   maxPages: number,
   afterDate: number | undefined,
+  resumeBeforeDate: number | undefined,
 ): Promise<{ newCursor: number; newTournaments: number; newEvents: number }> {
   const concurrency = 5 * apiPool.size
   let newCursor = cursor
@@ -575,7 +579,12 @@ async function crawlCycle(
   let totalNewEvents = 0
   let totalEventsProcessed = processedTournamentIds.size // approximate via tournament count
   let totalPagesConsumed = 0
-  let beforeDate: number | undefined
+  let beforeDate: number | undefined = resumeBeforeDate
+  if (resumeBeforeDate != null) {
+    afterDate = undefined
+  }
+  let globalOldestStartAt: number | undefined
+  let completedNaturally = true
 
   // Outer loop: slide date window when API caps pagination (10k result limit)
   let windowNum = 0
@@ -585,10 +594,11 @@ async function crawlCycle(
 
     for (let tPage = 1; ; tPage++) {
       totalPagesConsumed++
-      if (totalPagesConsumed > maxPages) break outer
+      if (totalPagesConsumed > maxPages) { completedNaturally = false; break outer }
 
       if (shuttingDown) {
         console.log('\nShutdown requested, stopping after current page...')
+        completedNaturally = false
         break outer
       }
 
@@ -619,10 +629,15 @@ async function crawlCycle(
         break
       }
 
-      // Track oldest startAt for date windowing
+      // Track oldest startAt for date windowing and resume point
       for (const t of result.nodes) {
-        if (t.startAt != null && (windowOldestStartAt == null || t.startAt < windowOldestStartAt)) {
-          windowOldestStartAt = t.startAt
+        if (t.startAt != null) {
+          if (windowOldestStartAt == null || t.startAt < windowOldestStartAt) {
+            windowOldestStartAt = t.startAt
+          }
+          if (globalOldestStartAt == null || t.startAt < globalOldestStartAt) {
+            globalOldestStartAt = t.startAt
+          }
         }
       }
 
@@ -690,7 +705,7 @@ async function crawlCycle(
 
       // Progressive save after each page
       totalEventsProcessed += pageEvents.length
-      saveState(players, processedTournamentIds, newCursor, totalEventsProcessed)
+      saveState(players, processedTournamentIds, newCursor, totalEventsProcessed, globalOldestStartAt)
     }
 
     // Slide date window to get past API's pagination cap
@@ -703,6 +718,10 @@ async function crawlCycle(
     afterDate = undefined
     console.log(`\nSliding date window → beforeDate: ${new Date(beforeDate * 1000).toISOString().split('T')[0]}`)
   }
+
+  // Final save — clear resume point if completed naturally
+  saveState(players, processedTournamentIds, newCursor, totalEventsProcessed,
+    completedNaturally ? undefined : globalOldestStartAt)
 
   // Write final players.json
   const playerCount = writePlayersJson(players)
@@ -743,6 +762,7 @@ async function main() {
   const processedTournamentIds = state ? new Set(state.processedTournamentIds) : new Set<string>()
   let cursor = state?.cursor ?? 0
   let afterDate = cursor > 0 ? cursor - CURSOR_BUFFER_SECONDS : undefined
+  let resumeBeforeDate = state?.resumeBeforeDate
 
   // Log startup info
   console.log(`Using ${apiPool.size} API key(s) (~${(apiPool.size * 1.3).toFixed(1)} req/s)`)
@@ -750,8 +770,11 @@ async function main() {
   if (state) {
     console.log(`Resuming from state (${processedTournamentIds.size} tournaments, ${players.size} players)`)
     console.log(`  Last run: ${state.lastRunAt}`)
-    const cursorDate = new Date(cursor * 1000).toISOString().split('T')[0]
-    if (afterDate) {
+    if (resumeBeforeDate) {
+      const resumeDate = new Date(resumeBeforeDate * 1000).toISOString().split('T')[0]
+      console.log(`  Continuing from ${resumeDate}`)
+    } else if (afterDate) {
+      const cursorDate = new Date(cursor * 1000).toISOString().split('T')[0]
       const afterDateStr = new Date(afterDate * 1000).toISOString().split('T')[0]
       console.log(`  Cursor: ${cursorDate} (afterDate: ${afterDateStr}, 7d buffer)`)
     }
@@ -767,13 +790,14 @@ async function main() {
   while (true) {
     shuttingDown = false // reset for each cycle in watch mode
 
-    const result = await crawlCycle(players, processedTournamentIds, cursor, maxPages, afterDate)
+    const result = await crawlCycle(players, processedTournamentIds, cursor, maxPages, afterDate, resumeBeforeDate)
 
     // Update cursor for next cycle
     if (result.newCursor > cursor) {
       cursor = result.newCursor
       afterDate = cursor - CURSOR_BUFFER_SECONDS
     }
+    resumeBeforeDate = undefined // next watch cycle starts fresh
 
     if (!isWatch || shuttingDown) break
 
