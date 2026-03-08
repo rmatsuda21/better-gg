@@ -1,4 +1,5 @@
 type Query {
+  currentUser: User
   user(id: ID, slug: String): User
   event(id: ID, slug: String): Event
   entrant(id: ID): Entrant

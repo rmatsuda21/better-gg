@@ -280,31 +280,39 @@ const TOURNAMENT_FIELDS = `
   }
 `
 
-const tournamentsQuery = `
-  query RecentTournaments($perPage: Int!, $page: Int!, $videogameId: ID!) {
-    tournaments(query: {
-      page: $page
-      perPage: $perPage
-      sortBy: "startAt desc"
-      filter: { past: true, videogameIds: [$videogameId] }
-    }) {
-      ${TOURNAMENT_FIELDS}
-    }
-  }
-`
+function buildTournamentsQuery(afterDate?: number, beforeDate?: number): {
+  query: string
+  variables: Record<string, unknown>
+} {
+  const varDecls = ['$perPage: Int!', '$page: Int!', '$videogameId: ID!']
+  const filterFields = ['past: true', 'videogameIds: [$videogameId]']
+  const variables: Record<string, unknown> = { videogameId: ULTIMATE_ID }
 
-const tournamentsAfterDateQuery = `
-  query RecentTournamentsAfterDate($perPage: Int!, $page: Int!, $videogameId: ID!, $afterDate: Timestamp!) {
-    tournaments(query: {
-      page: $page
-      perPage: $perPage
-      sortBy: "startAt desc"
-      filter: { past: true, videogameIds: [$videogameId], afterDate: $afterDate }
-    }) {
-      ${TOURNAMENT_FIELDS}
-    }
+  if (afterDate != null) {
+    varDecls.push('$afterDate: Timestamp!')
+    filterFields.push('afterDate: $afterDate')
+    variables.afterDate = afterDate
   }
-`
+  if (beforeDate != null) {
+    varDecls.push('$beforeDate: Timestamp!')
+    filterFields.push('beforeDate: $beforeDate')
+    variables.beforeDate = beforeDate
+  }
+
+  const query = `
+    query CrawlTournaments(${varDecls.join(', ')}) {
+      tournaments(query: {
+        page: $page
+        perPage: $perPage
+        sortBy: "startAt desc"
+        filter: { ${filterFields.join(', ')} }
+      }) {
+        ${TOURNAMENT_FIELDS}
+      }
+    }
+  `
+  return { query, variables }
+}
 
 // ── Query: Fetch event entrants ──
 
@@ -355,6 +363,7 @@ async function fetchTournaments(
   page: number,
   perPage: number,
   afterDate?: number,
+  beforeDate?: number,
 ): Promise<{
   nodes: Array<{
     id: string
@@ -371,9 +380,9 @@ async function fetchTournaments(
   }> | null
   totalPages: number
 }> {
-  const query = afterDate != null ? tournamentsAfterDateQuery : tournamentsQuery
-  const variables: Record<string, unknown> = { page, perPage, videogameId: ULTIMATE_ID }
-  if (afterDate != null) variables.afterDate = afterDate
+  const { query, variables } = buildTournamentsQuery(afterDate, beforeDate)
+  variables.page = page
+  variables.perPage = perPage
   const data = await apiPool.request<any>(query, variables)
   return {
     nodes: data.tournaments?.nodes,
@@ -565,106 +574,134 @@ async function crawlCycle(
   let newTournaments = 0
   let totalNewEvents = 0
   let totalEventsProcessed = processedTournamentIds.size // approximate via tournament count
+  let totalPagesConsumed = 0
+  let beforeDate: number | undefined
 
-  for (let tPage = 1; tPage <= maxPages; tPage++) {
-    if (shuttingDown) {
-      console.log('\nShutdown requested, stopping after current page...')
-      break
-    }
+  // Outer loop: slide date window when API caps pagination (10k result limit)
+  let windowNum = 0
+  outer: while (true) {
+    windowNum++
+    let windowOldestStartAt: number | undefined
 
-    const pageLabel = maxPages === Infinity ? `${tPage}` : `${tPage}/${maxPages}`
-    console.log(`\nFetching tournament page ${pageLabel}...`)
+    for (let tPage = 1; ; tPage++) {
+      totalPagesConsumed++
+      if (totalPagesConsumed > maxPages) break outer
 
-    let result
-    try {
-      result = await fetchTournaments(tPage, 20, afterDate)
-    } catch (err) {
-      console.warn(`  ⚠ Failed to fetch tournament page ${tPage}:`, (err as Error).message?.slice(0, 120))
-      continue
-    }
-
-    if (!result.nodes || result.nodes.length === 0) {
-      console.log('  No more tournaments.')
-      break
-    }
-
-    // Cap maxPages to actual totalPages from API
-    if (maxPages === Infinity && result.totalPages < Infinity) {
-      // Don't log every page, just the first time
-      if (tPage === 1) {
-        console.log(`  API reports ${result.totalPages} total pages`)
-      }
-    }
-    if (tPage > result.totalPages) {
-      console.log('  Reached last page.')
-      break
-    }
-
-    // Collect new events from this page's tournaments
-    const pageEvents: EventInfo[] = []
-    let allAlreadyProcessed = true
-
-    for (const tournament of result.nodes) {
-      // Track the newest startAt as our cursor
-      if (tournament.startAt && tournament.startAt > newCursor) {
-        newCursor = tournament.startAt
+      if (shuttingDown) {
+        console.log('\nShutdown requested, stopping after current page...')
+        break outer
       }
 
-      if (processedTournamentIds.has(tournament.id)) continue
-      allAlreadyProcessed = false
+      const pageLabel = maxPages === Infinity ? `${totalPagesConsumed}` : `${totalPagesConsumed}/${maxPages}`
+      console.log(`\nFetching tournament page ${pageLabel}...`)
 
-      const ssbuEvents = (tournament.events ?? []).filter(
-        (e) => String(e.videogame?.id) === ULTIMATE_ID && (e.numEntrants ?? 0) > 0,
-      )
-
-      if (ssbuEvents.length === 0) {
-        // Mark tournament as processed even if no qualifying events
-        processedTournamentIds.add(tournament.id)
+      let result
+      try {
+        result = await fetchTournaments(tPage, 20, afterDate, beforeDate)
+      } catch (err) {
+        console.warn(`  ⚠ Failed to fetch tournament page ${tPage}:`, (err as Error).message?.slice(0, 120))
         continue
       }
 
-      processedTournamentIds.add(tournament.id)
-      newTournaments++
+      if (!result.nodes || result.nodes.length === 0) {
+        console.log('  No more tournaments.')
+        break
+      }
 
-      for (const event of ssbuEvents) {
-        pageEvents.push({
-          eventId: event.id,
-          eventName: event.name,
-          numEntrants: event.numEntrants ?? 0,
-          tournamentId: tournament.id,
-          tournamentName: tournament.name,
+      if (tPage === 1) {
+        const windowLabel = beforeDate
+          ? ` (window before ${new Date(beforeDate * 1000).toISOString().split('T')[0]})`
+          : ''
+        console.log(`  API reports ${result.totalPages} total pages${windowLabel}`)
+      }
+      if (tPage > result.totalPages) {
+        console.log('  Reached last page of window.')
+        break
+      }
+
+      // Track oldest startAt for date windowing
+      for (const t of result.nodes) {
+        if (t.startAt != null && (windowOldestStartAt == null || t.startAt < windowOldestStartAt)) {
+          windowOldestStartAt = t.startAt
+        }
+      }
+
+      // Collect new events from this page's tournaments
+      const pageEvents: EventInfo[] = []
+      let allAlreadyProcessed = true
+
+      for (const tournament of result.nodes) {
+        // Track the newest startAt as our cursor
+        if (tournament.startAt && tournament.startAt > newCursor) {
+          newCursor = tournament.startAt
+        }
+
+        if (processedTournamentIds.has(tournament.id)) continue
+        allAlreadyProcessed = false
+
+        const ssbuEvents = (tournament.events ?? []).filter(
+          (e) => String(e.videogame?.id) === ULTIMATE_ID && (e.numEntrants ?? 0) > 0,
+        )
+
+        if (ssbuEvents.length === 0) {
+          // Mark tournament as processed even if no qualifying events
+          processedTournamentIds.add(tournament.id)
+          continue
+        }
+
+        processedTournamentIds.add(tournament.id)
+        newTournaments++
+
+        for (const event of ssbuEvents) {
+          pageEvents.push({
+            eventId: event.id,
+            eventName: event.name,
+            numEntrants: event.numEntrants ?? 0,
+            tournamentId: tournament.id,
+            tournamentName: tournament.name,
+          })
+        }
+      }
+
+      if (allAlreadyProcessed && newTournaments > 0 && maxPages !== Infinity) {
+        console.log(`[Page ${totalPagesConsumed}] All tournaments already processed — caught up!`)
+        break outer
+      }
+
+      if (pageEvents.length > 0) {
+        let completed = 0
+        const pageTotal = pageEvents.length
+        totalNewEvents += pageTotal
+        console.log(`  ${pageTotal} new event(s) to process`)
+
+        const failedTournamentIds = new Set<string>()
+        await processPool(pageEvents, concurrency, async (ev) => {
+          completed++
+          const ok = await processEvent(ev, players, completed, pageTotal)
+          if (!ok) failedTournamentIds.add(ev.tournamentId)
         })
+
+        // Un-mark failed tournaments so they get retried next run
+        for (const id of failedTournamentIds) {
+          processedTournamentIds.delete(id)
+          newTournaments--
+        }
       }
+
+      // Progressive save after each page
+      totalEventsProcessed += pageEvents.length
+      saveState(players, processedTournamentIds, newCursor, totalEventsProcessed)
     }
 
-    if (allAlreadyProcessed && newTournaments > 0) {
-      console.log(`[Page ${tPage}] All tournaments already processed — caught up!`)
-      break
-    }
+    // Slide date window to get past API's pagination cap
+    // Only slide when in --all mode and we exhausted the API's reported pages
+    if (maxPages !== Infinity) break
+    if (!windowOldestStartAt) break
+    if (beforeDate != null && windowOldestStartAt >= beforeDate) break // no progress
 
-    if (pageEvents.length > 0) {
-      let completed = 0
-      const pageTotal = pageEvents.length
-      totalNewEvents += pageTotal
-      console.log(`  ${pageTotal} new event(s) to process`)
-
-      const failedTournamentIds = new Set<string>()
-      await processPool(pageEvents, concurrency, async (ev) => {
-        completed++
-        const ok = await processEvent(ev, players, completed, pageTotal)
-        if (!ok) failedTournamentIds.add(ev.tournamentId)
-      })
-
-      // Un-mark failed tournaments so they get retried next run
-      for (const id of failedTournamentIds) {
-        processedTournamentIds.delete(id)
-        newTournaments--
-      }
-    }
-
-    // Progressive save after each page
-    totalEventsProcessed += pageEvents.length
-    saveState(players, processedTournamentIds, newCursor, totalEventsProcessed)
+    beforeDate = windowOldestStartAt
+    afterDate = undefined
+    console.log(`\nSliding date window → beforeDate: ${new Date(beforeDate * 1000).toISOString().split('T')[0]}`)
   }
 
   // Write final players.json

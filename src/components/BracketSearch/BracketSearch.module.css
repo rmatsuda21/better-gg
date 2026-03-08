@@ -1,0 +1,139 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  padding-right: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.clearBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.clearBtn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-elevated);
+  animation: scaleIn 0.2s var(--ease-out-expo);
+}
+
+.dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dropdown::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 2px;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color var(--duration-fast), border-left var(--duration-fast);
+  border-left: 2px solid transparent;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover,
+.resultItem.active {
+  background-color: var(--accent-subtle);
+  border-left-color: var(--accent);
+}
+
+.seedNum {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.entrantName {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prefix {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.poolBadge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--accent);
+  background-color: var(--accent-subtle);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.emptyMessage {
+  padding: 0.8rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}

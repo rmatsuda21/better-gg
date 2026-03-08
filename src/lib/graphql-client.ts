@@ -1,10 +1,15 @@
 import { GraphQLClient } from 'graphql-request'
+import { getEffectiveToken } from './auth'
 
 export const graphqlClient = new GraphQLClient(
   'https://api.start.gg/gql/alpha',
   {
-    headers: {
-      Authorization: `Bearer ${import.meta.env.VITE_START_GG_TOKEN}`,
-    },
+    requestMiddleware: (request) => ({
+      ...request,
+      headers: {
+        ...request.headers,
+        Authorization: `Bearer ${getEffectiveToken()}`,
+      },
+    }),
   }
 )

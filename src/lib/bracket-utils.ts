@@ -22,6 +22,8 @@ export interface BracketSet {
   prereqs: [SlotPrereq | null, SlotPrereq | null]
   winnerId: string | null
   isUserSet: boolean
+  scores: [string | null, string | null]
+  isDQ: boolean
 }
 
 export interface BracketRound {
@@ -60,7 +62,7 @@ function resolveEntrantInfo(slot: SlotNode | null | undefined): BracketEntrant |
   const ent = resolveEntrant(slot)
   if (!ent?.id) return null
   return {
-    id: ent.id,
+    id: String(ent.id),
     name: ent.name ?? 'Unknown',
     seedNum: slot?.seed?.seedNum ?? ent.initialSeedNum ?? null,
     isProjected: false,
@@ -74,6 +76,18 @@ function extractPrereq(slot: SlotNode | null | undefined): SlotPrereq | null {
     prereqPlacement: slot.prereqPlacement ?? null,
     prereqType: slot.prereqType ?? null,
   }
+}
+
+function parseSlotScores(displayScore: string | null | undefined): { scores: [string | null, string | null]; isDQ: boolean } {
+  if (!displayScore) return { scores: [null, null], isDQ: false }
+  if (displayScore === 'DQ') return { scores: [null, null], isDQ: true }
+
+  const halves = displayScore.split(' - ')
+  if (halves.length !== 2) return { scores: [null, null], isDQ: false }
+
+  const score0 = halves[0].trim().split(/\s+/).pop() ?? null
+  const score1 = halves[1].trim().split(/\s+/).pop() ?? null
+  return { scores: [score0, score1], isDQ: score0 === 'DQ' || score1 === 'DQ' }
 }
 
 export function buildBracketData(
@@ -102,6 +116,7 @@ export function buildBracketData(
       byRound.get(signedRound)!.push(set)
     }
     for (const [signedRound, sets] of byRound) {
+      sets.sort((a, b) => Number(a.id) - Number(b.id))
       sets.forEach((set, index) => {
         parsedSets.push({ set, round: Math.abs(signedRound), index })
       })
@@ -133,6 +148,7 @@ export function buildBracketData(
         const p0 = extractPrereq(set.slots?.[0])
         const p1 = extractPrereq(set.slots?.[1])
         const involvesUser = e0?.id === userEntrantId || e1?.id === userEntrantId
+        const { scores, isDQ } = parseSlotScores(set.displayScore)
 
         return {
           id: String(set.id!),
@@ -143,11 +159,22 @@ export function buildBracketData(
           prereqs: [p0, p1],
           winnerId: set.winnerId != null ? String(set.winnerId) : null,
           isUserSet: involvesUser,
+          scores,
+          isDQ,
         }
       })
 
-      const label = sets[0]?.fullRoundText ?? null
-      rounds.push({ round: roundNum, label, sets })
+      // Group sets by fullRoundText to split GF / GF Reset into separate columns
+      const byLabel = new Map<string, BracketSet[]>()
+      for (const s of sets) {
+        const key = s.fullRoundText ?? ''
+        if (!byLabel.has(key)) byLabel.set(key, [])
+        byLabel.get(key)!.push(s)
+      }
+      for (const [, group] of byLabel) {
+        const label = group[0]?.fullRoundText ?? null
+        rounds.push({ round: roundNum, label, sets: group })
+      }
     }
 
     return rounds
@@ -243,6 +270,41 @@ function resolvePrereq(
   }
 
   return null
+}
+
+export interface BracketEntrantInfo {
+  entrantId: string
+  name: string
+  seedNum: number | null
+  prefix: string | null
+  phaseGroupId: string
+  poolLabel: string | null
+}
+
+export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[]): BracketEntrantInfo[] {
+  const seen = new Map<string, BracketEntrantInfo>()
+
+  for (const pg of phaseGroups) {
+    for (const set of pg.allSets) {
+      for (const slot of set.slots ?? []) {
+        const entrant = slot?.entrant ?? slot?.seed?.entrant
+        if (!entrant?.id) continue
+        const id = String(entrant.id)
+        if (seen.has(id)) continue
+
+        seen.set(id, {
+          entrantId: id,
+          name: entrant.name ?? 'Unknown',
+          seedNum: slot?.seed?.seedNum ?? entrant.initialSeedNum ?? null,
+          prefix: entrant.participants?.[0]?.prefix ?? null,
+          phaseGroupId: pg.phaseGroupId,
+          poolLabel: pg.displayIdentifier,
+        })
+      }
+    }
+  }
+
+  return [...seen.values()].sort((a, b) => (a.seedNum ?? Infinity) - (b.seedNum ?? Infinity))
 }
 
 /**

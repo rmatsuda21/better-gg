@@ -1,68 +1,58 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
-import type { EntrantPhaseGroupSetsQuery } from '../gql/graphql'
+import type { PhaseGroupSetsCreatedQuery } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
 
-// Used for CREATED events (many null slots = low object count per set)
-const entrantPhaseGroupSetsQuery = graphql(`
-  query EntrantPhaseGroupSets($entrantId: ID!, $perPage: Int!) {
-    entrant(id: $entrantId) {
+// Per-phase-group sets for CREATED events (step 2)
+// Includes seed.entrant (slot.entrant may be null for unseeded brackets)
+const phaseGroupSetsCreatedQuery = graphql(`
+  query PhaseGroupSetsCreated($phaseGroupId: ID!, $entrantId: ID!, $page: Int!, $perPage: Int!) {
+    phaseGroup(id: $phaseGroupId) {
       id
-      name
-      initialSeedNum
-      seeds {
-        id
-        seedNum
-        phaseGroup {
+      sets(page: $page, perPage: $perPage, sortType: ROUND) {
+        pageInfo {
+          total
+          totalPages
+        }
+        nodes {
           id
-          displayIdentifier
-          phase {
+          state
+          round
+          fullRoundText
+          displayScore(mainEntrantId: $entrantId)
+          winnerId
+          completedAt
+          slots {
             id
-            name
-            phaseOrder
-          }
-          sets(page: 1, perPage: $perPage, sortType: ROUND) {
-            nodes {
+            prereqType
+            prereqId
+            prereqPlacement
+            entrant {
               id
-              state
-              round
-              fullRoundText
-              displayScore(mainEntrantId: $entrantId)
-              winnerId
-              completedAt
-              slots {
+              name
+              initialSeedNum
+              participants {
                 id
-                prereqType
-                prereqId
-                prereqPlacement
-                entrant {
+                gamerTag
+                prefix
+                player {
                   id
-                  name
-                  initialSeedNum
-                  participants {
-                    id
-                    gamerTag
-                    prefix
-                    player {
-                      id
-                    }
-                  }
                 }
-                seed {
+              }
+            }
+            seed {
+              id
+              seedNum
+              entrant {
+                id
+                name
+                initialSeedNum
+                participants {
                   id
-                  seedNum
-                  entrant {
+                  gamerTag
+                  prefix
+                  player {
                     id
-                    name
-                    initialSeedNum
-                    participants {
-                      id
-                      gamerTag
-                      prefix
-                      player {
-                        id
-                      }
-                    }
                   }
                 }
               }
@@ -146,12 +136,9 @@ const phaseGroupSetsQuery = graphql(`
   }
 `)
 
-type SeedNode = NonNullable<
-  NonNullable<EntrantPhaseGroupSetsQuery['entrant']>['seeds']
->[number]
 type PhaseGroupSetNode = NonNullable<
   NonNullable<
-    NonNullable<NonNullable<SeedNode>['phaseGroup']>['sets']
+    NonNullable<PhaseGroupSetsCreatedQuery['phaseGroup']>['sets']
   >['nodes']
 >[number]
 
@@ -211,7 +198,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
             // Fetch page 1
             const firstPage = await graphqlClient.request(phaseGroupSetsQuery, {
-              phaseGroupId: pgId, entrantId: entrantId!, page: 1, perPage: 80,
+              phaseGroupId: pgId, entrantId: entrantId!, page: 1, perPage: 50,
             })
             const allNodes = [...(firstPage.phaseGroup?.sets?.nodes ?? [])]
 
@@ -221,7 +208,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
               const remaining = await Promise.all(
                 Array.from({ length: totalPages - 1 }, (_, i) =>
                   graphqlClient.request(phaseGroupSetsQuery, {
-                    phaseGroupId: pgId, entrantId: entrantId!, page: i + 2, perPage: 80,
+                    phaseGroupId: pgId, entrantId: entrantId!, page: i + 2, perPage: 50,
                   })
                 )
               )
@@ -286,23 +273,61 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
         } satisfies EntrantSetsResult
       }
 
-      // CREATED: single query with perPage: 128 (many null slots = low object count)
-      const result = await graphqlClient.request(entrantPhaseGroupSetsQuery, {
+      // CREATED: two-step fetch (same pattern as ACTIVE) but with seed.entrant included
+      // Step 1: lightweight seed/phase group metadata
+      const seedsResult = await graphqlClient.request(entrantSeedsQuery, {
         entrantId: entrantId!,
-        perPage: 128,
       })
 
+      const seeds = seedsResult.entrant?.seeds ?? []
+      const seenPgIds2 = new Set<string>()
+      const uniqueSeeds2 = seeds.filter(s => {
+        if (!s?.phaseGroup?.id || seenPgIds2.has(s.phaseGroup.id)) return false
+        seenPgIds2.add(s.phaseGroup.id)
+        return true
+      })
+
+      // Step 2: fetch sets per phase group in parallel (with seed.entrant, perPage: 50)
+      const pgResults2 = await Promise.all(
+        uniqueSeeds2.map(async (seed) => {
+          const pgId = seed!.phaseGroup!.id!
+          const pg = seed!.phaseGroup!
+
+          // Fetch page 1
+          const firstPage = await graphqlClient.request(phaseGroupSetsCreatedQuery, {
+            phaseGroupId: pgId, entrantId: entrantId!, page: 1, perPage: 50,
+          })
+          const allNodes = [...(firstPage.phaseGroup?.sets?.nodes ?? [])]
+
+          // Paginate if needed
+          const totalPages = firstPage.phaseGroup?.sets?.pageInfo?.totalPages ?? 1
+          if (totalPages > 1) {
+            const remaining = await Promise.all(
+              Array.from({ length: totalPages - 1 }, (_, i) =>
+                graphqlClient.request(phaseGroupSetsCreatedQuery, {
+                  phaseGroupId: pgId, entrantId: entrantId!, page: i + 2, perPage: 50,
+                })
+              )
+            )
+            for (const r of remaining) {
+              allNodes.push(...(r.phaseGroup?.sets?.nodes ?? []))
+            }
+          }
+
+          return { seed: seed!, pg, nodes: allNodes }
+        })
+      )
+
+      // Step 3: build PhaseGroupInfo[] from results
       const seenIds = new Set<string>()
       const allSets: Array<NonNullable<PhaseGroupSetNode>> = []
       const phaseGroups: PhaseGroupInfo[] = []
 
-      for (const seed of result.entrant?.seeds ?? []) {
-        const pg = seed?.phaseGroup
-        if (!pg?.id) continue
-
+      for (const { seed, pg, nodes } of pgResults2) {
         const allPgSets: Array<NonNullable<PhaseGroupSetNode>> = []
         const pgSets: Array<NonNullable<PhaseGroupSetNode>> = []
-        for (const node of pg.sets?.nodes ?? []) {
+
+        for (const node of nodes) {
           if (!node?.id || seenIds.has(node.id)) continue
           seenIds.add(node.id)
           allPgSets.push(node)
@@ -315,11 +340,11 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
         if (pgSets.length > 0) {
           phaseGroups.push({
-            phaseGroupId: pg.id,
+            phaseGroupId: pg.id!,
             displayIdentifier: pg.displayIdentifier ?? null,
             phaseName: pg.phase?.name ?? null,
             phaseOrder: pg.phase?.phaseOrder ?? null,
-            userSeedNum: seed?.seedNum ?? null,
+            userSeedNum: seed.seedNum ?? null,
             sets: pgSets,
             allSets: allPgSets,
           })
@@ -330,9 +355,9 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
       return {
         entrant: {
-          id: result.entrant?.id,
-          name: result.entrant?.name,
-          initialSeedNum: result.entrant?.initialSeedNum,
+          id: seedsResult.entrant?.id,
+          name: seedsResult.entrant?.name,
+          initialSeedNum: seedsResult.entrant?.initialSeedNum,
           paginatedSets: {
             pageInfo: { total: allSets.length, totalPages: 1 },
             nodes: allSets,

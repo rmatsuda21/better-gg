@@ -27,7 +27,7 @@ const phaseBracketMetaQuery = graphql(`
 `)
 
 // ACTIVE/COMPLETED: slot.entrant is always populated, no need for seed.entrant
-// ~11 objects per set → perPage: 80 stays under 1000 object limit
+// ~11 objects per set → perPage: 50 stays under 1000 object limit
 const phaseBracketSetsActiveQuery = graphql(`
   query PhaseBracketSetsActive($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
     phaseGroup(id: $phaseGroupId) {
@@ -193,7 +193,7 @@ export function usePhaseBracket(phaseId: string) {
       const pgNodes = phase.phaseGroups?.nodes ?? []
       const isStarted = phase.event?.state === 'ACTIVE' || phase.event?.state === 'COMPLETED'
       const query = isStarted ? phaseBracketSetsActiveQuery : phaseBracketSetsCreatedQuery
-      const perPage = isStarted ? 80 : 50
+      const perPage = 50
 
       // Step 2: fetch sets per phase group in parallel
       const pgResults = await Promise.all(

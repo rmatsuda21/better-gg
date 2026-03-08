@@ -9,14 +9,27 @@
 }
 
 .header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   animation: fadeInUp 0.5s var(--ease-out-expo);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
 }
 
 .title {
   font-size: 1.6rem;
   font-weight: 700;
-  margin: 0 0 0.25rem;
+  margin: 0;
   letter-spacing: -0.02em;
   background: var(--gradient-accent);
   background-size: 200% 200%;
@@ -36,8 +49,21 @@
   filter: drop-shadow(0 0 8px var(--accent-glow));
 }
 
-.subtitle {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin: 0;
+.connectButton {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.connectButton:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  box-shadow: 0 0 12px var(--accent-glow);
 }

@@ -36,13 +36,18 @@ npx tsc --noEmit      # Type-check only
 
 ## Environment Variables
 
-- `VITE_START_GG_TOKEN` — start.gg API bearer token, used by the app and as fallback for the crawl script (stored in `.env`, gitignored)
+- `VITE_START_GG_TOKEN` — start.gg API bearer token, used by the app as fallback when no user is logged in, and as fallback for the crawl script (stored in `.env`, gitignored)
 - `START_GG_CRAWL_TOKENS` — comma-separated start.gg API tokens for the crawl script. Each key gets its own rate limiter + GraphQL client, distributed via round-robin for N× throughput. Falls back to `VITE_START_GG_TOKEN` if unset.
+- `VITE_START_GG_CLIENT_ID` — start.gg OAuth app client ID (exposed to browser for authorize redirect)
+- `START_GG_CLIENT_ID` — same client ID, read by the auth proxy server-side (falls back to `VITE_START_GG_CLIENT_ID`)
+- `START_GG_CLIENT_SECRET` — start.gg OAuth app client secret (server-side only, NOT prefixed with `VITE_`)
 
 ```
 # .env example
 VITE_START_GG_TOKEN=primary_token
 START_GG_CRAWL_TOKENS=token1,token2,token3
+VITE_START_GG_CLIENT_ID=your_oauth_client_id
+START_GG_CLIENT_SECRET=your_oauth_client_secret
 ```
 
 ## Project Structure
@@ -66,14 +71,19 @@ better-gg/
       graphql.ts               #   Generated types
       fragment-masking.ts      #   Fragment utilities
       index.ts                 #   Re-exports
+    server/
+      auth-proxy.ts            # Vite plugin: dev-server middleware for OAuth token exchange
     lib/
-      graphql-client.ts        # graphql-request client singleton
+      auth.ts                  # Auth store (localStorage, tokens, useSyncExternalStore API)
+      graphql-client.ts        # graphql-request client singleton (dynamic token via auth store)
       tournament-utils.ts      # categorizeTournaments (upcoming/current/past)
       stats-utils.ts           # computeWinRate, computeCharacterUsage, computeHeadToHead
       character-utils.ts       # buildCharacterMap (numeric ID -> name)
       bracket-utils.ts         # buildBracketData, buildProjectedResults (bracket tree + seed projection)
       format.ts                # formatDate, formatPlacement, formatWinRate, formatDateRange
     hooks/
+      use-auth.ts              # React auth hook (useSyncExternalStore wrapper)
+      use-current-user.ts      # CurrentUser GraphQL query (OAuth-authenticated)
       use-user-tournaments.ts  # UserTournaments query (by user slug)
       use-event-details.ts     # EventDetails query (by event ID)
       use-user-entrant.ts      # Two-step: resolve gamerTag -> find entrant in event
@@ -82,10 +92,12 @@ better-gg/
       use-characters.ts        # VideogameCharacters query (cacheable, 24h stale)
       use-opponent-stats.ts    # PlayerStats query (standings + sets + character picks)
     routes/
-      __root.tsx               # Root layout (header + outlet)
+      __root.tsx               # Root layout (header with auth controls + outlet)
       __root.module.css
-      index.tsx                # Home: search by discriminator -> tournament list
+      index.tsx                # Home: hero landing (logged out) / dashboard (logged in)
       index.module.css
+      auth.callback.tsx        # OAuth callback (code → token exchange)
+      auth.callback.module.css
       event.$eventId.tsx       # Event detail: header, clickable phases, opponent analysis
       event.$eventId.module.css
       event.$eventId_.phase.$phaseId.tsx       # Phase bracket visualization
@@ -93,6 +105,8 @@ better-gg/
     components/
       Skeleton/                # Loading placeholder
       ErrorMessage/            # Error display with optional retry
+      LoginModal/              # OAuth login modal
+      UserMenu/                # Authenticated user dropdown menu
       TournamentSection/       # Collapsible tournament list grouped by status
       TournamentCard/          # Single tournament card
       EventHeader/             # Event info banner
@@ -146,17 +160,39 @@ Every component has a `.module.css` file. Use CSS custom properties from `index.
 
 File-based routing via `@tanstack/react-router`. Routes use `validateSearch` for URL search params (e.g., `?user=97bc50e1`). The route tree is auto-generated into `src/routeTree.gen.ts`.
 
+### Authentication (OAuth)
+
+Users can authenticate via start.gg OAuth to automatically load their tournaments. The auth system uses a plain TypeScript store (`src/lib/auth.ts`) with `useSyncExternalStore` — no React Context needed. The GraphQL client reads the token per-request via `requestMiddleware`, falling back to `VITE_START_GG_TOKEN` when no user is logged in.
+
+OAuth flow: user clicks "Login with start.gg" → redirect to `start.gg/oauth/authorize` → user authorizes → redirect to `/auth/callback?code=...` → client POSTs code to `/api/auth/token` (Vite dev middleware proxy) → proxy exchanges code for tokens using `client_secret` → tokens stored in localStorage → `currentUser` query fetches profile.
+
+For production, the `/api/auth/token` and `/api/auth/refresh` endpoints need to be deployed as serverless functions (same logic as `src/server/auth-proxy.ts`).
+
 ### Data Flow
 
-1. Home page (`/`): User enters a discriminator -> `useUserTournaments` fetches their tournaments -> categorized into upcoming/current/past
+1. Home page (`/`): Logged-out users see a hero landing page with feature highlights and player search. Logged-in users see their tournaments auto-loaded via their discriminator. Both can search other players.
 2. Event page (`/event/$eventId?user=...`): `useEventDetails` loads event info, `useUserEntrant` resolves the user's entrant in that event, `OpponentAnalysis` shows bracket opponents via `useEntrantSets`. Phase items are clickable links to the phase bracket route.
 3. Phase bracket page (`/event/$eventId/phase/$phaseId?user=...`): `usePhaseBracket` fetches phase metadata + per-phase-group sets (two query variants: slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). Renders `BracketVisualization` for each phase group. If `?user=` is present, highlights user's path via `useUserEntrant`. `userEntrantId` is optional throughout `BracketVisualization` and `buildBracketData`.
 4. Opponent cards can expand to show stats via `useOpponentStats` and character data via `useCharacters`
 5. For CREATED events, each phase group has a **List/Bracket** toggle. Bracket view uses `BracketVisualization` with an **Actual/Projected** sub-toggle. Projected mode fills empty slots by propagating higher-seeded winners through the bracket tree (`bracket-utils.ts`)
 
+### Bracket Tree Positioning
+
+`BracketVisualization.tsx` uses `computeTreePositions()` to assign CSS Grid row spans to each set based on prereq-tree leaf counts. Key design rules:
+
+1. **Phantom/bye slots must not consume leaf space when real local feeders exist.** In `getLeafCount()`, only local feeders (prereqs present in the current section's `setById` map) contribute to the leaf count — external feeders, byes, and missing prereqs are ignored. In `assignPositions()`, the full span is distributed only among real feeders. The `if (!hasLocalFeeder) total = 1` fallback handles leaf sets (no local feeders at all). Without this, R2 sets with one R1 feeder + a bye show a gap above the R1 set.
+
+2. **Prereqs must be deduplicated by set ID.** Grand Finals Reset (GFR) has both prereq slots pointing to the same Grand Finals set (slot 0 = GF winner, slot 1 = GF loser). Without deduplication, `getLeafCount()` double-counts GF's subtree, `assignPositions()` creates two feeders causing the second DFS to overwrite positions from the first (pushing all sets to the bottom half), and the connector renderer draws a merge connector instead of a straight one. All three prereq loops in `computeTreePositions()` and the connector rendering logic use a `Set<string>` to skip already-seen prereq IDs.
+
+### Grand Finals Reset Column
+
+In DE brackets, Grand Finals (GF) and Grand Finals Reset (GFR) share the same `round` number from the start.gg API. `buildRounds()` in `bracket-utils.ts` groups sets by `fullRoundText` within each round number — if sets have different labels (e.g., "Grand Final" vs "Grand Final Reset"), they are split into separate `BracketRound` entries so each gets its own grid column. When all sets in a round share the same label, behavior is unchanged. Connectors work automatically because they use `prereqId` references, not round index assumptions.
+
 ### Crawl Script
 
-The crawl script (`scripts/crawl-players.ts`) is **incremental** — it persists state in `public/data/crawl-state.json` (cursor, processed tournament IDs, raw player data with `Set`/`Map` fields). On subsequent runs it uses `afterDate` (cursor minus 7-day buffer) to skip old tournaments, deduplicates via tournament ID set, and saves state progressively after each page of tournaments. Supports `--fresh` (ignore state), `--all` (full historical), and `--watch` (daemon mode with configurable interval). Graceful shutdown via SIGINT/SIGTERM saves state after current page completes.
+The crawl script (`scripts/crawl-players.ts`) is **incremental** — it persists state in `public/data/crawl-state.json` (cursor, processed tournament IDs, raw player data with `Set`/`Map` fields). On subsequent runs it uses `afterDate` (cursor minus 7-day buffer) to skip old tournaments, deduplicates via tournament ID set, and saves state progressively after each page of tournaments. Supports `--fresh` (ignore state), `--all` (full historical with date windowing), and `--watch` (daemon mode with configurable interval). Graceful shutdown via SIGINT/SIGTERM saves state after current page completes.
+
+In `--all` mode, the crawl uses **date windowing** to work around the start.gg API's undocumented 10,000 result pagination cap. After exhausting all reported pages in a window, it slides `beforeDate` to the oldest `startAt` seen and restarts from page 1. This continues until no new tournaments are found. Tournament deduplication via `processedTournamentIds` handles overlap between windows.
 
 ---
 
@@ -756,3 +792,5 @@ All mutations require OAuth. `tournament.reporter` for set reporting, `tournamen
 31. **Query complexity with `seed.entrant`**: Including `slot.entrant` AND `slot.seed.entrant` (both with nested `participants.player`) costs ~17 objects per set — at `perPage: 80` that's ~1360 objects, exceeding the 1000 limit. Split into two query variants: slim (ACTIVE/COMPLETED, omit `seed.entrant`, ~11 obj/set, `perPage: 80`) and full (CREATED, include `seed.entrant`, `perPage: 50`). See `use-phase-bracket.ts` and `use-entrant-sets.ts` for the pattern.
 
 32. **`Address.country` not `countryCode`**: The `Address` type (used by `user.location`) has a `country` field, not `countryCode`. Querying `countryCode` returns `"Cannot query field \"countryCode\" on type \"Address\""`. Use `location { country }` instead.
+
+33. **Undocumented 10,000 result pagination cap**: The API silently caps paginated results at 10,000 total items. With `perPage: 20`, this means `totalPages` maxes out around 500, but in practice the reported `totalPages` may be even lower depending on filters. Workaround: use `afterDate`/`beforeDate` to create date windows that each stay under the cap. The crawl script implements this as automatic date windowing in `--all` mode.

@@ -1,3 +1,135 @@
+/* Hero section */
+.hero {
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem 0 1rem;
+  animation: fadeInUp 0.5s var(--ease-out-expo);
+}
+
+.heroTitle {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.heroAccent {
+  background: var(--gradient-accent);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 8s ease infinite;
+}
+
+.heroSub {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.heroCta {
+  padding: 0.7rem 2rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.heroCta:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--accent-glow);
+}
+
+.heroCta:active {
+  transform: translateY(0);
+}
+
+/* Feature cards */
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.featureCard {
+  padding: 1.25rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  text-align: center;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.featureCard:hover {
+  border-color: var(--border-medium);
+  background: var(--gradient-card-hover);
+}
+
+.featureIcon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 0.75rem;
+  border-radius: 10px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.featureTitle {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.featureDesc {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Welcome bar (logged in) */
+.welcomeBar {
+  width: 100%;
+  animation: fadeInUp 0.4s var(--ease-out-expo);
+}
+
+.welcomeTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.backLink {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--duration-fast);
+}
+
+.backLink:hover {
+  color: var(--accent-hover);
+}
+
+/* Search section */
 .searchSection {
   display: flex;
   flex-direction: column;
@@ -6,6 +138,45 @@
   max-width: 480px;
   margin-bottom: 1rem;
   animation: fadeInUp 0.4s var(--ease-out-expo);
+}
+
+.searchHeading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.searchToggle {
+  width: 100%;
+  max-width: 480px;
+}
+
+.searchToggleButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  transition: color var(--duration-fast);
+}
+
+.searchToggleButton:hover {
+  color: var(--text-primary);
+}
+
+.toggleChevron {
+  transition: transform var(--duration-fast);
+}
+
+.toggleChevronOpen {
+  transform: rotate(180deg);
 }
 
 .sectionLabel {
@@ -78,6 +249,7 @@
   box-shadow: none;
 }
 
+/* Tournament list */
 .list {
   display: flex;
   flex-direction: column;
@@ -94,4 +266,29 @@
   text-align: center;
   color: var(--text-secondary);
   padding: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+  .features {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .featureCard {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: left;
+    padding: 1rem;
+  }
+
+  .featureIcon {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .heroTitle {
+    font-size: 1.3rem;
+  }
 }
