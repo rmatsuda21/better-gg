@@ -1,7 +1,7 @@
 .app {
-  max-width: 720px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 2rem 1.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,12 +10,21 @@
 
 .header {
   text-align: center;
+  animation: fadeInUp 0.5s var(--ease-out-expo);
 }
 
 .title {
   font-size: 1.6rem;
   font-weight: 700;
   margin: 0 0 0.25rem;
+  letter-spacing: -0.02em;
+  background: var(--gradient-accent);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 8s ease infinite;
+  transition: filter var(--duration-normal);
 }
 
 .titleLink {
@@ -24,7 +33,7 @@
 }
 
 .titleLink:hover .title {
-  color: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent-glow));
 }
 
 .subtitle {

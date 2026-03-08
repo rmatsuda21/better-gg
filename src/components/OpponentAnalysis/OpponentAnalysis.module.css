@@ -16,13 +16,14 @@
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }
 
 .userSeed {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--accent);
+  font-family: var(--font-mono);
 }
 
 .phaseGroup {
@@ -48,15 +49,18 @@
 .seedBadge {
   font-size: 0.75rem;
   font-weight: 500;
+  font-family: var(--font-mono);
   color: var(--accent);
-  background-color: color-mix(in srgb, var(--accent) 15%, transparent);
+  background-color: var(--accent-subtle);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
 
 .currentSet {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid;
+  border-image: var(--gradient-accent) 1;
   border-radius: 8px;
+  box-shadow: -2px 0 8px var(--accent-glow);
 }
 
 .empty {
@@ -99,8 +103,9 @@
   display: flex;
   gap: 2px;
   margin-left: auto;
-  background: var(--bg-primary);
-  border-radius: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
   padding: 2px;
 }
 
@@ -113,7 +118,7 @@
   font-size: 0.7rem;
   font-family: inherit;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color var(--duration-fast), color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .viewToggleBtn:hover {
@@ -121,6 +126,7 @@
 }
 
 .viewToggleBtnActive {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 8px var(--accent-glow);
 }

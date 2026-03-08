@@ -3,14 +3,22 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 8px;
-  background-color: var(--bg-card);
+  background-color: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border-subtle);
-  border-left: 3px solid var(--border-subtle);
-  transition: border-color 0.2s;
+  border-left: 4px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--duration-fast), border-color var(--duration-fast), box-shadow var(--duration-fast), background var(--duration-fast);
+  animation: fadeInUp 0.4s var(--ease-out-expo) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms);
 }
 
 .card:hover {
-  border-color: #3a3a3a;
+  transform: translateY(-2px);
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-elevated);
+  background: var(--gradient-card-hover), rgba(18, 18, 26, 0.6);
 }
 
 .accentCurrent {
@@ -32,6 +40,11 @@
   object-fit: cover;
   flex-shrink: 0;
   background-color: var(--bg-elevated);
+  transition: transform var(--duration-normal);
+}
+
+.card:hover .image {
+  transform: scale(1.05);
 }
 
 .imagePlaceholder {
@@ -43,7 +56,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 1.8rem;
 }
 
@@ -63,6 +76,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--duration-fast);
 }
 
 .name:hover {
@@ -93,14 +107,16 @@
   font-size: 0.75rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background-color: #2a2a3a;
-  color: #aaa;
+  background-color: var(--accent-subtle);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  color: var(--text-secondary);
   white-space: nowrap;
   text-decoration: none;
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color var(--duration-fast), color var(--duration-fast), transform var(--duration-fast);
 }
 
 .eventPill:hover {
-  background-color: #3a3a5a;
+  background-color: rgba(99, 102, 241, 0.2);
   color: var(--accent);
+  transform: translateY(-1px);
 }

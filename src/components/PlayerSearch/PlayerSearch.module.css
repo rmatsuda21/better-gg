@@ -8,21 +8,22 @@
   width: 100%;
   padding: 0.65rem 0.9rem;
   border-radius: 8px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-medium);
   background-color: var(--bg-card);
   color: var(--text-primary);
   font-size: 0.95rem;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .input::placeholder {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .dropdown {
@@ -32,11 +33,21 @@
   right: 0;
   z-index: 100;
   background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
   max-height: 400px;
   overflow-y: auto;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-elevated);
+  animation: scaleIn 0.2s var(--ease-out-expo);
+}
+
+.dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dropdown::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 2px;
 }
 
 .resultItem {
@@ -46,7 +57,8 @@
   padding: 0.6rem 0.8rem;
   cursor: pointer;
   border-bottom: 1px solid var(--border-subtle);
-  transition: background-color 0.15s;
+  transition: background-color var(--duration-fast), border-left var(--duration-fast);
+  border-left: 2px solid transparent;
 }
 
 .resultItem:last-child {
@@ -55,7 +67,8 @@
 
 .resultItem:hover,
 .resultItem.active {
-  background-color: var(--bg-card);
+  background-color: var(--accent-subtle);
+  border-left-color: var(--accent);
 }
 
 .resultLeft {
@@ -95,7 +108,7 @@
 }
 
 .charSep {
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .coMain {
@@ -104,13 +117,13 @@
 }
 
 .secondary {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
 .discriminator {
   color: var(--text-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   flex-shrink: 0;
   margin-left: 0.8rem;

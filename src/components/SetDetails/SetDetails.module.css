@@ -9,6 +9,15 @@
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--duration-fast), border-color var(--duration-fast);
+  animation: fadeInUp 0.3s var(--ease-out-expo) both;
+  animation-delay: calc(var(--stagger, 0) * 50ms);
+}
+
+.setCard:hover {
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--border-medium);
 }
 
 /* --- Set Header --- */
@@ -45,6 +54,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none;
+  transition: color var(--duration-fast);
 }
 
 a.playerName:hover {
@@ -53,6 +63,7 @@ a.playerName:hover {
 
 .playerScore {
   font-size: 0.9rem;
+  font-family: var(--font-mono);
   font-weight: 600;
   min-width: 1ch;
   text-align: center;
@@ -60,6 +71,7 @@ a.playerName:hover {
 
 .playerScore.winner {
   color: var(--success);
+  text-shadow: 0 0 8px var(--success-glow);
 }
 
 .playerScore.loser {
@@ -76,7 +88,8 @@ a.playerName:hover {
 }
 
 .roundLabel {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -101,6 +114,11 @@ a.playerName:hover {
   align-items: center;
   padding: 0.4rem 0.9rem;
   border-top: 1px solid var(--border-subtle);
+  transition: background-color var(--duration-fast);
+}
+
+.gameRow:hover {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .gameSide {
@@ -170,6 +188,7 @@ a.playerName:hover {
   text-align: center;
   padding: 0 0.9rem 0.5rem;
   font-size: 0.8rem;
+  font-family: var(--font-mono);
   color: var(--text-secondary);
 }
 

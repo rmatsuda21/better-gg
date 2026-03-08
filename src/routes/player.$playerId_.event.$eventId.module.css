@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
+  animation: fadeIn 0.3s var(--ease-out-expo);
 }
 
 .sectionTitle {
@@ -11,7 +12,7 @@
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }
 
 .section {
@@ -28,5 +29,6 @@
   background-color: var(--bg-card);
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent);
   margin: 0;
 }

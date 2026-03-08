@@ -5,12 +5,13 @@
   gap: 1rem;
   padding: 2rem;
   border-radius: 8px;
-  background-color: rgba(255, 50, 50, 0.08);
-  border: 1px solid rgba(255, 50, 50, 0.2);
+  background-color: var(--error-glow);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  animation: scaleIn 0.3s var(--ease-out-expo);
 }
 
 .message {
-  color: #ff6b6b;
+  color: var(--error);
   margin: 0;
   font-size: 0.95rem;
 }
@@ -18,14 +19,22 @@
 .retryButton {
   padding: 0.5rem 1.2rem;
   border-radius: 6px;
-  border: 1px solid #ff6b6b;
+  border: 1px solid var(--error);
   background: transparent;
-  color: #ff6b6b;
+  color: var(--error);
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background-color 0.2s;
+  font-family: inherit;
+  transition: background-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .retryButton:hover {
-  background-color: rgba(255, 50, 50, 0.12);
+  background-color: rgba(248, 113, 113, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--error-glow);
+}
+
+.retryButton:active {
+  transform: translateY(0);
+  box-shadow: none;
 }

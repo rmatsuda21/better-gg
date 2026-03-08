@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
+  animation: fadeIn 0.3s var(--ease-out-expo);
 }
 
 .backLink {
@@ -10,10 +11,12 @@
   color: var(--accent);
   text-decoration: none;
   align-self: flex-start;
+  transition: color var(--duration-fast), transform var(--duration-fast);
 }
 
 .backLink:hover {
   color: var(--accent-hover);
+  transform: translateX(-3px);
 }
 
 .phases {
@@ -23,10 +26,12 @@
 }
 
 .sectionTitle {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .phaseList {
@@ -41,17 +46,21 @@
   align-items: center;
   padding: 0.6rem 0.9rem;
   border-radius: 6px;
-  background-color: var(--bg-card);
+  background-color: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border-subtle);
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .phaseItem:hover {
   border-color: var(--accent);
   background-color: var(--bg-elevated);
+  transform: translateX(4px);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 .phaseName {
@@ -82,6 +91,21 @@
 
 .phaseState.active {
   color: var(--success);
+  position: relative;
+  padding-left: 0.8rem;
+}
+
+.phaseState.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulseGlow 2s ease-in-out infinite;
 }
 
 .phaseState.completed {

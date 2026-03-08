@@ -12,17 +12,18 @@
 
 .title {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   color: var(--text-primary);
 }
 
 .count {
   font-size: 0.75rem;
+  font-family: var(--font-mono);
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
+  background-color: var(--accent-subtle);
+  color: var(--accent);
 }
 
 .list {

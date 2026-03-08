@@ -39,7 +39,7 @@ export function PlacementList({ placements, isLoadingMore }: PlacementListProps)
             className={`${styles.item} ${isNew ? styles.itemAnimated : ''}`}
             style={isNew ? { animationDelay: `${(i - animateOffset) * 40}ms` } : undefined}
           >
-            <span className={styles.placement}>{formatPlacement(p.placement)}</span>
+            <span className={`${styles.placement} ${p.placement === 1 ? styles.placementGold : p.placement === 2 ? styles.placementSilver : p.placement === 3 ? styles.placementBronze : ''}`}>{formatPlacement(p.placement)}</span>
             <div className={styles.eventInfo}>
               <span className={styles.eventName}>{p.eventName}</span>
               {p.eventId && p.playerId ? (

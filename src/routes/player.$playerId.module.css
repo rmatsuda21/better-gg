@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
+  animation: fadeIn 0.3s var(--ease-out-expo);
 }
 
 .backLink {
@@ -10,10 +11,12 @@
   color: var(--accent);
   text-decoration: none;
   align-self: flex-start;
+  transition: color var(--duration-fast), transform var(--duration-fast);
 }
 
 .backLink:hover {
   color: var(--accent-hover);
+  transform: translateX(-3px);
 }
 
 /* Skeleton loading state */
@@ -61,7 +64,9 @@
 
 /* Content sections */
 .sectionCard {
-  background: var(--bg-card);
+  background: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 1.25rem;
@@ -70,19 +75,8 @@
   gap: 0.75rem;
 }
 
-@keyframes sectionFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .sectionCardAnimated {
-  animation: sectionFadeIn 0.4s ease;
+  animation: fadeInUp 0.5s var(--ease-out-expo);
 }
 
 .sectionTitle {
@@ -91,5 +85,5 @@
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }

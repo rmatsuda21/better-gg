@@ -103,34 +103,42 @@ function TournamentResults({ discriminator }: { discriminator: string }) {
 
   const { current, upcoming, past } = categorizeTournaments(tournaments)
 
+  let staggerIndex = 0
+
   return (
     <div className={styles.list}>
       {current.length > 0 && (
-        <TournamentSection
-          title="Current"
-          count={current.length}
-          tournaments={current}
-          status="current"
-          userDiscriminator={discriminator}
-        />
+        <div className={styles.staggerWrapper} style={{ '--stagger': staggerIndex++ } as React.CSSProperties}>
+          <TournamentSection
+            title="Current"
+            count={current.length}
+            tournaments={current}
+            status="current"
+            userDiscriminator={discriminator}
+          />
+        </div>
       )}
       {upcoming.length > 0 && (
-        <TournamentSection
-          title="Upcoming"
-          count={upcoming.length}
-          tournaments={upcoming}
-          status="upcoming"
-          userDiscriminator={discriminator}
-        />
+        <div className={styles.staggerWrapper} style={{ '--stagger': staggerIndex++ } as React.CSSProperties}>
+          <TournamentSection
+            title="Upcoming"
+            count={upcoming.length}
+            tournaments={upcoming}
+            status="upcoming"
+            userDiscriminator={discriminator}
+          />
+        </div>
       )}
       {past.length > 0 && (
-        <TournamentSection
-          title="Past"
-          count={past.length}
-          tournaments={past}
-          status="past"
-          userDiscriminator={discriminator}
-        />
+        <div className={styles.staggerWrapper} style={{ '--stagger': staggerIndex++ } as React.CSSProperties}>
+          <TournamentSection
+            title="Past"
+            count={past.length}
+            tournaments={past}
+            status="past"
+            userDiscriminator={discriminator}
+          />
+        </div>
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 import type { CharacterUsage } from '../../lib/stats-utils'
 import styles from './CharacterBar.module.css'
 
-const COLORS = ['#646cff', '#4ade80', '#ff6b6b', '#f59e0b', '#a78bfa', '#f472b6', '#34d399']
+const COLORS = ['#6366f1', '#34d399', '#f87171', '#f59e0b', '#a78bfa', '#f472b6', '#818cf8']
 
 interface CharacterBarProps {
   usage: CharacterUsage[]

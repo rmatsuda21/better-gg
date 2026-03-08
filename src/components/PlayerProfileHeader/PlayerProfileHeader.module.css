@@ -3,10 +3,11 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-elevated);
 }
 
 .gradientBar {
-  height: 4px;
+  height: 6px;
   background: linear-gradient(
     90deg,
     var(--accent),
@@ -16,18 +17,6 @@
   );
   background-size: 300% 100%;
   animation: gradientShift 8s ease infinite;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
 .content {
@@ -53,7 +42,12 @@
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid var(--accent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 0 24px var(--accent-glow);
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+.avatar:hover {
+  transform: scale(1.05);
 }
 
 .avatarPlaceholder {
@@ -68,7 +62,12 @@
   font-weight: 700;
   color: #fff;
   border: 3px solid var(--accent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 0 24px var(--accent-glow);
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+.avatarPlaceholder:hover {
+  transform: scale(1.05);
 }
 
 .info {
@@ -79,11 +78,12 @@
 }
 
 .gamerTag {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .prefix {
@@ -124,12 +124,14 @@
   background: var(--bg-elevated);
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.15s, background 0.15s;
+  transition: color var(--duration-fast), background var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 a.socialPill:hover {
   color: var(--accent);
   background: var(--accent-subtle);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .socialIcon {
@@ -150,9 +152,11 @@ a.socialPill:hover {
   padding: 0.15rem 0.55rem;
   font-size: 0.75rem;
   font-weight: 600;
+  font-family: var(--font-mono);
   border-radius: 999px;
   background: var(--accent-subtle);
   color: var(--accent);
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .statsRow {

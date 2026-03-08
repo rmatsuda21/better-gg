@@ -3,8 +3,13 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 8px;
-  background-color: var(--bg-card);
+  background-color: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
+  border-top: 2px solid;
+  border-image: var(--gradient-accent) 1;
+  animation: fadeInUp 0.4s var(--ease-out-expo);
 }
 
 .image {
@@ -25,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 1.8rem;
 }
 
@@ -41,6 +46,7 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   text-decoration: none;
+  transition: color var(--duration-fast);
 }
 
 .tournamentName:hover {

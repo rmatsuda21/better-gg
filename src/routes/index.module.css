@@ -5,11 +5,15 @@
   width: 100%;
   max-width: 480px;
   margin-bottom: 1rem;
+  animation: fadeInUp 0.4s var(--ease-out-expo);
 }
 
 .sectionLabel {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   margin-bottom: -1rem;
 }
 
@@ -24,21 +28,22 @@
   flex: 1;
   padding: 0.65rem 0.9rem;
   border-radius: 8px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-medium);
   background-color: var(--bg-card);
   color: var(--text-primary);
   font-size: 0.95rem;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .input::placeholder {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .button {
@@ -49,18 +54,28 @@
   color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast);
   white-space: nowrap;
 }
 
 .button:hover {
   background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .list {
@@ -68,6 +83,11 @@
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
+}
+
+.staggerWrapper {
+  animation: fadeInUp 0.4s var(--ease-out-expo) both;
+  animation-delay: calc(var(--stagger, 0) * 100ms);
 }
 
 .empty {
