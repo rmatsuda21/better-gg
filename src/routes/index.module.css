@@ -10,8 +10,8 @@
   padding: 0.65rem 0.9rem;
   border-radius: 8px;
   border: 1px solid #3a3a3a;
-  background-color: #1e1e1e;
-  color: #e0e0e0;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
   font-size: 0.95rem;
   font-family: inherit;
   outline: none;
@@ -23,14 +23,14 @@
 }
 
 .input:focus {
-  border-color: #646cff;
+  border-color: var(--accent);
 }
 
 .button {
   padding: 0.65rem 1.2rem;
   border-radius: 8px;
   border: none;
-  background-color: #646cff;
+  background-color: var(--accent);
   color: #fff;
   font-size: 0.95rem;
   font-weight: 500;
@@ -40,10 +40,23 @@
 }
 
 .button:hover {
-  background-color: #535bf2;
+  background-color: var(--accent-hover);
 }
 
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
 }

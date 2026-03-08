@@ -29,3 +29,6 @@ dist-ssr
 
 # Generated GraphQL types
 src/gql/
+
+# Generated route tree
+src/routeTree.gen.ts

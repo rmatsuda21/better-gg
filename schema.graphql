@@ -1,10 +1,16 @@
 type Query {
   user(id: ID, slug: String): User
+  event(id: ID, slug: String): Event
+  entrant(id: ID): Entrant
+  player(id: ID!): Player
+  videogame(id: ID, slug: String): Videogame
+  phaseGroup(id: ID): PhaseGroup
 }
 
 type User {
   id: ID
   slug: String
+  player: Player
   tournaments(query: UserTournamentsPaginationQuery): UserTournamentConnection
 }
 
@@ -57,12 +63,205 @@ type Tournament {
 type Event {
   id: ID
   name: String
+  slug: String
+  startAt: Timestamp
+  state: String
   numEntrants: Int
+  isOnline: Boolean
+  tournament: Tournament
+  videogame: Videogame
+  entrants(query: EventEntrantPageQuery): EntrantConnection
+  sets(page: Int, perPage: Int, sortType: SetSortType, filters: SetFilters): SetConnection
+  standings(query: StandingPaginationQuery): StandingConnection
+  phases: [Phase]
+}
+
+input EventEntrantPageQuery {
+  page: Int
+  perPage: Int
+  filter: EventEntrantPageQueryFilter
+}
+
+input EventEntrantPageQueryFilter {
+  name: String
+}
+
+input SetFilters {
+  entrantIds: [ID]
+  state: [Int]
+}
+
+input StandingPaginationQuery {
+  page: Int
+  perPage: Int
+}
+
+type Entrant {
+  id: ID
+  name: String
+  initialSeedNum: Int
+  isDisqualified: Boolean
+  event: Event
+  participants: [Participant]
+  seeds: [Seed]
+  standing: Standing
+  paginatedSets(page: Int, perPage: Int, sortType: SetSortType, filters: SetFilters): SetConnection
+}
+
+type Participant {
+  id: ID
+  gamerTag: String
+  prefix: String
+  user: User
+  player: Player
+}
+
+type Player {
+  id: ID
+  gamerTag: String
+  prefix: String
+  user: User
+  recentStandings(limit: Int, videogameId: ID): [Standing]
+  sets(page: Int, perPage: Int): SetConnection
+}
+
+type Standing {
+  id: ID
+  placement: Int
+  isFinal: Boolean
+  entrant: Entrant
+  player: Player
+  container: StandingContainer
+  stats: StandingStats
+}
+
+union StandingContainer = Event | Tournament
+
+type StandingStats {
+  score: StandingStatsScore
+}
+
+type StandingStatsScore {
+  label: String
+  value: Float
+}
+
+type SetConnection {
+  pageInfo: PageInfo
+  nodes: [Set]
+}
+
+type Set {
+  id: ID
+  state: Int
+  round: Int
+  fullRoundText: String
+  identifier: String
+  displayScore(mainEntrantId: ID): String
+  winnerId: Int
+  wPlacement: Int
+  lPlacement: Int
+  totalGames: Int
+  completedAt: Timestamp
+  slots: [SetSlot]
+  games: [Game]
+  event: Event
+  phaseGroup: PhaseGroup
+}
+
+type SetSlot {
+  id: ID
+  entrant: Entrant
+  standing: Standing
+  seed: Seed
+  prereqType: String
+  prereqId: String
+  prereqPlacement: Int
+}
+
+type Game {
+  id: ID
+  orderNum: Int
+  winnerId: Int
+  state: Int
+  selections: [GameSelection]
+}
+
+type GameSelection {
+  id: ID
+  entrant: Entrant
+  selectionType: String
+  selectionValue: Int
+}
+
+type Seed {
+  id: ID
+  seedNum: Int
+  entrant: Entrant
+  phase: Phase
+  phaseGroup: PhaseGroup
+}
+
+type Phase {
+  id: ID
+  name: String
+  phaseOrder: Int
+  bracketType: String
+  state: String
+  groupCount: Int
+  numSeeds: Int
+  event: Event
+}
+
+type PhaseGroup {
+  id: ID
+  displayIdentifier: String
+  bracketType: String
+  bracketUrl: String
+  startAt: Timestamp
+  numRounds: Int
+  state: Int
+  phase: Phase
+  sets(page: Int, perPage: Int, sortType: SetSortType, filters: SetFilters): SetConnection
+  standings(query: StandingPaginationQuery): StandingConnection
+}
+
+type EntrantConnection {
+  pageInfo: PageInfo
+  nodes: [Entrant]
+}
+
+type StandingConnection {
+  pageInfo: PageInfo
+  nodes: [Standing]
+}
+
+type Videogame {
+  id: ID
+  name: String
+  slug: String
+  images: [Image]
+  characters: [Character]
+}
+
+type Character {
+  id: ID
+  name: String
+  images: [Image]
 }
 
 type Image {
   id: ID
   url: String
+}
+
+enum SetSortType {
+  NONE
+  CALL_ORDER
+  MAGIC
+  RECENT
+  STANDARD
+  ROUND
 }
 
 scalar Timestamp

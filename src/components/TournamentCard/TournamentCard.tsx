@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import type { UserTournamentsQuery } from '../../gql/graphql'
 import { formatDateRange } from '../../lib/format'
 import styles from './TournamentCard.module.css'
@@ -10,9 +11,11 @@ type TournamentNode = NonNullable<
 
 interface TournamentCardProps {
   tournament: NonNullable<TournamentNode>
+  status?: 'upcoming' | 'current' | 'past'
+  userDiscriminator?: string
 }
 
-export function TournamentCard({ tournament }: TournamentCardProps) {
+export function TournamentCard({ tournament, status, userDiscriminator }: TournamentCardProps) {
   const profileImage = tournament.images?.[0]?.url
   const location = tournament.isOnline
     ? null
@@ -20,8 +23,15 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         .filter(Boolean)
         .join(', ')
 
+  const accentClass =
+    status === 'current'
+      ? styles.accentCurrent
+      : status === 'upcoming'
+        ? styles.accentUpcoming
+        : styles.accentPast
+
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} ${accentClass}`}>
       {profileImage ? (
         <img
           className={styles.image}
@@ -57,12 +67,19 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
           <div className={styles.events}>
             {tournament.events.map(
               (event) =>
-                event && (
-                  <span key={event.id} className={styles.eventPill}>
+                event &&
+                event.id && (
+                  <Link
+                    key={event.id}
+                    to="/event/$eventId"
+                    params={{ eventId: String(event.id) }}
+                    search={{ user: userDiscriminator }}
+                    className={styles.eventPill}
+                  >
                     {event.name}
                     {event.numEntrants != null && ` (${event.numEntrants})`}
-                  </span>
-                )
+                  </Link>
+                ),
             )}
           </div>
         )}

@@ -47,7 +47,7 @@ export function useUserTournaments(discriminator: string) {
     queryFn: () =>
       graphqlClient.request(userTournamentsQuery, {
         slug,
-        perPage: 5,
+        perPage: 20,
       }),
     enabled: !!discriminator,
     staleTime: 5 * 60 * 1000,

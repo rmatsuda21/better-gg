@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-router": "^1.166.2",
     "graphql": "^16.13.1",
     "graphql-request": "^7.4.0",
     "react": "^19.2.0",
@@ -23,6 +24,8 @@
     "@graphql-codegen/cli": "^6.1.2",
     "@graphql-codegen/client-preset": "^5.2.3",
     "@tanstack/react-query-devtools": "^5.91.3",
+    "@tanstack/router-devtools": "^1.166.2",
+    "@tanstack/router-plugin": "^1.166.2",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
