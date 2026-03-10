@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useFilteredPlayers } from '../hooks/use-filtered-players'
 import { usePlayerCountries } from '../hooks/use-player-search'
 import { useCharacters } from '../hooks/use-characters'
@@ -10,12 +11,12 @@ import type { PlayerRecord } from '../lib/player-search-types'
 import styles from './players.module.css'
 
 const ULTIMATE_VIDEOGAME_ID = '1386'
+const ROW_HEIGHT = 44
 
 interface PlayersSearch {
   q?: string
   country?: string
   character?: number
-  page?: number
 }
 
 export const Route = createFileRoute('/players')({
@@ -26,24 +27,23 @@ export const Route = createFileRoute('/players')({
         ? search.country
         : undefined,
     character: search.character ? Number(search.character) : undefined,
-    page: search.page ? Number(search.page) : undefined,
   }),
   component: PlayersPage,
 })
 
 function PlayersPage() {
-  const { q, country, character, page } = Route.useSearch()
+  const { q, country, character } = Route.useSearch()
   const navigate = useNavigate({ from: '/players' })
 
   const [searchInput, setSearchInput] = useState(q ?? '')
 
-  const { players, total, totalPages, page: currentPage, isLoading } =
-    useFilteredPlayers({
-      query: searchInput,
-      country,
-      characterId: character,
-      page: page ?? 1,
-    })
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  const { players, total, isLoading } = useFilteredPlayers({
+    query: searchInput,
+    country,
+    characterId: character,
+  })
 
   const { data: countriesData } = usePlayerCountries()
   const { data: charactersData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
@@ -61,12 +61,22 @@ function PlayersPage() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [charactersData])
 
+  const virtualizer = useVirtualizer({
+    count: players.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
+  })
+
+  const scrollToTop = useCallback(() => {
+    parentRef.current?.scrollTo({ top: 0 })
+  }, [])
+
   function updateSearch(updates: Partial<PlayersSearch>) {
     navigate({
       search: (prev) => ({
         ...prev,
         ...updates,
-        page: 'page' in updates ? updates.page : 1,
       }),
     })
   }
@@ -74,10 +84,8 @@ function PlayersPage() {
   function handleSearchChange(value: string) {
     setSearchInput(value)
     updateSearch({ q: value || undefined })
+    scrollToTop()
   }
-
-  const start = (currentPage - 1) * 50 + 1
-  const end = Math.min(currentPage * 50, total)
 
   return (
     <div className={styles.container}>
@@ -101,9 +109,10 @@ function PlayersPage() {
         <select
           className={styles.filterSelect}
           value={country ?? ''}
-          onChange={(e) =>
+          onChange={(e) => {
             updateSearch({ country: e.target.value || undefined })
-          }
+            scrollToTop()
+          }}
         >
           <option value="">All regions</option>
           {(countriesData ?? []).map((c) => (
@@ -115,11 +124,12 @@ function PlayersPage() {
         <select
           className={styles.filterSelect}
           value={character ?? ''}
-          onChange={(e) =>
+          onChange={(e) => {
             updateSearch({
               character: e.target.value ? Number(e.target.value) : undefined,
             })
-          }
+            scrollToTop()
+          }}
         >
           <option value="">All characters</option>
           {characterOptions.map((c) => (
@@ -141,7 +151,7 @@ function PlayersPage() {
       ) : (
         <>
           <div className={styles.resultsSummary}>
-            Showing {start}&ndash;{end} of {total.toLocaleString()} players
+            {total.toLocaleString()} players
           </div>
           <div className={styles.playerList}>
             <div className={styles.playerRowHeader}>
@@ -149,35 +159,29 @@ function PlayersPage() {
               <span>Characters</span>
               <span>Tournaments</span>
             </div>
-            {players.map((p) => (
-              <PlayerRow
-                key={p.pid}
-                player={p}
-                characterMap={characterMap}
-              />
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageButton}
-                disabled={currentPage <= 1}
-                onClick={() => updateSearch({ page: currentPage - 1 })}
-              >
-                Prev
-              </button>
-              <span className={styles.pageInfo}>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                className={styles.pageButton}
-                disabled={currentPage >= totalPages}
-                onClick={() => updateSearch({ page: currentPage + 1 })}
-              >
-                Next
-              </button>
+            <div ref={parentRef} className={styles.scrollContainer}>
+              <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                {virtualizer.getVirtualItems().map((virtualRow) => (
+                  <div
+                    key={virtualRow.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: virtualRow.size,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <PlayerRow
+                      player={players[virtualRow.index]}
+                      characterMap={characterMap}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
+          </div>
         </>
       )}
     </div>

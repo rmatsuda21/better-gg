@@ -90,10 +90,15 @@
 .playerList {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  background-color: var(--border-subtle);
+  border: 1px solid var(--border-subtle);
   border-radius: 6px;
   overflow: hidden;
+}
+
+.scrollContainer {
+  overflow-y: auto;
+  height: calc(100vh - 200px);
+  min-height: 300px;
 }
 
 .playerRowHeader {
@@ -109,6 +114,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .playerRow {
@@ -121,6 +127,7 @@
   text-decoration: none;
   color: inherit;
   transition: background-color var(--duration-fast);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .playerRow:hover {
@@ -196,43 +203,6 @@
   text-align: right;
 }
 
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.25rem 0;
-}
-
-.pageButton {
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color var(--duration-fast), color var(--duration-fast), background-color var(--duration-fast);
-}
-
-.pageButton:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.pageButton:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.pageInfo {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
 /* States */
 .noResults {
   font-size: 0.85rem;
@@ -259,6 +229,10 @@
 
   .filterSelect {
     min-width: 0;
+  }
+
+  .scrollContainer {
+    height: calc(100vh - 240px);
   }
 
   .playerRowHeader {
