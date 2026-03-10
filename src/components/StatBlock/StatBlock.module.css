@@ -33,8 +33,9 @@
 }
 
 .label {
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.1em;
 }

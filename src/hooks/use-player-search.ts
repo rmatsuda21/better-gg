@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useDebouncedValue } from './use-debounced-value'
-import { searchPlayers } from '../lib/player-search'
+import { searchPlayers, getCountries } from '../lib/player-search'
 
-export function usePlayerSearch(query: string) {
+export function usePlayerSearch(query: string, country?: string) {
   const debouncedQuery = useDebouncedValue(query.trim(), 200)
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['playerSearch', debouncedQuery],
-    queryFn: () => searchPlayers(debouncedQuery),
+    queryKey: ['playerSearch', debouncedQuery, country],
+    queryFn: () => searchPlayers(debouncedQuery, 10, country),
     enabled: debouncedQuery.length >= 2,
     staleTime: Infinity,
   })
@@ -17,4 +17,12 @@ export function usePlayerSearch(query: string) {
     isLoading: isLoading && debouncedQuery.length >= 2,
     isSearching: isFetching,
   }
+}
+
+export function usePlayerCountries() {
+  return useQuery({
+    queryKey: ['playerCountries'],
+    queryFn: getCountries,
+    staleTime: Infinity,
+  })
 }

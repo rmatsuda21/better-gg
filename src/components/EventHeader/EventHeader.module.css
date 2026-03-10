@@ -43,9 +43,12 @@
 }
 
 .tournamentName {
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   color: var(--text-secondary);
   text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   transition: color var(--duration-fast);
 }
 

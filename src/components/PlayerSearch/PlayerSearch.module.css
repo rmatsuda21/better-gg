@@ -1,20 +1,26 @@
 .wrapper {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
+}
+
+.searchRow {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 0.65rem 0.9rem;
   border-radius: 8px;
   border: 1px solid var(--border-medium);
-  background-color: var(--bg-card);
+  background-color: rgba(18, 18, 26, 0.6);
   color: var(--text-primary);
   font-size: 0.95rem;
   font-family: inherit;
   outline: none;
-  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast), background-color var(--duration-fast);
 }
 
 .input::placeholder {
@@ -24,6 +30,42 @@
 .input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.countrySelect {
+  padding: 0.65rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  background-color: rgba(18, 18, 26, 0.6);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 160px;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast), background-color var(--duration-fast);
+}
+
+.countrySelect:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  background-color: rgba(18, 18, 26, 0.8);
+}
+
+.countrySelect:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+@media (max-width: 480px) {
+  .searchRow {
+    flex-direction: column;
+  }
+
+  .countrySelect {
+    max-width: none;
+  }
 }
 
 .dropdown {

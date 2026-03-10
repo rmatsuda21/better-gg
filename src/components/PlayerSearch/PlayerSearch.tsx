@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { KeyboardEvent } from 'react'
-import { usePlayerSearch } from '../../hooks/use-player-search'
+import { usePlayerSearch, usePlayerCountries } from '../../hooks/use-player-search'
 import { useCharacters } from '../../hooks/use-characters'
 import { buildCharacterMap } from '../../lib/character-utils'
 import { countryCodeToFlag } from '../../lib/country-utils'
@@ -16,12 +16,14 @@ interface PlayerSearchProps {
 
 export function PlayerSearch({ onSelect }: PlayerSearchProps) {
   const [query, setQuery] = useState('')
+  const [country, setCountry] = useState<string>()
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { results, isLoading } = usePlayerSearch(query)
+  const { results, isLoading } = usePlayerSearch(query, country)
+  const { data: countryList } = usePlayerCountries()
   const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
   const characterMap = buildCharacterMap(charData?.videogame?.characters)
 
@@ -67,23 +69,40 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
 
   return (
     <div className={styles.wrapper} ref={wrapperRef}>
-      <input
-        ref={inputRef}
-        className={styles.input}
-        type="text"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value)
-          setIsOpen(true)
-          setActiveIndex(-1)
-        }}
-        onFocus={() => {
-          if (query.trim().length >= 2) setIsOpen(true)
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Search by gamer tag"
-        autoComplete="off"
-      />
+      <div className={styles.searchRow}>
+        <input
+          ref={inputRef}
+          className={styles.input}
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setIsOpen(true)
+            setActiveIndex(-1)
+          }}
+          onFocus={() => {
+            if (query.trim().length >= 2) setIsOpen(true)
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Search by gamer tag"
+          autoComplete="off"
+        />
+        <select
+          className={styles.countrySelect}
+          value={country ?? ''}
+          onChange={(e) => {
+            setCountry(e.target.value || undefined)
+            setActiveIndex(-1)
+          }}
+        >
+          <option value="">All regions</option>
+          {countryList?.map((c) => (
+            <option key={c} value={c}>
+              {countryCodeToFlag(c) ?? ''} {c}
+            </option>
+          ))}
+        </select>
+      </div>
       {showDropdown && (
         <div className={styles.dropdown}>
           {isLoading ? (

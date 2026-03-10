@@ -1,18 +1,96 @@
-/* Hero section */
+/* ============================================
+   Hero Section — full-width breakout
+   ============================================ */
 .hero {
-  text-align: center;
-  width: 100%;
-  max-width: 600px;
-  padding: 2rem 0 1rem;
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  padding: 3rem 1.5rem 2rem;
   animation: fadeInUp 0.5s var(--ease-out-expo);
 }
 
+/* Backdrop layers */
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.heroGlow {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-hero-radial);
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+.heroDotPattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 20%, transparent 70%);
+}
+
+.heroScanLine {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.015) 2px,
+    rgba(255, 255, 255, 0.015) 4px
+  );
+}
+
+/* Hero content — stacks on mobile, 2-col on desktop */
+.heroContent {
+  position: relative;
+  z-index: 1;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.heroBadgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
 .heroTitle {
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1.3;
-  margin: 0 0 0.75rem;
-  letter-spacing: -0.02em;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -0.03em;
+  color: var(--text-heading);
 }
 
 .heroAccent {
@@ -27,92 +105,157 @@
 .heroSub {
   color: var(--text-secondary);
   font-size: 0.95rem;
-  margin: 0 0 1.5rem;
-  line-height: 1.5;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 420px;
 }
 
 .heroCta {
-  padding: 0.7rem 2rem;
-  border-radius: 10px;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.95rem;
+  align-self: flex-start;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.85rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-fast);
+  transition: background-color var(--duration-fast), color var(--duration-fast), box-shadow var(--duration-fast), transform var(--duration-fast);
 }
 
 .heroCta:hover {
-  background: var(--accent-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--accent-glow);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: translateY(-1px);
 }
 
 .heroCta:active {
   transform: translateY(0);
 }
 
-/* Feature cards */
+/* Hero search card */
+.heroSearch {
+  position: relative;
+  z-index: 2;
+  animation: slideInRight 0.6s var(--ease-out-expo) 0.15s both;
+}
+
+.searchCard {
+  background: rgba(18, 18, 26, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  position: relative;
+}
+
+.searchCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-hover), transparent);
+  opacity: 0.8;
+  border-radius: 12px 12px 0 0;
+}
+
+.searchCardHeader {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 1rem;
+}
+
+/* ============================================
+   Features strip — compact row
+   ============================================ */
 .features {
+  position: relative;
+  max-width: 960px;
+  margin: 2rem auto 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin-top: 2rem;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
 }
 
 .featureCard {
-  padding: 1.25rem 1rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  text-align: center;
-  transition: border-color var(--duration-fast), background var(--duration-fast);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(18, 18, 26, 0.5);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  transition: background var(--duration-fast);
 }
 
 .featureCard:hover {
-  border-color: var(--border-medium);
-  background: var(--gradient-card-hover);
+  background: rgba(18, 18, 26, 0.8);
 }
 
 .featureIcon {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 0.75rem;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   background: var(--accent-subtle);
   color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .featureTitle {
-  margin: 0 0 0.35rem;
-  font-size: 0.85rem;
+  margin: 0;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: var(--text-heading);
 }
 
 .featureDesc {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
+  display: none;
 }
 
-/* Welcome bar (logged in) */
-.welcomeBar {
+/* ============================================
+   Dashboard state (logged in)
+   ============================================ */
+.dashboardHeader {
   width: 100%;
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
   animation: fadeInUp 0.4s var(--ease-out-expo);
+}
+
+.dashboardLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.25rem;
 }
 
 .welcomeTitle {
   margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-heading);
 }
 
+.welcomeAccent {
+  color: var(--accent);
+}
+
+/* Back link */
 .backLink {
   align-self: flex-start;
   background: none;
@@ -121,36 +264,33 @@
   font-size: 0.85rem;
   font-family: inherit;
   cursor: pointer;
-  padding: 0;
-  transition: color var(--duration-fast);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  transition: color var(--duration-fast), background-color var(--duration-fast);
 }
 
 .backLink:hover {
   color: var(--accent-hover);
+  background: var(--accent-subtle);
 }
 
-/* Search section */
+/* ============================================
+   Search section
+   ============================================ */
 .searchSection {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
-  max-width: 480px;
-  margin-bottom: 1rem;
   animation: fadeInUp 0.4s var(--ease-out-expo);
 }
 
 .searchHeading {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-secondary);
+  display: none;
 }
 
 .searchToggle {
   width: 100%;
-  max-width: 480px;
 }
 
 .searchToggleButton {
@@ -179,20 +319,42 @@
   transform: rotate(180deg);
 }
 
+/* Search fields */
 .sectionLabel {
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: -1rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+}
+
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.orLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.orText {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .form {
   display: flex;
   gap: 0.5rem;
   width: 100%;
-  max-width: 480px;
 }
 
 .input {
@@ -249,7 +411,15 @@
   box-shadow: none;
 }
 
-/* Tournament list */
+.resolveError {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--error);
+}
+
+/* ============================================
+   Tournament list
+   ============================================ */
 .list {
   display: flex;
   flex-direction: column;
@@ -268,27 +438,55 @@
   padding: 2rem;
 }
 
-/* Responsive */
-@media (max-width: 520px) {
-  .features {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-
-  .featureCard {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-align: left;
-    padding: 1rem;
-  }
-
-  .featureIcon {
-    margin: 0;
-    flex-shrink: 0;
+/* ============================================
+   Responsive — 640px
+   ============================================ */
+@media (min-width: 640px) {
+  .hero {
+    padding: 4rem 2rem 2.5rem;
   }
 
   .heroTitle {
-    font-size: 1.3rem;
+    font-size: 2.2rem;
+  }
+
+  .features {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .searchCard {
+    max-width: 400px;
+  }
+}
+
+/* ============================================
+   Responsive — 960px (two-column hero)
+   ============================================ */
+@media (min-width: 960px) {
+  .hero {
+    padding: 5rem 2rem 3rem;
+  }
+
+  .heroContent {
+    flex-direction: row;
+    align-items: center;
+    gap: 3rem;
+  }
+
+  .heroText {
+    flex: 1;
+    gap: 1.25rem;
+  }
+
+  .heroSearch {
+    flex: 0 0 380px;
+  }
+
+  .heroTitle {
+    font-size: 2.6rem;
+  }
+
+  .searchCard {
+    max-width: none;
   }
 }

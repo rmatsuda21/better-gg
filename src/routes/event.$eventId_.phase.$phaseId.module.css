@@ -11,12 +11,14 @@
   color: var(--accent);
   text-decoration: none;
   align-self: flex-start;
-  transition: color var(--duration-fast), transform var(--duration-fast);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  transition: color var(--duration-fast), background-color var(--duration-fast);
 }
 
 .backLink:hover {
   color: var(--accent-hover);
-  transform: translateX(-3px);
+  background: var(--accent-subtle);
 }
 
 .phaseHeader {
@@ -27,9 +29,9 @@
 
 .phaseTitle {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-heading);
 }
 
 .phaseMeta {
@@ -39,18 +41,22 @@
 }
 
 .bracketType {
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   padding: 0.1rem 0.45rem;
   border-radius: 4px;
   background-color: var(--bg-elevated);
   color: var(--text-secondary);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .phaseState {
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
+  letter-spacing: 0.05em;
 }
 
 .phaseState.active {
@@ -113,9 +119,12 @@
 }
 
 .phaseGroupLabel {
-  font-size: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   margin: 0;
 }
 

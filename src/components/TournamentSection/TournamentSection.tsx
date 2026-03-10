@@ -1,13 +1,14 @@
-import type { Tournament } from '../../lib/tournament-utils'
+import type { TournamentCardData } from '../TournamentCard/TournamentCard'
 import { TournamentCard } from '../TournamentCard/TournamentCard'
 import styles from './TournamentSection.module.css'
 
 interface TournamentSectionProps {
   title: string
   count: number
-  tournaments: Tournament[]
+  tournaments: TournamentCardData[]
   status: 'upcoming' | 'current' | 'past'
-  userDiscriminator: string
+  userDiscriminator?: string
+  playerId?: string
 }
 
 export function TournamentSection({
@@ -16,6 +17,7 @@ export function TournamentSection({
   tournaments,
   status,
   userDiscriminator,
+  playerId,
 }: TournamentSectionProps) {
   return (
     <section className={styles.section}>
@@ -30,6 +32,7 @@ export function TournamentSection({
             tournament={tournament}
             status={status}
             userDiscriminator={userDiscriminator}
+            playerId={playerId}
           />
         ))}
       </div>

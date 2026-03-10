@@ -70,6 +70,7 @@ const CURSOR_BUFFER_SECONDS = 7 * 24 * 60 * 60 // 7 days
 // ── Graceful shutdown ──
 
 let shuttingDown = false
+let onShutdown: (() => void) | null = null
 
 // ── Load env vars from .env file if not already set ──
 
@@ -148,22 +149,21 @@ class ApiPool {
     const slotIndex = this.nextSlot
     this.nextSlot = (this.nextSlot + 1) % this.slots.length
 
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; ; attempt++) {
       await slot.limiter.acquire()
       try {
         return await slot.client.request<T>(query, variables)
       } catch (err: any) {
         const is429 = err?.response?.status === 429
           || err?.message?.includes('Rate limit ex')
-        if (is429 && attempt < 2) {
-          console.warn(`  ⚠ Rate limited (key ${slotIndex}), retrying in 2s...`)
-          await new Promise(r => setTimeout(r, 2000))
+        if (is429) {
+          console.warn(`  ⚠ Rate limited (key ${slotIndex}), waiting 60s...`)
+          await new Promise(r => setTimeout(r, 60_000))
           continue
         }
         throw err
       }
     }
-    throw new Error('Unreachable')
   }
 
   get size() { return this.slots.length }
@@ -279,6 +279,7 @@ const TOURNAMENT_FIELDS = `
       name
       videogame { id }
       numEntrants
+      isOnline
     }
   }
 `
@@ -379,6 +380,7 @@ async function fetchTournaments(
       name: string
       videogame: { id: string } | null
       numEntrants: number | null
+      isOnline: boolean | null
     }> | null
   }> | null
   totalPages: number
@@ -411,7 +413,7 @@ async function fetchEventEntrants(
   const data = await apiPool.request<any>(eventEntrantsQuery, {
     eventId,
     page,
-    perPage: 500,
+    perPage: 100,
   })
   return {
     entrants: data.event?.entrants?.nodes,
@@ -439,7 +441,7 @@ async function fetchEventSets(
   const data = await apiPool.request<any>(eventSetsQuery, {
     eventId,
     page,
-    perPage: 30,
+    perPage: 15,
   })
   return {
     sets: data.event?.sets?.nodes,
@@ -572,6 +574,8 @@ async function crawlCycle(
   maxPages: number,
   afterDate: number | undefined,
   resumeBeforeDate: number | undefined,
+  offlineOnly: boolean,
+  minEntrants: number,
 ): Promise<{ newCursor: number; newTournaments: number; newEvents: number }> {
   const concurrency = 5 * apiPool.size
   let newCursor = cursor
@@ -655,7 +659,9 @@ async function crawlCycle(
         allAlreadyProcessed = false
 
         const ssbuEvents = (tournament.events ?? []).filter(
-          (e) => String(e.videogame?.id) === ULTIMATE_ID && (e.numEntrants ?? 0) > 0,
+          (e) => String(e.videogame?.id) === ULTIMATE_ID
+            && (e.numEntrants ?? 0) >= minEntrants
+            && (!offlineOnly || !e.isOnline),
         )
 
         if (ssbuEvents.length === 0) {
@@ -678,7 +684,7 @@ async function crawlCycle(
         }
       }
 
-      if (allAlreadyProcessed && newTournaments > 0 && maxPages !== Infinity) {
+      if (allAlreadyProcessed && newTournaments > 0 && maxPages !== Infinity && resumeBeforeDate == null) {
         console.log(`[Page ${totalPagesConsumed}] All tournaments already processed — caught up!`)
         break outer
       }
@@ -691,6 +697,10 @@ async function crawlCycle(
 
         const failedTournamentIds = new Set<string>()
         await processPool(pageEvents, concurrency, async (ev) => {
+          if (shuttingDown) {
+            failedTournamentIds.add(ev.tournamentId)
+            return
+          }
           completed++
           const ok = await processEvent(ev, players, completed, pageTotal)
           if (!ok) failedTournamentIds.add(ev.tournamentId)
@@ -706,6 +716,16 @@ async function crawlCycle(
       // Progressive save after each page
       totalEventsProcessed += pageEvents.length
       saveState(players, processedTournamentIds, newCursor, totalEventsProcessed, globalOldestStartAt)
+
+      // Update shutdown callback so Ctrl+C saves immediately
+      onShutdown = () => {
+        saveState(players, processedTournamentIds, newCursor, totalEventsProcessed, globalOldestStartAt)
+        const pc = writePlayersJson(players)
+        console.log(`\nStopped! Wrote ${pc} players to players.json`)
+        console.log(`  New tournaments: ${newTournaments} | New events: ${totalNewEvents}`)
+        console.log(`  Total tracked: ${processedTournamentIds.size} tournaments, ${pc} players`)
+        console.log(`  State saved to crawl-state.json`)
+      }
     }
 
     // Slide date window to get past API's pagination cap
@@ -719,18 +739,23 @@ async function crawlCycle(
     console.log(`\nSliding date window → beforeDate: ${new Date(beforeDate * 1000).toISOString().split('T')[0]}`)
   }
 
-  // Final save — clear resume point if completed naturally
+  // Final save — keep resume point if interrupted OR if resuming and we saw data
+  // (exhausting reported pages in resume mode doesn't mean done — 10k API cap may hide more)
+  // Resume point is only cleared when: non-resume run completes, or resume run gets empty first page
+  const keepResumePoint = !completedNaturally || (resumeBeforeDate != null && globalOldestStartAt != null)
   saveState(players, processedTournamentIds, newCursor, totalEventsProcessed,
-    completedNaturally ? undefined : globalOldestStartAt)
+    keepResumePoint ? globalOldestStartAt : undefined)
 
   // Write final players.json
   const playerCount = writePlayersJson(players)
 
-  console.log(`\nDone! Wrote ${playerCount} players to players.json`)
+  const label = shuttingDown ? 'Stopped.' : 'Done!'
+  console.log(`\n${label} Wrote ${playerCount} players to players.json`)
   console.log(`  New tournaments: ${newTournaments} | New events: ${totalNewEvents}`)
   console.log(`  Total tracked: ${processedTournamentIds.size} tournaments, ${playerCount} players`)
   console.log(`  State saved to crawl-state.json`)
 
+  onShutdown = null
   return { newCursor, newTournaments, newEvents: totalNewEvents }
 }
 
@@ -742,7 +767,11 @@ async function main() {
   const isFresh = args.includes('--fresh')
   const isAll = args.includes('--all')
   const isWatch = args.includes('--watch')
+  const offlineOnly = args.includes('--offline')
   const numericArg = args.find(a => !a.startsWith('--') && /^\d+$/.test(a))
+
+  const minEntrantsIdx = args.indexOf('--min-entrants')
+  const minEntrants = minEntrantsIdx !== -1 ? parseInt(args[minEntrantsIdx + 1] ?? '1', 10) : 1
 
   const maxPages = isAll ? Infinity : parseInt(numericArg ?? '50', 10)
   const watchInterval = isWatch ? parseInt(numericArg ?? '30', 10) : 0
@@ -751,8 +780,11 @@ async function main() {
   for (const sig of ['SIGINT', 'SIGTERM'] as const) {
     process.on(sig, () => {
       if (shuttingDown) process.exit(1) // force on double signal
-      console.log('\nShutting down after current page completes...')
       shuttingDown = true
+      if (onShutdown) {
+        onShutdown()
+        process.exit(0)
+      }
     })
   }
 
@@ -784,13 +816,17 @@ async function main() {
 
   const modeLabel = isAll ? 'all pages' : `max ${maxPages} pages`
   const modeType = state && !isFresh ? 'incremental' : 'full'
-  console.log(`Mode: ${modeType}, ${modeLabel}${isWatch ? `, watch every ${watchInterval}min` : ''}`)
+  const filters = [
+    offlineOnly ? 'offline only' : null,
+    minEntrants > 1 ? `min ${minEntrants} entrants` : null,
+  ].filter(Boolean)
+  console.log(`Mode: ${modeType}, ${modeLabel}${isWatch ? `, watch every ${watchInterval}min` : ''}${filters.length > 0 ? ` [${filters.join(', ')}]` : ''}`)
 
   // Main loop (runs once unless --watch)
   while (true) {
     shuttingDown = false // reset for each cycle in watch mode
 
-    const result = await crawlCycle(players, processedTournamentIds, cursor, maxPages, afterDate, resumeBeforeDate)
+    const result = await crawlCycle(players, processedTournamentIds, cursor, maxPages, afterDate, resumeBeforeDate, offlineOnly, minEntrants)
 
     // Update cursor for next cycle
     if (result.newCursor > cursor) {

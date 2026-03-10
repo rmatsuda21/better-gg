@@ -10,6 +10,23 @@ import { Skeleton } from '../Skeleton/Skeleton'
 import { ErrorMessage } from '../ErrorMessage/ErrorMessage'
 import styles from './OpponentAnalysis.module.css'
 
+/** Extract user-centric "W - L" score from name-included displayScore like "PlayerA 2 - PlayerB 3" */
+function extractUserScore(
+  displayScore: string | null | undefined,
+  entrantId: string,
+  slots: Array<{ entrant?: { id?: string | null } | null; seed?: { entrant?: { id?: string | null } | null } | null } | null> | null | undefined,
+): string | null {
+  if (!displayScore) return null
+  const halves = displayScore.split(' - ')
+  if (halves.length !== 2) return displayScore
+  const s0 = halves[0].trim().split(/\s+/).pop() ?? ''
+  const s1 = halves[1].trim().split(/\s+/).pop() ?? ''
+  // Determine if slot[0] is the user's entrant
+  const slot0Entrant = slots?.[0]?.entrant ?? slots?.[0]?.seed?.entrant
+  const isSlot0User = slot0Entrant?.id === entrantId
+  return isSlot0User ? `${s0} - ${s1}` : `${s1} - ${s0}`
+}
+
 interface OpponentAnalysisProps {
   entrantId: string
   playerId: string | null
@@ -103,7 +120,7 @@ export function OpponentAnalysis({
       entrantId: opponentSlot.entrant.id!,
       name: opponentSlot.entrant.name ?? 'Unknown',
       playerId: opPlayerId,
-      setResult: set.displayScore ?? null,
+      setResult: extractUserScore(set.displayScore, entrantId, set.slots),
       roundText: set.fullRoundText ?? null,
       won,
       round: set.round ?? 0,
@@ -359,7 +376,7 @@ function PhaseGroupSection({
       entrantId: opponentEntrant.id!,
       name: opponentEntrant.name ?? 'Unknown',
       playerId: opponentEntrant.participants?.[0]?.player?.id ?? null,
-      setResult: set.displayScore ?? null,
+      setResult: extractUserScore(set.displayScore, entrantId, set.slots),
       roundText: set.fullRoundText ?? null,
       won: set.winnerId != null ? set.winnerId === Number(entrantId) : undefined,
       round: set.round ?? 0,

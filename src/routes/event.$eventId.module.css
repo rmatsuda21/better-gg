@@ -11,12 +11,14 @@
   color: var(--accent);
   text-decoration: none;
   align-self: flex-start;
-  transition: color var(--duration-fast), transform var(--duration-fast);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  transition: color var(--duration-fast), background-color var(--duration-fast);
 }
 
 .backLink:hover {
   color: var(--accent-hover);
-  transform: translateX(-3px);
+  background: var(--accent-subtle);
 }
 
 .phases {
@@ -26,12 +28,13 @@
 }
 
 .sectionTitle {
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   font-weight: 600;
   margin: 0;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .phaseList {
@@ -45,11 +48,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.6rem 0.9rem;
-  border-radius: 6px;
+  border-radius: 0 8px 8px 0;
   background-color: rgba(18, 18, 26, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent);
   text-decoration: none;
   color: inherit;
   cursor: pointer;
@@ -75,18 +79,22 @@
 }
 
 .bracketType {
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   padding: 0.1rem 0.45rem;
   border-radius: 4px;
   background-color: var(--bg-elevated);
   color: var(--text-secondary);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .phaseState {
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
+  letter-spacing: 0.05em;
 }
 
 .phaseState.active {
@@ -124,7 +132,8 @@
   padding: 1rem;
   text-align: center;
   background-color: var(--bg-card);
-  border-radius: 8px;
+  border-radius: 0 8px 8px 0;
   border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent);
   margin: 0;
 }

@@ -1,21 +1,35 @@
 import { Link } from '@tanstack/react-router'
-import type { UserTournamentsQuery } from '../../gql/graphql'
 import { formatDateRange } from '../../lib/format'
 import styles from './TournamentCard.module.css'
 
-type TournamentNode = NonNullable<
-  NonNullable<
-    NonNullable<UserTournamentsQuery['user']>['tournaments']
-  >['nodes']
->[number]
-
-interface TournamentCardProps {
-  tournament: NonNullable<TournamentNode>
-  status?: 'upcoming' | 'current' | 'past'
-  userDiscriminator?: string
+export interface TournamentCardData {
+  id?: string | null
+  name?: string | null
+  slug?: string | null
+  startAt?: number | null
+  endAt?: number | null
+  numAttendees?: number | null
+  city?: string | null
+  addrState?: string | null
+  countryCode?: string | null
+  isOnline?: boolean | null
+  venueName?: string | null
+  images?: Array<{ url?: string | null } | null> | null
+  events?: Array<{
+    id?: string | null
+    name?: string | null
+    numEntrants?: number | null
+  } | null> | null
 }
 
-export function TournamentCard({ tournament, status, userDiscriminator }: TournamentCardProps) {
+interface TournamentCardProps {
+  tournament: TournamentCardData
+  status?: 'upcoming' | 'current' | 'past'
+  userDiscriminator?: string
+  playerId?: string
+}
+
+export function TournamentCard({ tournament, status, userDiscriminator, playerId }: TournamentCardProps) {
   const profileImage = tournament.images?.[0]?.url
   const location = tournament.isOnline
     ? null
@@ -69,16 +83,28 @@ export function TournamentCard({ tournament, status, userDiscriminator }: Tourna
               (event) =>
                 event &&
                 event.id && (
-                  <Link
-                    key={event.id}
-                    to="/event/$eventId"
-                    params={{ eventId: String(event.id) }}
-                    search={{ user: userDiscriminator }}
-                    className={styles.eventPill}
-                  >
-                    {event.name}
-                    {event.numEntrants != null && ` (${event.numEntrants})`}
-                  </Link>
+                  playerId ? (
+                    <Link
+                      key={event.id}
+                      to="/player/$playerId/event/$eventId"
+                      params={{ playerId, eventId: String(event.id) }}
+                      className={styles.eventPill}
+                    >
+                      {event.name}
+                      {event.numEntrants != null && ` (${event.numEntrants})`}
+                    </Link>
+                  ) : (
+                    <Link
+                      key={event.id}
+                      to="/event/$eventId"
+                      params={{ eventId: String(event.id) }}
+                      search={{ user: userDiscriminator }}
+                      className={styles.eventPill}
+                    >
+                      {event.name}
+                      {event.numEntrants != null && ` (${event.numEntrants})`}
+                    </Link>
+                  )
                 ),
             )}
           </div>

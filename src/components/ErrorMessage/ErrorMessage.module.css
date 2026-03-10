@@ -4,9 +4,10 @@
   align-items: center;
   gap: 1rem;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 0 8px 8px 0;
   background-color: var(--error-glow);
   border: 1px solid rgba(248, 113, 113, 0.2);
+  border-left: 3px solid var(--error);
   animation: scaleIn 0.3s var(--ease-out-expo);
 }
 

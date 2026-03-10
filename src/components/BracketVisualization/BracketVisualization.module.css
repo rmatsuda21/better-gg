@@ -61,11 +61,12 @@
 }
 
 .roundLabel {
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   padding: 0.3rem 0.5rem 0.5rem;
   white-space: nowrap;
   text-align: center;
@@ -244,11 +245,12 @@
 }
 
 .sectionLabel {
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   margin-top: 1rem;
   margin-bottom: 0.25rem;
 }

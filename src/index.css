@@ -36,11 +36,13 @@
   --error-glow: rgba(248, 113, 113, 0.2);
 
   /* Typography */
+  --text-heading: #f0f0f5;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
 
   /* Gradients */
   --gradient-accent: linear-gradient(135deg, #6366f1, #a855f7, #6366f1);
   --gradient-card-hover: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(168, 85, 247, 0.04));
+  --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 30% 40%, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
 
   /* Shadows */
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -131,6 +133,22 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 

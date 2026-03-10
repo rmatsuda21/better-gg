@@ -31,6 +31,9 @@ npm run crawl -- --all    # Fetch ALL available pages (full historical)
 npm run crawl -- --fresh  # Ignore state, start over
 npm run crawl -- --watch  # Daemon mode, 30 min interval
 npm run crawl -- --watch 60  # Daemon mode, custom interval (minutes)
+npm run crawl -- --offline              # Only crawl offline events
+npm run crawl -- --min-entrants 50      # Only events with ≥50 entrants
+npm run crawl -- --offline --min-entrants 50 --all  # Combine flags
 npx tsc --noEmit      # Type-check only
 ```
 
@@ -190,9 +193,17 @@ In DE brackets, Grand Finals (GF) and Grand Finals Reset (GFR) share the same `r
 
 ### Crawl Script
 
-The crawl script (`scripts/crawl-players.ts`) is **incremental** — it persists state in `public/data/crawl-state.json` (cursor, processed tournament IDs, raw player data with `Set`/`Map` fields). On subsequent runs it uses `afterDate` (cursor minus 7-day buffer) to skip old tournaments, deduplicates via tournament ID set, and saves state progressively after each page of tournaments. Supports `--fresh` (ignore state), `--all` (full historical with date windowing), and `--watch` (daemon mode with configurable interval). Graceful shutdown via SIGINT/SIGTERM saves state after current page completes.
+The crawl script (`scripts/crawl-players.ts`) is **incremental** — it persists state in `public/data/crawl-state.json` (cursor, resume point, processed tournament IDs, raw player data with `Set`/`Map` fields). Supports `--fresh` (ignore state), `--all` (full historical with date windowing), and `--watch` (daemon mode with configurable interval). Graceful shutdown via SIGINT/SIGTERM saves state after current page completes.
 
-In `--all` mode, the crawl uses **date windowing** to work around the start.gg API's undocumented 10,000 result pagination cap. After exhausting all reported pages in a window, it slides `beforeDate` to the oldest `startAt` seen and restarts from page 1. This continues until no new tournaments are found. Tournament deduplication via `processedTournamentIds` handles overlap between windows.
+**Pause/resume**: The crawl can be stopped and resumed at any time. State includes a `resumeBeforeDate` field — the oldest tournament `startAt` seen so far. On resume, the crawl sets `beforeDate = resumeBeforeDate` and clears `afterDate`, skipping directly to where it left off. The resume point is saved progressively after each page. It is only cleared when:
+- A non-resume incremental run completes (caught up with recent data via `afterDate`)
+- A resume run's first page returns empty results (no more historical data)
+
+**Incremental mode** (no resume point in state): uses `afterDate` (cursor minus 7-day buffer) to skip old tournaments. The `allAlreadyProcessed` early exit detects when all tournaments on a page were already processed and stops. This check is **disabled during resume mode** to prevent premature exits when paginating through boundary overlaps with prior runs.
+
+**Date windowing** (`--all` mode): works around the start.gg API's undocumented 10,000 result pagination cap. After exhausting all reported pages in a window, it slides `beforeDate` to the oldest `startAt` seen, clears `afterDate`, and restarts from page 1. This continues until no new tournaments are found. Tournament deduplication via `processedTournamentIds` handles overlap between windows.
+
+**Query complexity**: Crawl queries use conservative `perPage` values to stay under the API's 1000 object limit — entrants at `perPage: 100` (~5 objects/entrant with nested participants/player/user/location) and sets at `perPage: 15` (~46 objects/set worst case for bo5 with character selections). Both paginate in loops.
 
 ---
 

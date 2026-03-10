@@ -6,7 +6,7 @@ import { graphqlClient } from '../lib/graphql-client'
 // Per-phase-group sets for CREATED events (step 2)
 // Includes seed.entrant (slot.entrant may be null for unseeded brackets)
 const phaseGroupSetsCreatedQuery = graphql(`
-  query PhaseGroupSetsCreated($phaseGroupId: ID!, $entrantId: ID!, $page: Int!, $perPage: Int!) {
+  query PhaseGroupSetsCreated($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
     phaseGroup(id: $phaseGroupId) {
       id
       sets(page: $page, perPage: $perPage, sortType: ROUND) {
@@ -19,7 +19,7 @@ const phaseGroupSetsCreatedQuery = graphql(`
           state
           round
           fullRoundText
-          displayScore(mainEntrantId: $entrantId)
+          displayScore
           winnerId
           completedAt
           slots {
@@ -91,7 +91,7 @@ const entrantSeedsQuery = graphql(`
 // Per-phase-group sets for ACTIVE/COMPLETED events (step 2)
 // Omits seed.entrant (redundant — slot.entrant is always populated for started events)
 const phaseGroupSetsQuery = graphql(`
-  query PhaseGroupSets($phaseGroupId: ID!, $entrantId: ID!, $page: Int!, $perPage: Int!) {
+  query PhaseGroupSets($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
     phaseGroup(id: $phaseGroupId) {
       id
       sets(page: $page, perPage: $perPage, sortType: ROUND) {
@@ -104,7 +104,7 @@ const phaseGroupSetsQuery = graphql(`
           state
           round
           fullRoundText
-          displayScore(mainEntrantId: $entrantId)
+          displayScore
           winnerId
           completedAt
           slots {
@@ -198,7 +198,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
             // Fetch page 1
             const firstPage = await graphqlClient.request(phaseGroupSetsQuery, {
-              phaseGroupId: pgId, entrantId: entrantId!, page: 1, perPage: 50,
+              phaseGroupId: pgId, page: 1, perPage: 50,
             })
             const allNodes = [...(firstPage.phaseGroup?.sets?.nodes ?? [])]
 
@@ -208,7 +208,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
               const remaining = await Promise.all(
                 Array.from({ length: totalPages - 1 }, (_, i) =>
                   graphqlClient.request(phaseGroupSetsQuery, {
-                    phaseGroupId: pgId, entrantId: entrantId!, page: i + 2, perPage: 50,
+                    phaseGroupId: pgId, page: i + 2, perPage: 50,
                   })
                 )
               )
@@ -295,7 +295,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
           // Fetch page 1
           const firstPage = await graphqlClient.request(phaseGroupSetsCreatedQuery, {
-            phaseGroupId: pgId, entrantId: entrantId!, page: 1, perPage: 50,
+            phaseGroupId: pgId, page: 1, perPage: 50,
           })
           const allNodes = [...(firstPage.phaseGroup?.sets?.nodes ?? [])]
 
@@ -305,7 +305,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
             const remaining = await Promise.all(
               Array.from({ length: totalPages - 1 }, (_, i) =>
                 graphqlClient.request(phaseGroupSetsCreatedQuery, {
-                  phaseGroupId: pgId, entrantId: entrantId!, page: i + 2, perPage: 50,
+                  phaseGroupId: pgId, page: i + 2, perPage: 50,
                 })
               )
             )

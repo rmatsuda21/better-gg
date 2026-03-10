@@ -11,12 +11,14 @@
   color: var(--accent);
   text-decoration: none;
   align-self: flex-start;
-  transition: color var(--duration-fast), transform var(--duration-fast);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  transition: color var(--duration-fast), background-color var(--duration-fast);
 }
 
 .backLink:hover {
   color: var(--accent-hover);
-  transform: translateX(-3px);
+  background: var(--accent-subtle);
 }
 
 /* Skeleton loading state */
@@ -58,12 +60,13 @@
 .fallbackGamerTag {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-heading);
   margin: 0;
 }
 
 /* Content sections */
 .sectionCard {
+  position: relative;
   background: rgba(18, 18, 26, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -73,6 +76,17 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  overflow: hidden;
+}
+
+.sectionCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-hover), transparent);
 }
 
 .sectionCardAnimated {
@@ -80,10 +94,17 @@
 }
 
 .sectionTitle {
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+}
+
+.upcomingList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }

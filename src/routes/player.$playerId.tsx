@@ -3,6 +3,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useOpponentStats } from '../hooks/use-opponent-stats'
 import { usePlayerProfile } from '../hooks/use-player-profile'
 import { usePlayerRecentEvents } from '../hooks/use-player-recent-events'
+import { usePlayerUpcomingEvents } from '../hooks/use-player-upcoming-events'
 import { useCharacters } from '../hooks/use-characters'
 import { buildCharacterMap } from '../lib/character-utils'
 import {
@@ -14,6 +15,7 @@ import { PlayerProfileHeader } from '../components/PlayerProfileHeader/PlayerPro
 import { CharacterBar } from '../components/CharacterBar/CharacterBar'
 import { PlacementList } from '../components/PlacementList/PlacementList'
 import type { PlacementEntry } from '../components/PlacementList/PlacementList'
+import { TournamentCard } from '../components/TournamentCard/TournamentCard'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import styles from './player.$playerId.module.css'
@@ -93,8 +95,10 @@ function PlayerPage() {
   )
   const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
 
-  // Phase 3: Recent events — depends on userId from profile
+  // Phase 3: Events — depends on userId from profile
   const userId = profileData?.player?.user?.id ?? undefined
+  const { data: upcomingData, isLoading: upcomingLoading } =
+    usePlayerUpcomingEvents(playerId, userId)
   const eventsQuery = usePlayerRecentEvents(
     playerId,
     userId,
@@ -201,6 +205,34 @@ function PlayerPage() {
             <CharacterBar usage={charUsage} characterMap={characterMap} />
           </div>
         )
+      )}
+
+      {upcomingLoading ? (
+        <div className={styles.sectionCard}>
+          <Skeleton width="100%" height={80} borderRadius={8} />
+        </div>
+      ) : (
+        (() => {
+          const upcomingTournaments = upcomingData?.player?.user?.tournaments?.nodes?.filter(
+            (t): t is NonNullable<typeof t> => t != null,
+          )
+          if (!upcomingTournaments || upcomingTournaments.length === 0) return null
+          return (
+            <div className={`${styles.sectionCard} ${styles.sectionCardAnimated}`}>
+              <h3 className={styles.sectionTitle}>Upcoming Events</h3>
+              <div className={styles.upcomingList}>
+                {upcomingTournaments.map((tournament) => (
+                  <TournamentCard
+                    key={tournament.id}
+                    tournament={tournament}
+                    status="upcoming"
+                    playerId={playerId}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })()
       )}
 
       <div className={`${styles.sectionCard} ${!eventsLoading ? styles.sectionCardAnimated : ''}`}>
