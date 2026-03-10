@@ -55,14 +55,13 @@ export function TournamentCard({ tournament, status, playerId }: TournamentCardP
         <div className={styles.imagePlaceholder}>?</div>
       )}
       <div className={styles.info}>
-        <a
+        <Link
+          to="/tournament/$tournamentId"
+          params={{ tournamentId: String(tournament.id) }}
           className={styles.name}
-          href={`https://www.start.gg/${tournament.slug}`}
-          target="_blank"
-          rel="noopener noreferrer"
         >
           {tournament.name}
-        </a>
+        </Link>
         <div className={styles.meta}>
           {tournament.startAt && tournament.endAt && (
             <span>{formatDateRange(tournament.startAt, tournament.endAt)}</span>

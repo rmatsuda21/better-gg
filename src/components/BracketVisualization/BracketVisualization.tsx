@@ -404,7 +404,7 @@ function SetCard({
     }
   }
 
-  const isUserSet = e0?.id === userEntrantId || e1?.id === userEntrantId
+  const isUserSet = userEntrantId != null && (e0?.id === userEntrantId || e1?.id === userEntrantId)
   const cardClass = `${styles.setCard} ${isUserSet ? styles.setCardUser : ''}`
 
   return (
@@ -413,7 +413,7 @@ function SetCard({
         entrant={e0}
         isWinner={isE0Winner}
         isLoser={isE0Loser}
-        isUser={e0?.id === userEntrantId}
+        isUser={userEntrantId != null && e0?.id === userEntrantId}
         playerId={e0?.id ? entrantPlayerMap.get(e0.id) : undefined}
         score={score0}
       />
@@ -421,7 +421,7 @@ function SetCard({
         entrant={e1}
         isWinner={isE1Winner}
         isLoser={isE1Loser}
-        isUser={e1?.id === userEntrantId}
+        isUser={userEntrantId != null && e1?.id === userEntrantId}
         playerId={e1?.id ? entrantPlayerMap.get(e1.id) : undefined}
         score={score1}
       />

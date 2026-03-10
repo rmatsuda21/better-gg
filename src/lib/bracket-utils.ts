@@ -147,7 +147,7 @@ export function buildBracketData(
         const e1 = resolveEntrantInfo(set.slots?.[1])
         const p0 = extractPrereq(set.slots?.[0])
         const p1 = extractPrereq(set.slots?.[1])
-        const involvesUser = e0?.id === userEntrantId || e1?.id === userEntrantId
+        const involvesUser = userEntrantId != null && (e0?.id === userEntrantId || e1?.id === userEntrantId)
         const { scores, isDQ } = parseSlotScores(set.displayScore)
 
         return {

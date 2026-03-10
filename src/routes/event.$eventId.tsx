@@ -38,9 +38,19 @@ function EventPage() {
 
   return (
     <div className={styles.container}>
-      <Link to="/" className={styles.backLink}>
-        &larr; Back to tournaments
-      </Link>
+      {event.tournament?.id ? (
+        <Link
+          to="/tournament/$tournamentId"
+          params={{ tournamentId: String(event.tournament.id) }}
+          className={styles.backLink}
+        >
+          &larr; Back to {event.tournament.name}
+        </Link>
+      ) : (
+        <Link to="/" className={styles.backLink}>
+          &larr; Back to tournaments
+        </Link>
+      )}
       <EventHeader event={event} />
 
       {event.phases && event.phases.length > 0 && (

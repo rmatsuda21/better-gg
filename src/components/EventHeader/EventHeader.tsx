@@ -30,14 +30,13 @@ export function EventHeader({ event, eventId }: EventHeaderProps) {
       )}
       <div className={styles.info}>
         {tournament && (
-          <a
+          <Link
+            to="/tournament/$tournamentId"
+            params={{ tournamentId: String(tournament.id) }}
             className={styles.tournamentName}
-            href={`https://www.start.gg/${tournament.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
           >
             {tournament.name}
-          </a>
+          </Link>
         )}
         {eventId ? (
           <Link to="/event/$eventId" params={{ eventId }} className={styles.eventNameLink}>
