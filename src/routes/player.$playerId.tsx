@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useOpponentStats } from '../hooks/use-opponent-stats'
 import { usePlayerProfile } from '../hooks/use-player-profile'
@@ -15,6 +15,8 @@ import { PlayerProfileHeader } from '../components/PlayerProfileHeader/PlayerPro
 import { CharacterBar } from '../components/CharacterBar/CharacterBar'
 import { PlacementList } from '../components/PlacementList/PlacementList'
 import type { PlacementEntry } from '../components/PlacementList/PlacementList'
+import { FilterToggle } from '../components/FilterToggle/FilterToggle'
+import type { OnlineFilter } from '../components/FilterToggle/FilterToggle'
 import { TournamentCard } from '../components/TournamentCard/TournamentCard'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
@@ -34,6 +36,7 @@ function buildPlacementsFromEvents(
           nodes?: Array<{
             name?: string | null
             startAt?: unknown
+            isOnline?: boolean | null
             events?: Array<{
               id?: string | null
               name?: string | null
@@ -48,6 +51,7 @@ function buildPlacementsFromEvents(
     } | null
   }>,
   playerId: string,
+  onlineFilter: OnlineFilter = 'all',
 ): PlacementEntry[] {
   const entries: PlacementEntry[] = []
 
@@ -55,6 +59,8 @@ function buildPlacementsFromEvents(
     const tournaments = page?.player?.user?.tournaments?.nodes ?? []
     for (const tournament of tournaments) {
       if (!tournament) continue
+      if (onlineFilter === 'online' && !tournament.isOnline) continue
+      if (onlineFilter === 'offline' && tournament.isOnline) continue
       for (const event of tournament.events ?? []) {
         if (!event) continue
         const placement = event.userEntrant?.standing?.placement
@@ -77,6 +83,7 @@ function buildPlacementsFromEvents(
 function PlayerPage() {
   const { playerId } = Route.useParams()
   const router = useRouter()
+  const [onlineFilter, setOnlineFilter] = useState<OnlineFilter>('all')
 
   // Phase 1: Profile (header data)
   const {
@@ -129,8 +136,8 @@ function PlayerPage() {
   // Build placements from infinite query pages
   const placements = useMemo(() => {
     if (!eventsQuery.data?.pages) return []
-    return buildPlacementsFromEvents(eventsQuery.data.pages, playerId)
-  }, [eventsQuery.data?.pages, playerId])
+    return buildPlacementsFromEvents(eventsQuery.data.pages, playerId, onlineFilter)
+  }, [eventsQuery.data?.pages, playerId, onlineFilter])
 
   // Compute avg placement from events data
   const avgPlacement = useMemo(() => {
@@ -181,9 +188,12 @@ function PlayerPage() {
 
   return (
     <div className={styles.container}>
-      <button className={styles.backLink} onClick={() => router.history.back()}>
-        &larr; Back
-      </button>
+      <div className={styles.topRow}>
+        <button className={styles.backLink} onClick={() => router.history.back()}>
+          &larr; Back
+        </button>
+        <FilterToggle value={onlineFilter} onChange={setOnlineFilter} />
+      </div>
 
       <PlayerProfileHeader
         profile={profile}
@@ -214,7 +224,12 @@ function PlayerPage() {
       ) : (
         (() => {
           const upcomingTournaments = upcomingData?.player?.user?.tournaments?.nodes?.filter(
-            (t): t is NonNullable<typeof t> => t != null,
+            (t): t is NonNullable<typeof t> => {
+              if (t == null) return false
+              if (onlineFilter === 'online') return !!t.isOnline
+              if (onlineFilter === 'offline') return !t.isOnline
+              return true
+            },
           )
           if (!upcomingTournaments || upcomingTournaments.length === 0) return null
           return (

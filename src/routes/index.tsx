@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/use-auth'
 import { useUserTournaments } from '../hooks/use-user-tournaments'
 import { categorizeTournaments } from '../lib/tournament-utils'
 import { TournamentSection } from '../components/TournamentSection/TournamentSection'
+import { FilterToggle } from '../components/FilterToggle/FilterToggle'
+import type { OnlineFilter } from '../components/FilterToggle/FilterToggle'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import { graphql } from '../gql'
@@ -255,6 +257,7 @@ function HeroSection({
 }
 
 function TournamentResults({ discriminator, playerId }: { discriminator: string; playerId?: string }) {
+  const [onlineFilter, setOnlineFilter] = useState<OnlineFilter>('all')
   const { data, isLoading, isError, error, refetch } =
     useUserTournaments(discriminator)
 
@@ -282,12 +285,22 @@ function TournamentResults({ discriminator, playerId }: { discriminator: string;
     return <p className={styles.empty}>No tournaments found for this user.</p>
   }
 
-  const { current, upcoming, past } = categorizeTournaments(tournaments)
+  const filtered = onlineFilter === 'all'
+    ? tournaments
+    : tournaments.filter((t) => {
+        if (!t) return false
+        return onlineFilter === 'online' ? t.isOnline : !t.isOnline
+      })
+
+  const { current, upcoming, past } = categorizeTournaments(filtered)
 
   let staggerIndex = 0
 
   return (
     <div className={styles.list}>
+      <div className={styles.filterRow}>
+        <FilterToggle value={onlineFilter} onChange={setOnlineFilter} />
+      </div>
       {current.length > 0 && (
         <div className={styles.staggerWrapper} style={{ '--stagger': staggerIndex++ } as React.CSSProperties}>
           <TournamentSection
@@ -320,6 +333,9 @@ function TournamentResults({ discriminator, playerId }: { discriminator: string;
             playerId={playerId}
           />
         </div>
+      )}
+      {current.length === 0 && upcoming.length === 0 && past.length === 0 && onlineFilter !== 'all' && (
+        <p className={styles.empty}>No {onlineFilter} tournaments found.</p>
       )}
     </div>
   )

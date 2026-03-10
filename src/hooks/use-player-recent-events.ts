@@ -28,6 +28,7 @@ const playerRecentEventsQuery = graphql(`
           nodes {
             name
             startAt
+            isOnline
             events(filter: { videogameId: $videogameId }) {
               id
               name

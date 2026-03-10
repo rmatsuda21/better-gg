@@ -130,6 +130,17 @@ const phaseGroupSetsQuery = graphql(`
               seedNum
             }
           }
+          games {
+            orderNum
+            winnerId
+            selections {
+              entrant {
+                id
+              }
+              selectionType
+              selectionValue
+            }
+          }
         }
       }
     }
@@ -198,7 +209,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
             // Fetch page 1
             const firstPage = await graphqlClient.request(phaseGroupSetsQuery, {
-              phaseGroupId: pgId, page: 1, perPage: 50,
+              phaseGroupId: pgId, page: 1, perPage: 25,
             })
             const allNodes = [...(firstPage.phaseGroup?.sets?.nodes ?? [])]
 
@@ -208,7 +219,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
               const remaining = await Promise.all(
                 Array.from({ length: totalPages - 1 }, (_, i) =>
                   graphqlClient.request(phaseGroupSetsQuery, {
-                    phaseGroupId: pgId, page: i + 2, perPage: 50,
+                    phaseGroupId: pgId, page: i + 2, perPage: 25,
                   })
                 )
               )

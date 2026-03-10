@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { getCharacterStockIcon } from '../../lib/character-utils'
 import styles from './SetDetails.module.css'
@@ -55,12 +56,15 @@ function getPlayerId(entrant: EntrantData | null | undefined): string | null {
 
 function parseScores(
   displayScore: string | null | undefined,
-): { left: string; right: string } | null {
-  if (!displayScore) return null
-  // displayScore(mainEntrantId) puts main entrant first: "3 - 1"
-  const parts = displayScore.split(' - ')
-  if (parts.length !== 2) return null
-  return { left: parts[0].trim(), right: parts[1].trim() }
+): [string | null, string | null] {
+  if (!displayScore) return [null, null]
+  if (displayScore === 'DQ') return ['DQ', 'DQ']
+  const halves = displayScore.split(' - ')
+  if (halves.length !== 2) return [null, null]
+  return [
+    halves[0].trim().split(/\s+/).pop() ?? null,
+    halves[1].trim().split(/\s+/).pop() ?? null,
+  ]
 }
 
 export function SetDetails({
@@ -68,8 +72,19 @@ export function SetDetails({
   userEntrantId,
   characterMap,
 }: SetDetailsProps) {
+  const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set())
+
   if (sets.length === 0) {
     return <p className={styles.empty}>No set results available</p>
+  }
+
+  function toggleSet(id: string) {
+    setExpandedSets((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   return (
@@ -94,9 +109,9 @@ export function SetDetails({
 
         const userEntrantNumId = Number(userEntrantId)
         const scores = parseScores(set.displayScore)
-        // displayScore(mainEntrantId) → "userScore - oppScore"
-        const userScore = scores?.left
-        const oppScore = scores?.right
+        const isSlot0User = resolveEntrant(set.slots?.[0])?.id === userEntrantId
+        const userScore = scores[isSlot0User ? 0 : 1]
+        const oppScore = scores[isSlot0User ? 1 : 0]
 
         const userIsWinner = set.winnerId === userEntrantNumId
         const oppIsWinner = set.winnerId != null && !userIsWinner
@@ -106,11 +121,29 @@ export function SetDetails({
             g != null &&
             (g.selections ?? []).some((s) => s?.selectionType === 'CHARACTER'),
         )
+        const hasGames = gamesWithSelections.length > 0
+        const setId = String(set.id ?? '')
+        const isExpanded = expandedSets.has(setId)
 
         return (
           <div key={set.id} className={styles.setCard}>
             {/* Set header: Opp | scores + round | User */}
-            <div className={styles.setHeader}>
+            <div
+              className={`${styles.setHeader} ${hasGames ? styles.setHeaderClickable : ''}`}
+              {...(hasGames
+                ? {
+                    role: 'button',
+                    tabIndex: 0,
+                    onClick: () => toggleSet(setId),
+                    onKeyDown: (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleSet(setId)
+                      }
+                    },
+                  }
+                : {})}>
+
               <div className={`${styles.playerSide} ${styles.left}`}>
                 {oppPlayerId ? (
                   <Link
@@ -141,6 +174,11 @@ export function SetDetails({
                     {userIsWinner ? '▶' : '◀'}
                   </span>
                 )}
+                {hasGames && (
+                  <span className={`${styles.expandChevron} ${isExpanded ? styles.expanded : ''}`}>
+                    ▾
+                  </span>
+                )}
               </div>
 
               <div className={`${styles.playerSide} ${styles.right}`}>
@@ -166,7 +204,7 @@ export function SetDetails({
             </div>
 
             {/* Game rows */}
-            {gamesWithSelections.length > 0 && (
+            {isExpanded && gamesWithSelections.length > 0 && (
               <div className={styles.games}>
                 {gamesWithSelections.map((game) => {
                   const userChar = game.selections?.find(

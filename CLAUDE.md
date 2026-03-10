@@ -84,15 +84,29 @@ better-gg/
       character-utils.ts       # buildCharacterMap (numeric ID -> name)
       bracket-utils.ts         # buildBracketData, buildProjectedResults (bracket tree + seed projection)
       format.ts                # formatDate, formatPlacement, formatWinRate, formatDateRange
+      player-search.ts         # Player search engine (fuzzy matching against crawled data)
+      player-search-types.ts   # PlayerRecord type definitions
+      player-filter.ts         # Player list filtering/sorting
+      country-utils.ts         # Country code → name mapping
     hooks/
       use-auth.ts              # React auth hook (useSyncExternalStore wrapper)
       use-current-user.ts      # CurrentUser GraphQL query (OAuth-authenticated)
       use-user-tournaments.ts  # UserTournaments query (by user slug)
       use-event-details.ts     # EventDetails query (by event ID)
+      use-event-standings.ts   # EventStandings query (paginated standings)
+      use-event-entrant-search.ts # Search entrants within an event
       use-entrant-sets.ts      # EntrantSets / EntrantPhaseGroupSets (bracket data)
       use-phase-bracket.ts     # PhaseBracketMeta + PhaseBracketSets (phase-level bracket)
       use-characters.ts        # VideogameCharacters query (cacheable, 24h stale)
       use-opponent-stats.ts    # PlayerStats query (standings + sets + character picks)
+      use-player-profile.ts    # PlayerProfile query (player header data)
+      use-player-recent-events.ts  # PlayerRecentEvents infinite query (past tournaments + placements)
+      use-player-upcoming-events.ts # PlayerUpcomingEvents query (upcoming tournaments)
+      use-player-entrant.ts    # Player entrant resolution
+      use-player-search.ts     # Player search query
+      use-tournament-details.ts # TournamentDetails query
+      use-filtered-players.ts  # Filtered player list from crawled data
+      use-debounced-value.ts   # Generic debounce hook
     routes/
       __root.tsx               # Root layout (header with auth controls + outlet)
       __root.module.css
@@ -100,10 +114,14 @@ better-gg/
       index.module.css
       auth.callback.tsx        # OAuth callback (code → token exchange)
       auth.callback.module.css
+      player.$playerId.tsx     # Player profile: stats, characters, upcoming events, placements
+      player.$playerId_.event.$eventId.tsx  # Player-specific event view with opponent analysis
       event.$eventId.tsx       # Event detail: header, clickable phases, opponent analysis
       event.$eventId.module.css
       event.$eventId_.phase.$phaseId.tsx       # Phase bracket visualization
       event.$eventId_.phase.$phaseId.module.css
+      tournament.$tournamentId.tsx  # Tournament detail page
+      players.tsx              # Player list page (from crawled data)
     components/
       Skeleton/                # Loading placeholder
       ErrorMessage/            # Error display with optional retry
@@ -115,9 +133,14 @@ better-gg/
       OpponentAnalysis/        # Bracket opponents (list view with feeder resolution)
       OpponentCard/            # Single opponent with head-to-head, character data
       BracketVisualization/    # Visual bracket tree (actual + projected modes)
+      BracketSearch/           # Search within bracket visualization
+      SetDetails/              # Expanded set details (games, characters)
       StatBlock/               # Key-value stat display
       CharacterBar/            # Character usage bar chart
       PlacementList/           # Recent placement history
+      PlayerProfileHeader/     # Player profile header card (avatar, tag, stats)
+      PlayerSearch/            # Player search autocomplete (from crawled data)
+      FilterToggle/            # Segmented toggle (All/Offline/Online) for tournament filtering
 ```
 
 ## Architecture Patterns
