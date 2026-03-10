@@ -2,6 +2,7 @@ import Fuse from 'fuse.js'
 import type { PlayerRecord } from './player-search-types'
 
 let fuseIndex: Fuse<PlayerRecord> | null = null
+let rawPlayers: PlayerRecord[] = []
 let countries: string[] = []
 let loadPromise: Promise<Fuse<PlayerRecord>> | null = null
 
@@ -12,6 +13,7 @@ async function loadIndex(): Promise<Fuse<PlayerRecord>> {
     loadPromise = fetch('/data/players.json')
       .then((res) => res.json())
       .then((players: PlayerRecord[]) => {
+        rawPlayers = players
         const countrySet = new Set<string>()
         for (const p of players) {
           if (p.cc) countrySet.add(p.cc)
@@ -57,4 +59,17 @@ export async function getCountries(): Promise<string[]> {
 
 export async function preloadIndex(): Promise<void> {
   await loadIndex()
+}
+
+export async function getAllPlayers(): Promise<PlayerRecord[]> {
+  await loadIndex()
+  return rawPlayers
+}
+
+export async function searchPlayersAll(
+  query: string,
+  limit = 1000,
+): Promise<PlayerRecord[]> {
+  const index = await loadIndex()
+  return index.search(query, { limit }).map((r) => r.item)
 }

@@ -25,6 +25,22 @@
 .headerLeft {
   display: flex;
   align-items: center;
+  gap: 1rem;
+}
+
+.navLink {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color var(--duration-fast);
+}
+
+.navLink:hover {
+  color: var(--accent);
 }
 
 .headerRight {

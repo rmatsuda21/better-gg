@@ -30,6 +30,9 @@ function RootLayout() {
               <h1 className={styles.title}>better.gg</h1>
             </Link>
           )}
+          <Link to="/players" className={styles.navLink}>
+            Players
+          </Link>
         </div>
         <div className={styles.headerRight}>
           {isAuthenticated ? (

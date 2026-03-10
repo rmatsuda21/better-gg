@@ -15,3 +15,7 @@ export function buildCharacterMap(
   }
   return map
 }
+
+export function getCharacterStockIcon(characterId: number | string): string {
+  return `/images/stock-icons/${characterId}.webp`
+}
