@@ -7,7 +7,6 @@ interface TournamentSectionProps {
   count: number
   tournaments: TournamentCardData[]
   status: 'upcoming' | 'current' | 'past'
-  userDiscriminator?: string
   playerId?: string
 }
 
@@ -16,7 +15,6 @@ export function TournamentSection({
   count,
   tournaments,
   status,
-  userDiscriminator,
   playerId,
 }: TournamentSectionProps) {
   return (
@@ -31,7 +29,6 @@ export function TournamentSection({
             key={tournament.id}
             tournament={tournament}
             status={status}
-            userDiscriminator={userDiscriminator}
             playerId={playerId}
           />
         ))}

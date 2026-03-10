@@ -39,7 +39,7 @@ function AuthCallback() {
       })
       .then((data) => {
         login(data.access_token, data.refresh_token, data.expires_in)
-        navigate({ to: '/', search: { user: undefined } })
+        navigate({ to: '/' })
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Authentication failed')
@@ -53,7 +53,7 @@ function AuthCallback() {
           <div className={styles.errorIcon}>!</div>
           <h2 className={styles.title}>Authentication Failed</h2>
           <p className={styles.message}>{error}</p>
-          <button className={styles.button} onClick={() => navigate({ to: '/', search: { user: undefined } })}>
+          <button className={styles.button} onClick={() => navigate({ to: '/' })}>
             Back to Home
           </button>
         </div>

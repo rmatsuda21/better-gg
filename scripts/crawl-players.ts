@@ -508,7 +508,7 @@ async function processEvent(
               existing.tag = p.gamerTag
               if (p.prefix) existing.pfx = p.prefix
               if (p.user?.slug) existing.disc = parseDiscriminator(p.user.slug)
-              if (p.user?.location?.country) existing.cc = p.user.location.countryCode
+              if (p.user?.location?.country) existing.cc = p.user.location.country
               existing.tournamentIds.add(ev.tournamentId)
             } else {
               players.set(playerId, {

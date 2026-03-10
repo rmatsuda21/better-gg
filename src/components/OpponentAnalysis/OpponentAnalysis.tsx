@@ -30,7 +30,6 @@ function extractUserScore(
 interface OpponentAnalysisProps {
   entrantId: string
   playerId: string | null
-  userDiscriminator: string
   eventState?: string | null
   eventSlug?: string
 }

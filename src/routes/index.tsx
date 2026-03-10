@@ -29,25 +29,16 @@ const resolveDiscriminatorQuery = graphql(`
 `)
 
 export const Route = createFileRoute('/')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    user: (search.user as string) || undefined,
-  }),
   component: HomePage,
 })
 
 function HomePage() {
-  const { user } = Route.useSearch()
   const navigate = useNavigate()
   const { isAuthenticated, user: authUser } = useAuth()
-  const [input, setInput] = useState(user ?? '')
+  const [input, setInput] = useState('')
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [isResolving, setIsResolving] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
-
-  // Auto-use authenticated user's discriminator when no ?user= is set
-  const effectiveDiscriminator = user ?? (isAuthenticated ? authUser?.discriminator : undefined)
-  const isViewingSelf = isAuthenticated && !user && !!authUser?.discriminator
-  const isViewingOther = isAuthenticated && !!user && user !== authUser?.discriminator
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -76,73 +67,48 @@ function HomePage() {
     navigate({ to: '/player/$playerId', params: { playerId: player.pid } })
   }
 
-  // Logged-out, no search query
-  const showHero = !isAuthenticated && !user
+  const showHero = !isAuthenticated
 
   return (
     <>
       {showHero && <HeroSection onSelect={handlePlayerSelect} input={input} setInput={setInput} onSubmit={handleSubmit} isResolving={isResolving} resolveError={resolveError} />}
 
-      {isViewingSelf && (
-        <div className={styles.dashboardHeader}>
-          <p className={styles.dashboardLabel}>Dashboard</p>
-          <h2 className={styles.welcomeTitle}>
-            Welcome back, <span className={styles.welcomeAccent}>{authUser?.gamerTag ?? authUser?.name ?? 'Player'}</span>
-          </h2>
-        </div>
-      )}
+      {isAuthenticated && authUser?.discriminator && (
+        <>
+          <div className={styles.dashboardHeader}>
+            <p className={styles.dashboardLabel}>Dashboard</p>
+            <h2 className={styles.welcomeTitle}>
+              Welcome back, <span className={styles.welcomeAccent}>{authUser.gamerTag ?? authUser.name ?? 'Player'}</span>
+            </h2>
+          </div>
 
-      {isViewingOther && (
-        <button
-          className={styles.backLink}
-          onClick={() => navigate({ to: '/', search: { user: undefined } })}
-        >
-          &larr; Back to my tournaments
-        </button>
-      )}
+          <TournamentResults discriminator={authUser.discriminator} playerId={authUser.playerId ?? undefined} />
 
-      {/* Show tournament results for effective discriminator */}
-      {effectiveDiscriminator && (
-        <TournamentResults discriminator={effectiveDiscriminator} />
+          <div className={styles.searchToggle}>
+            <button
+              className={styles.searchToggleButton}
+              onClick={() => setSearchExpanded((o) => !o)}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className={`${styles.toggleChevron} ${searchExpanded ? styles.toggleChevronOpen : ''}`}>
+                <path d="M3 4.5L6 7.5L9 4.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Search other players
+            </button>
+            {searchExpanded && (
+              <div className={styles.searchSection}>
+                <SearchFields
+                  input={input}
+                  setInput={setInput}
+                  onSubmit={handleSubmit}
+                  onSelect={handlePlayerSelect}
+                  isResolving={isResolving}
+                  resolveError={resolveError}
+                />
+              </div>
+            )}
+          </div>
+        </>
       )}
-
-      {/* Search section */}
-      {isAuthenticated && !user ? (
-        <div className={styles.searchToggle}>
-          <button
-            className={styles.searchToggleButton}
-            onClick={() => setSearchExpanded((o) => !o)}
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className={`${styles.toggleChevron} ${searchExpanded ? styles.toggleChevronOpen : ''}`}>
-              <path d="M3 4.5L6 7.5L9 4.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Search other players
-          </button>
-          {searchExpanded && (
-            <div className={styles.searchSection}>
-              <SearchFields
-                input={input}
-                setInput={setInput}
-                onSubmit={handleSubmit}
-                onSelect={handlePlayerSelect}
-                isResolving={isResolving}
-                resolveError={resolveError}
-              />
-            </div>
-          )}
-        </div>
-      ) : !showHero ? (
-        <div className={styles.searchSection}>
-          <SearchFields
-            input={input}
-            setInput={setInput}
-            onSubmit={handleSubmit}
-            onSelect={handlePlayerSelect}
-            isResolving={isResolving}
-            resolveError={resolveError}
-          />
-        </div>
-      ) : null}
     </>
   )
 }
@@ -285,7 +251,7 @@ function HeroSection({
   )
 }
 
-function TournamentResults({ discriminator }: { discriminator: string }) {
+function TournamentResults({ discriminator, playerId }: { discriminator: string; playerId?: string }) {
   const { data, isLoading, isError, error, refetch } =
     useUserTournaments(discriminator)
 
@@ -326,7 +292,7 @@ function TournamentResults({ discriminator }: { discriminator: string }) {
             count={current.length}
             tournaments={current}
             status="current"
-            userDiscriminator={discriminator}
+            playerId={playerId}
           />
         </div>
       )}
@@ -337,7 +303,7 @@ function TournamentResults({ discriminator }: { discriminator: string }) {
             count={upcoming.length}
             tournaments={upcoming}
             status="upcoming"
-            userDiscriminator={discriminator}
+            playerId={playerId}
           />
         </div>
       )}
@@ -348,7 +314,7 @@ function TournamentResults({ discriminator }: { discriminator: string }) {
             count={past.length}
             tournaments={past}
             status="past"
-            userDiscriminator={discriminator}
+            playerId={playerId}
           />
         </div>
       )}

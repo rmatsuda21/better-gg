@@ -12,6 +12,7 @@ export interface AuthUser {
   name: string | null
   gamerTag: string | null
   profileImageUrl: string | null
+  playerId: string | null
 }
 
 export interface AuthState {

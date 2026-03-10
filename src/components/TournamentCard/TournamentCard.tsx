@@ -25,11 +25,10 @@ export interface TournamentCardData {
 interface TournamentCardProps {
   tournament: TournamentCardData
   status?: 'upcoming' | 'current' | 'past'
-  userDiscriminator?: string
   playerId?: string
 }
 
-export function TournamentCard({ tournament, status, userDiscriminator, playerId }: TournamentCardProps) {
+export function TournamentCard({ tournament, status, playerId }: TournamentCardProps) {
   const profileImage = tournament.images?.[0]?.url
   const location = tournament.isOnline
     ? null
@@ -98,7 +97,6 @@ export function TournamentCard({ tournament, status, userDiscriminator, playerId
                       key={event.id}
                       to="/event/$eventId"
                       params={{ eventId: String(event.id) }}
-                      search={{ user: userDiscriminator }}
                       className={styles.eventPill}
                     >
                       {event.name}

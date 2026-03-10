@@ -40,7 +40,7 @@ export function EventHeader({ event, eventId }: EventHeaderProps) {
           </a>
         )}
         {eventId ? (
-          <Link to="/event/$eventId" params={{ eventId }} search={{ user: undefined }} className={styles.eventNameLink}>
+          <Link to="/event/$eventId" params={{ eventId }} className={styles.eventNameLink}>
             <h2 className={styles.eventName}>{event.name}</h2>
           </Link>
         ) : (

@@ -37,10 +37,10 @@ export function UserMenu() {
       </button>
       {isOpen && (
         <div className={styles.dropdown}>
-          {user.discriminator && (
+          {user.playerId && (
             <Link
-              to="/"
-              search={{ user: user.discriminator }}
+              to="/player/$playerId"
+              params={{ playerId: user.playerId }}
               className={styles.dropdownItem}
               onClick={() => setIsOpen(false)}
             >

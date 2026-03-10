@@ -37,6 +37,7 @@ export function useCurrentUser() {
           name: u.name ?? null,
           gamerTag: u.player?.gamerTag ?? null,
           profileImageUrl: u.images?.[0]?.url ?? null,
+          playerId: u.player?.id ? String(u.player.id) : null,
         }
         setAuthUser(authUser)
       }

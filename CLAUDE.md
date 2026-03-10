@@ -89,7 +89,6 @@ better-gg/
       use-current-user.ts      # CurrentUser GraphQL query (OAuth-authenticated)
       use-user-tournaments.ts  # UserTournaments query (by user slug)
       use-event-details.ts     # EventDetails query (by event ID)
-      use-user-entrant.ts      # Two-step: resolve gamerTag -> find entrant in event
       use-entrant-sets.ts      # EntrantSets / EntrantPhaseGroupSets (bracket data)
       use-phase-bracket.ts     # PhaseBracketMeta + PhaseBracketSets (phase-level bracket)
       use-characters.ts        # VideogameCharacters query (cacheable, 24h stale)
@@ -161,7 +160,7 @@ Every component has a `.module.css` file. Use CSS custom properties from `index.
 
 ### Routing
 
-File-based routing via `@tanstack/react-router`. Routes use `validateSearch` for URL search params (e.g., `?user=97bc50e1`). The route tree is auto-generated into `src/routeTree.gen.ts`.
+File-based routing via `@tanstack/react-router`. The route tree is auto-generated into `src/routeTree.gen.ts`.
 
 ### Authentication (OAuth)
 
@@ -174,8 +173,8 @@ For production, the `/api/auth/token` and `/api/auth/refresh` endpoints need to 
 ### Data Flow
 
 1. Home page (`/`): Logged-out users see a hero landing page with feature highlights and player search. Logged-in users see their tournaments auto-loaded via their discriminator. Both can search other players.
-2. Event page (`/event/$eventId?user=...`): `useEventDetails` loads event info, `useUserEntrant` resolves the user's entrant in that event, `OpponentAnalysis` shows bracket opponents via `useEntrantSets`. Phase items are clickable links to the phase bracket route.
-3. Phase bracket page (`/event/$eventId/phase/$phaseId?user=...`): `usePhaseBracket` fetches phase metadata + per-phase-group sets (two query variants: slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). Renders `BracketVisualization` for each phase group. If `?user=` is present, highlights user's path via `useUserEntrant`. `userEntrantId` is optional throughout `BracketVisualization` and `buildBracketData`.
+2. Event page (`/event/$eventId`): `useEventDetails` loads event info. Phase items are clickable links to the phase bracket route. For player-specific views with opponent analysis, use `/player/$playerId/event/$eventId` instead.
+3. Phase bracket page (`/event/$eventId/phase/$phaseId`): `usePhaseBracket` fetches phase metadata + per-phase-group sets (two query variants: slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). Renders `BracketVisualization` for each phase group. `userEntrantId` is optional throughout `BracketVisualization` and `buildBracketData`.
 4. Opponent cards can expand to show stats via `useOpponentStats` and character data via `useCharacters`
 5. For CREATED events, each phase group has a **List/Bracket** toggle. Bracket view uses `BracketVisualization` with an **Actual/Projected** sub-toggle. Projected mode fills empty slots by propagating higher-seeded winners through the bracket tree (`bracket-utils.ts`)
 

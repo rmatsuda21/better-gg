@@ -26,7 +26,7 @@ function RootLayout() {
           {isHome ? (
             <h1 className={styles.title}>better.gg</h1>
           ) : (
-            <Link to="/" search={{ user: undefined }} className={styles.titleLink}>
+            <Link to="/" className={styles.titleLink}>
               <h1 className={styles.title}>better.gg</h1>
             </Link>
           )}

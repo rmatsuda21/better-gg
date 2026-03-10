@@ -1,24 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEventDetails } from '../hooks/use-event-details'
-import { useUserEntrant } from '../hooks/use-user-entrant'
 import { EventHeader } from '../components/EventHeader/EventHeader'
-import { OpponentAnalysis } from '../components/OpponentAnalysis/OpponentAnalysis'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import styles from './event.$eventId.module.css'
 
 export const Route = createFileRoute('/event/$eventId')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    user: (search.user as string) || undefined,
-  }),
   component: EventPage,
 })
 
 function EventPage() {
   const { eventId } = Route.useParams()
-  const { user } = Route.useSearch()
   const { data, isLoading, isError, error, refetch } = useEventDetails(eventId)
-  const { data: userEntrant, isLoading: entrantLoading } = useUserEntrant(eventId, user)
 
   if (isLoading) {
     return (
@@ -45,7 +38,7 @@ function EventPage() {
 
   return (
     <div className={styles.container}>
-      <Link to="/" search={{ user }} className={styles.backLink}>
+      <Link to="/" className={styles.backLink}>
         &larr; Back to tournaments
       </Link>
       <EventHeader event={event} />
@@ -61,7 +54,6 @@ function EventPage() {
                     key={phase.id}
                     to="/event/$eventId/phase/$phaseId"
                     params={{ eventId, phaseId: phase.id! }}
-                    search={{ user }}
                     className={styles.phaseItem}
                   >
                     <span className={styles.phaseName}>{phase.name}</span>
@@ -87,27 +79,6 @@ function EventPage() {
                 ),
             )}
           </div>
-        </div>
-      )}
-
-      {user && (
-        <div className={styles.analysis}>
-          <h3 className={styles.sectionTitle}>Opponent Analysis</h3>
-          {entrantLoading ? (
-            <Skeleton width="100%" height={100} borderRadius={8} />
-          ) : userEntrant ? (
-            <OpponentAnalysis
-              entrantId={userEntrant.entrantId}
-              playerId={userEntrant.playerId}
-              userDiscriminator={user}
-              eventState={event.state}
-              eventSlug={event.slug ?? undefined}
-            />
-          ) : (
-            <p className={styles.notEntered}>
-              User does not appear to be entered in this event.
-            </p>
-          )}
         </div>
       )}
     </div>

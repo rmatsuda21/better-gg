@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEventDetails } from '../hooks/use-event-details'
-import { useUserEntrant } from '../hooks/use-user-entrant'
 import { usePhaseBracket } from '../hooks/use-phase-bracket'
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { extractBracketEntrants } from '../lib/bracket-utils'
@@ -13,18 +12,13 @@ import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import styles from './event.$eventId_.phase.$phaseId.module.css'
 
 export const Route = createFileRoute('/event/$eventId_/phase/$phaseId')({
-  validateSearch: (search: Record<string, unknown>) => ({
-    user: (search.user as string) || undefined,
-  }),
   component: PhaseBracketPage,
 })
 
 function PhaseBracketPage() {
   const { eventId, phaseId } = Route.useParams()
-  const { user } = Route.useSearch()
   const { data: eventData, isLoading: eventLoading } = useEventDetails(eventId)
   const { data: bracketData, isLoading: bracketLoading, isError, error, refetch } = usePhaseBracket(phaseId)
-  const { data: userEntrant } = useUserEntrant(eventId, user)
 
   if (eventLoading || bracketLoading) {
     return (
@@ -56,7 +50,6 @@ function PhaseBracketPage() {
       <Link
         to="/event/$eventId"
         params={{ eventId }}
-        search={{ user }}
         className={styles.backLink}
       >
         &larr; Back to event
@@ -88,7 +81,6 @@ function PhaseBracketPage() {
 
       <BracketSearchSection
         bracketData={bracketData}
-        userEntrantId={userEntrant?.entrantId}
         showProjectionToggle={showProjectionToggle}
       />
 
@@ -101,11 +93,9 @@ function PhaseBracketPage() {
 
 function BracketSearchSection({
   bracketData,
-  userEntrantId,
   showProjectionToggle,
 }: {
   bracketData: { phaseGroups: PhaseGroupInfo[] }
-  userEntrantId?: string
   showProjectionToggle: boolean
 }) {
   const [searchedEntrantId, setSearchedEntrantId] = useState<string | null>(null)
@@ -115,7 +105,7 @@ function BracketSearchSection({
     [bracketData.phaseGroups],
   )
 
-  const effectiveEntrantId = searchedEntrantId ?? userEntrantId
+  const effectiveEntrantId = searchedEntrantId ?? undefined
 
   // Scroll to the searched player's first set after selection
   const scrollTarget = useRef<string | null>(null)
