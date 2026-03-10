@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import type { KeyboardEvent } from 'react'
 import { usePlayerSearch, usePlayerCountries } from '../../hooks/use-player-search'
 import { useCharacters } from '../../hooks/use-characters'
-import { buildCharacterMap } from '../../lib/character-utils'
+import { buildCharacterMap, getCharacterStockIcon } from '../../lib/character-utils'
 import { countryCodeToFlag } from '../../lib/country-utils'
 import { Skeleton } from '../Skeleton/Skeleton'
 import type { PlayerRecord } from '../../lib/player-search-types'
@@ -142,8 +142,13 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
                   {player.chars.length > 0 && (
                     <div className={styles.charLine}>
                       {player.chars.map((ch, ci) => (
-                        <span key={ch.id}>
+                        <span key={ch.id} className={styles.charItem}>
                           {ci > 0 && <span className={styles.charSep}> · </span>}
+                          <img
+                            src={getCharacterStockIcon(ch.id)}
+                            alt=""
+                            className={styles.charIcon}
+                          />
                           {characterMap.get(ch.id) ?? `Character ${ch.id}`}
                           {ch.role === 'co-main' && (
                             <span className={styles.coMain}> (co)</span>

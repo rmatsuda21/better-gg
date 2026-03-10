@@ -149,6 +149,19 @@
   flex-wrap: wrap;
 }
 
+.charItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.charIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .charSep {
   color: var(--text-secondary);
 }

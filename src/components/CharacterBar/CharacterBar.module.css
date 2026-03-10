@@ -43,6 +43,13 @@
   box-shadow: 0 0 4px currentColor;
 }
 
+.legendIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .legendName {
   color: var(--text-primary);
 }

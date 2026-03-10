@@ -138,6 +138,13 @@ a.playerName:hover {
   justify-content: flex-end;
 }
 
+.charIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .charName {
   color: var(--text-primary);
   font-size: 0.78rem;

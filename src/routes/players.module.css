@@ -158,6 +158,9 @@
 }
 
 .charTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   font-family: var(--font-mono);
   font-size: 0.6rem;
   padding: 0.1rem 0.35rem;
@@ -166,6 +169,13 @@
   color: var(--text-secondary);
   white-space: nowrap;
   letter-spacing: 0.02em;
+}
+
+.charIcon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .charTag.main {

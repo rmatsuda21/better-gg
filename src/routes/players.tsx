@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useFilteredPlayers } from '../hooks/use-filtered-players'
 import { usePlayerCountries } from '../hooks/use-player-search'
 import { useCharacters } from '../hooks/use-characters'
-import { buildCharacterMap } from '../lib/character-utils'
+import { buildCharacterMap, getCharacterStockIcon } from '../lib/character-utils'
 import { countryCodeToFlag } from '../lib/country-utils'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import type { PlayerRecord } from '../lib/player-search-types'
@@ -210,6 +210,11 @@ function PlayerRow({
             key={ch.id}
             className={`${styles.charTag} ${styles[ch.role]}`}
           >
+            <img
+              src={getCharacterStockIcon(ch.id)}
+              alt=""
+              className={styles.charIcon}
+            />
             {characterMap.get(ch.id) ?? `#${ch.id}`}
           </span>
         ))}

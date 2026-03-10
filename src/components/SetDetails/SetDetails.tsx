@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { getCharacterStockIcon } from '../../lib/character-utils'
 import styles from './SetDetails.module.css'
 
 interface EntrantData {
@@ -196,6 +197,13 @@ export function SetDetails({
                     <div key={game.orderNum} className={styles.gameRow}>
                       {/* Opponent side */}
                       <div className={`${styles.gameSide} ${styles.left}`}>
+                        {oppChar?.selectionValue != null && (
+                          <img
+                            src={getCharacterStockIcon(oppChar.selectionValue)}
+                            alt=""
+                            className={styles.charIcon}
+                          />
+                        )}
                         <span className={styles.charName}>{oppCharName}</span>
                         {hasWinner && (
                           <span
@@ -226,6 +234,13 @@ export function SetDetails({
                           >
                             {gameUserWon ? 'W' : 'L'}
                           </span>
+                        )}
+                        {userChar?.selectionValue != null && (
+                          <img
+                            src={getCharacterStockIcon(userChar.selectionValue)}
+                            alt=""
+                            className={styles.charIcon}
+                          />
                         )}
                         <span className={styles.charName}>{userCharName}</span>
                       </div>

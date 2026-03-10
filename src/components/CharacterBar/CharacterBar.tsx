@@ -1,4 +1,5 @@
 import type { CharacterUsage } from '../../lib/stats-utils'
+import { getCharacterStockIcon } from '../../lib/character-utils'
 import styles from './CharacterBar.module.css'
 
 const COLORS = ['#6366f1', '#34d399', '#f87171', '#f59e0b', '#a78bfa', '#f472b6', '#818cf8']
@@ -34,6 +35,11 @@ export function CharacterBar({ usage, characterMap }: CharacterBarProps) {
             <span
               className={styles.legendDot}
               style={{ backgroundColor: COLORS[i % COLORS.length] }}
+            />
+            <img
+              src={getCharacterStockIcon(u.characterId)}
+              alt=""
+              className={styles.legendIcon}
             />
             <span className={styles.legendName}>
               {characterMap.get(u.characterId) ?? `#${u.characterId}`}
