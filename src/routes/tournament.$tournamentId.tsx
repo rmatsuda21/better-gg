@@ -1,10 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useTournamentDetails } from '../hooks/use-tournament-details'
-import { useEventStandings } from '../hooks/use-event-standings'
+import { useTournamentParticipants } from '../hooks/use-tournament-participants'
+import { useAllEventStandings } from '../hooks/use-event-standings'
 import { useEventEntrantSearch } from '../hooks/use-event-entrant-search'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
+import {
+  ParticipantList,
+} from '../components/ParticipantList/ParticipantList'
+import type { EventInfo } from '../components/ParticipantList/ParticipantList'
+import type { EventStanding } from '../hooks/use-event-standings'
 import { formatDateRange, formatPlacement } from '../lib/format'
 import type { TournamentDetailsQuery } from '../gql/graphql'
 import styles from './tournament.$tournamentId.module.css'
@@ -21,6 +28,10 @@ function TournamentPage() {
   const { tournamentId } = Route.useParams()
   const { data, isLoading, isError, error, refetch } =
     useTournamentDetails(tournamentId)
+  const {
+    data: participants,
+    isLoading: participantsLoading,
+  } = useTournamentParticipants(tournamentId)
 
   if (isLoading) {
     return (
@@ -101,6 +112,12 @@ function TournamentPage() {
         </div>
       </div>
 
+      <PlayersSection
+        tournament={tournament}
+        participants={participants ?? []}
+        isLoading={participantsLoading}
+      />
+
       {tournament.events && tournament.events.length > 0 && (
         <div className={styles.eventsSection}>
           <h3 className={styles.sectionTitle}>Events</h3>
@@ -120,6 +137,51 @@ function TournamentPage() {
   )
 }
 
+function PlayersSection({
+  tournament,
+  participants,
+  isLoading,
+}: {
+  tournament: NonNullable<TournamentDetailsQuery['tournament']>
+  participants: import('../hooks/use-tournament-participants').TournamentParticipant[]
+  isLoading: boolean
+}) {
+  const eventInfos: EventInfo[] = useMemo(
+    () =>
+      (tournament.events ?? [])
+        .filter((e): e is NonNullable<typeof e> => !!e?.id)
+        .map((e) => ({
+          id: String(e.id),
+          name: e.name ?? 'Event',
+          phases: (e.phases ?? [])
+            .filter((p): p is NonNullable<typeof p> => !!p?.id)
+            .map((p) => ({
+              id: String(p.id),
+              phaseOrder: p.phaseOrder ?? null,
+            })),
+        })),
+    [tournament.events],
+  )
+
+  return (
+    <div className={styles.playerSection}>
+      <div className={styles.playerSectionHeader}>
+        <h3 className={styles.sectionTitle}>Players</h3>
+        {!isLoading && participants.length > 0 && (
+          <span className={styles.countBadge}>
+            {participants.length.toLocaleString()}
+          </span>
+        )}
+      </div>
+      <ParticipantList
+        participants={participants}
+        events={eventInfos}
+        isLoading={isLoading}
+      />
+    </div>
+  )
+}
+
 function EventCard({
   event,
   stagger,
@@ -128,15 +190,14 @@ function EventCard({
   stagger: number
 }) {
   const [showStandings, setShowStandings] = useState(false)
-  const [standingsPage, setStandingsPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   const eventId = String(event.id ?? '')
 
-  const { data: standingsData, isLoading: standingsLoading } =
-    useEventStandings(eventId, standingsPage, showStandings && !debouncedSearch)
+  const { data: standings, isLoading: standingsLoading } =
+    useAllEventStandings(eventId, showStandings && !debouncedSearch)
 
   const { data: searchData, isLoading: searchLoading } =
     useEventEntrantSearch(eventId, debouncedSearch, showStandings && debouncedSearch.length >= 2)
@@ -146,7 +207,6 @@ function EventCard({
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       setDebouncedSearch(value)
-      setStandingsPage(1)
     }, 300)
   }, [])
 
@@ -259,11 +319,9 @@ function EventCard({
           {isSearchMode ? (
             <SearchResults data={searchData} isLoading={searchLoading} />
           ) : (
-            <StandingsResults
-              data={standingsData}
+            <VirtualizedStandings
+              standings={standings ?? []}
               isLoading={standingsLoading}
-              page={standingsPage}
-              onPageChange={setStandingsPage}
             />
           )}
         </div>
@@ -277,11 +335,13 @@ function StandingsRow({
   seed,
   name,
   prefix,
+  playerId,
 }: {
   placement?: number | null
   seed?: number | null
   name?: string | null
   prefix?: string | null
+  playerId?: string | null
 }) {
   return (
     <div className={styles.standingsRow}>
@@ -290,8 +350,21 @@ function StandingsRow({
       </span>
       <span className={styles.seed}>{seed != null ? seed : '-'}</span>
       <span className={styles.entrantName}>
-        {prefix && <span className={styles.prefix}>{prefix}</span>}
-        {name}
+        {playerId ? (
+          <Link
+            to="/player/$playerId"
+            params={{ playerId }}
+            className={styles.entrantLink}
+          >
+            {prefix && <span className={styles.prefix}>{prefix}</span>}
+            {name}
+          </Link>
+        ) : (
+          <>
+            {prefix && <span className={styles.prefix}>{prefix}</span>}
+            {name}
+          </>
+        )}
       </span>
     </div>
   )
@@ -330,6 +403,7 @@ function SearchResults({
               seed={entrant.initialSeedNum}
               name={entrant.name}
               prefix={entrant.participants?.[0]?.prefix}
+              playerId={entrant.participants?.[0]?.player?.id ? String(entrant.participants[0].player.id) : null}
             />
           ),
       )}
@@ -337,70 +411,76 @@ function SearchResults({
   )
 }
 
-function StandingsResults({
-  data,
+const STANDINGS_ROW_HEIGHT = 36
+
+function VirtualizedStandings({
+  standings,
   isLoading,
-  page,
-  onPageChange,
 }: {
-  data: ReturnType<typeof useEventStandings>['data']
+  standings: EventStanding[]
   isLoading: boolean
-  page: number
-  onPageChange: (page: number) => void
 }) {
-  const standings = data?.event?.standings?.nodes
-  const pageInfo = data?.event?.standings?.pageInfo
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  const virtualizer = useVirtualizer({
+    count: standings.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => STANDINGS_ROW_HEIGHT,
+    overscan: 20,
+  })
 
   if (isLoading) {
     return <Skeleton width="100%" height={150} borderRadius={6} />
   }
 
-  if (!standings || standings.length === 0) {
+  if (standings.length === 0) {
     return <p className={styles.noResults}>No standings available</p>
   }
 
   return (
     <>
+      <div className={styles.standingsHeader}>
+        <span className={styles.countBadge}>
+          {standings.length.toLocaleString()} entrants
+        </span>
+      </div>
       <div className={styles.standingsTable}>
         <div className={styles.standingsRowHeader}>
           <span>Place</span>
           <span>Seed</span>
           <span>Player</span>
         </div>
-        {standings.map(
-          (standing) =>
-            standing && (
-              <StandingsRow
-                key={standing.id}
-                placement={standing.placement}
-                seed={standing.entrant?.initialSeedNum}
-                name={standing.entrant?.name}
-                prefix={standing.entrant?.participants?.[0]?.prefix}
-              />
-            ),
-        )}
-      </div>
-      {pageInfo?.totalPages != null && pageInfo.totalPages > 1 && (
-        <div className={styles.pagination}>
-          <button
-            className={styles.pageButton}
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
+        <div ref={parentRef} className={styles.standingsScrollContainer}>
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              position: 'relative',
+            }}
           >
-            Prev
-          </button>
-          <span className={styles.pageInfo}>
-            {page} / {pageInfo.totalPages}
-          </span>
-          <button
-            className={styles.pageButton}
-            disabled={page >= (pageInfo.totalPages ?? 1)}
-            onClick={() => onPageChange(page + 1)}
-          >
-            Next
-          </button>
+            {virtualizer.getVirtualItems().map((virtualRow) => (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: virtualRow.size,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <StandingsRow
+                  placement={standings[virtualRow.index].placement}
+                  seed={standings[virtualRow.index].seed}
+                  name={standings[virtualRow.index].name}
+                  prefix={standings[virtualRow.index].prefix}
+                  playerId={standings[virtualRow.index].playerId}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </>
   )
 }

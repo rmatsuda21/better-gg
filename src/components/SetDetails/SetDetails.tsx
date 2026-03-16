@@ -126,7 +126,7 @@ export function SetDetails({
         const isExpanded = expandedSets.has(setId)
 
         return (
-          <div key={set.id} className={styles.setCard}>
+          <div key={set.id} className={`${styles.setCard} ${hasGames ? styles.setCardExpandable : ''}`}>
             {/* Set header: Opp | scores + round | User */}
             <div
               className={`${styles.setHeader} ${hasGames ? styles.setHeaderClickable : ''}`}
@@ -175,8 +175,9 @@ export function SetDetails({
                   </span>
                 )}
                 {hasGames && (
-                  <span className={`${styles.expandChevron} ${isExpanded ? styles.expanded : ''}`}>
-                    ▾
+                  <span className={`${styles.gamesBadge} ${isExpanded ? styles.gamesBadgeExpanded : ''}`}>
+                    {gamesWithSelections.length} game{gamesWithSelections.length !== 1 ? 's' : ''}
+                    <span className={styles.badgeChevron}>▾</span>
                   </span>
                 )}
               </div>

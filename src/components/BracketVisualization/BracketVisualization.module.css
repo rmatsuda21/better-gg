@@ -289,3 +289,40 @@
 .entrantNameLink:hover {
   color: var(--accent);
 }
+
+.sourceBadge {
+  display: block;
+  padding: 0.15rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.sourceBadge:hover {
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.destinationBadge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.1);
+  text-decoration: none;
+  white-space: nowrap;
+  margin-left: auto;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.destinationBadge:hover {
+  background: rgba(99, 102, 241, 0.2);
+}

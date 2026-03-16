@@ -60,21 +60,7 @@
 }
 
 .filterSelect {
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
-  font-size: 0.8rem;
-  font-family: inherit;
-  outline: none;
-  cursor: pointer;
-  transition: border-color var(--duration-fast);
   min-width: 120px;
-}
-
-.filterSelect:focus {
-  border-color: var(--accent);
 }
 
 /* Results Summary */

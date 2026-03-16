@@ -35,6 +35,7 @@ const tournamentDetailsQuery = graphql(`
         phases {
           id
           name
+          phaseOrder
           bracketType
           state
           groupCount

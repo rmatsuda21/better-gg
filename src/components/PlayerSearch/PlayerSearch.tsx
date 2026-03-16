@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { KeyboardEvent } from 'react'
 import { usePlayerSearch, usePlayerCountries } from '../../hooks/use-player-search'
 import { useCharacters } from '../../hooks/use-characters'
@@ -6,6 +6,7 @@ import { buildCharacterMap, getCharacterStockIcon } from '../../lib/character-ut
 import { countryCodeToFlag } from '../../lib/country-utils'
 import { Skeleton } from '../Skeleton/Skeleton'
 import type { PlayerRecord } from '../../lib/player-search-types'
+import { FilterSelect } from '../FilterSelect/FilterSelect'
 import styles from './PlayerSearch.module.css'
 
 const ULTIMATE_VIDEOGAME_ID = '1386'
@@ -26,6 +27,17 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
   const { data: countryList } = usePlayerCountries()
   const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
   const characterMap = buildCharacterMap(charData?.videogame?.characters)
+
+  const countryOptions = useMemo(
+    () => [
+      { value: '', label: 'All regions' },
+      ...(countryList ?? []).map((c) => ({
+        value: c,
+        label: `${countryCodeToFlag(c) ?? ''} ${c}`,
+      })),
+    ],
+    [countryList],
+  )
 
   const showDropdown = isOpen && query.trim().length >= 2
 
@@ -87,21 +99,16 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
           placeholder="Search by gamer tag"
           autoComplete="off"
         />
-        <select
+        <FilterSelect
+          variant="hero"
           className={styles.countrySelect}
           value={country ?? ''}
-          onChange={(e) => {
-            setCountry(e.target.value || undefined)
+          options={countryOptions}
+          onChange={(v) => {
+            setCountry(v || undefined)
             setActiveIndex(-1)
           }}
-        >
-          <option value="">All regions</option>
-          {countryList?.map((c) => (
-            <option key={c} value={c}>
-              {countryCodeToFlag(c) ?? ''} {c}
-            </option>
-          ))}
-        </select>
+        />
       </div>
       {showDropdown && (
         <div className={styles.dropdown}>

@@ -15,6 +15,11 @@ const phaseBracketMetaQuery = graphql(`
       event {
         id
         state
+        phases {
+          id
+          name
+          phaseOrder
+        }
       }
       phaseGroups {
         nodes {
@@ -22,12 +27,23 @@ const phaseBracketMetaQuery = graphql(`
           displayIdentifier
         }
       }
+      progressingInData {
+        origin
+        numProgressing
+      }
+      seeds(query: { page: 1, perPage: 1 }) {
+        nodes {
+          progressionSource {
+            originPhase { id name }
+          }
+        }
+      }
     }
   }
 `)
 
 // ACTIVE/COMPLETED: slot.entrant is always populated, no need for seed.entrant
-// ~11 objects per set → perPage: 50 stays under 1000 object limit
+// ~15 objects per set (with progression seeds) → perPage: 50 stays under 1000 object limit
 const phaseBracketSetsActiveQuery = graphql(`
   query PhaseBracketSetsActive($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
     phaseGroup(id: $phaseGroupId) {
@@ -45,6 +61,14 @@ const phaseBracketSetsActiveQuery = graphql(`
           displayScore
           winnerId
           completedAt
+          winnerProgressionSeed {
+            seedNum
+            phase { id name }
+          }
+          loserProgressionSeed {
+            seedNum
+            phase { id name }
+          }
           slots {
             id
             prereqType
@@ -76,6 +100,7 @@ const phaseBracketSetsActiveQuery = graphql(`
 
 // CREATED: slot.entrant may be null, need seed.entrant as fallback
 // Many null slots keep effective object count low; perPage: 50 is safe
+// Progression seeds are available even on CREATED sets for cross-phase routing
 const phaseBracketSetsCreatedQuery = graphql(`
   query PhaseBracketSetsCreated($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
     phaseGroup(id: $phaseGroupId) {
@@ -93,6 +118,14 @@ const phaseBracketSetsCreatedQuery = graphql(`
           displayScore
           winnerId
           completedAt
+          winnerProgressionSeed {
+            seedNum
+            phase { id name }
+          }
+          loserProgressionSeed {
+            seedNum
+            phase { id name }
+          }
           slots {
             id
             prereqType
@@ -141,12 +174,30 @@ type ActiveSetNode = NonNullable<
   >['nodes']
 >[number]
 
+export interface SiblingPhaseInfo {
+  id: string
+  name: string
+  phaseOrder: number
+}
+
+export interface SetProgressionInfo {
+  winnerPhase: { id: string; name: string } | null
+  loserPhase: { id: string; name: string } | null
+  loserSeedNum: number | null
+  winnerSeedNum: number | null
+}
+
 export interface PhaseBracketResult {
   phaseName: string | null
   bracketType: string | null
   phaseState: string | null
   eventState: string | null
+  eventId: string | null
+  currentPhaseOrder: number | null
+  siblingPhases: SiblingPhaseInfo[]
   phaseGroups: PhaseGroupInfo[]
+  progressionMap: Map<string, SetProgressionInfo>
+  originPhaseIds: string[]
 }
 
 async function fetchPhaseGroupSets(
@@ -191,7 +242,7 @@ export function usePhaseBracket(phaseId: string) {
       if (!phase) throw new Error('Phase not found')
 
       const pgNodes = phase.phaseGroups?.nodes ?? []
-      const isStarted = phase.event?.state === 'ACTIVE' || phase.event?.state === 'COMPLETED'
+      const isStarted = phase.state === 'ACTIVE' || phase.state === 'COMPLETED'
       const query = isStarted ? phaseBracketSetsActiveQuery : phaseBracketSetsCreatedQuery
       const perPage = 50
 
@@ -204,8 +255,9 @@ export function usePhaseBracket(phaseId: string) {
         })
       )
 
-      // Step 3: build PhaseGroupInfo[] from results
+      // Step 3: build PhaseGroupInfo[] + progressionMap from results
       const phaseGroups: PhaseGroupInfo[] = []
+      const progressionMap = new Map<string, SetProgressionInfo>()
 
       for (const result of pgResults) {
         if (!result) continue
@@ -213,6 +265,22 @@ export function usePhaseBracket(phaseId: string) {
         const allPgSets: Array<NonNullable<ActiveSetNode>> = []
         for (const node of result.nodes) {
           if (!node?.id) continue
+
+          // Extract progression info before casting (available in both ACTIVE and CREATED queries)
+          if ('winnerProgressionSeed' in node) {
+            const activeNode = node as NonNullable<ActiveSetNode>
+            const wps = activeNode.winnerProgressionSeed
+            const lps = activeNode.loserProgressionSeed
+            if (wps?.phase || lps?.phase) {
+              progressionMap.set(String(node.id), {
+                winnerPhase: wps?.phase?.id ? { id: String(wps.phase.id), name: wps.phase.name ?? '' } : null,
+                loserPhase: lps?.phase?.id ? { id: String(lps.phase.id), name: lps.phase.name ?? '' } : null,
+                winnerSeedNum: wps?.seedNum ?? null,
+                loserSeedNum: lps?.seedNum ?? null,
+              })
+            }
+          }
+
           const castNode = node as unknown as PhaseGroupInfo['allSets'][number]
           allPgSets.push(castNode)
         }
@@ -230,12 +298,36 @@ export function usePhaseBracket(phaseId: string) {
         }
       }
 
+      // Extract origin phase IDs from progressingInData (origin is an Int phase ID)
+      const originPhaseIds: string[] = (phase.progressingInData ?? [])
+        .filter((d): d is NonNullable<typeof d> => d != null && d.origin != null)
+        .map(d => String(d.origin!))
+
+      // Fallback: use seeds' progressionSource when progressingInData is empty
+      if (originPhaseIds.length === 0) {
+        const seedOrigin = (phase.seeds?.nodes ?? [])
+          .find(s => s?.progressionSource?.originPhase?.id != null)
+          ?.progressionSource?.originPhase
+        if (seedOrigin) {
+          originPhaseIds.push(String(seedOrigin.id))
+        }
+      }
+
+      const siblingPhases: SiblingPhaseInfo[] = (phase.event?.phases ?? [])
+        .filter((p): p is NonNullable<typeof p> => p != null && p.id != null && p.name != null && p.phaseOrder != null)
+        .map(p => ({ id: String(p.id!), name: p.name!, phaseOrder: p.phaseOrder! }))
+
       return {
         phaseName: phase.name ?? null,
         bracketType: phase.bracketType ?? null,
         phaseState: phase.state ?? null,
         eventState: phase.event?.state ?? null,
+        eventId: phase.event?.id ? String(phase.event.id) : null,
+        currentPhaseOrder: phase.phaseOrder ?? null,
+        siblingPhases,
         phaseGroups,
+        progressionMap,
+        originPhaseIds,
       }
     },
     enabled: !!phaseId,

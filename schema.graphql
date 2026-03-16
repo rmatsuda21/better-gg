@@ -24,8 +24,18 @@ input TournamentPageFilter {
   videogameIds: [ID]
   name: String
   countryCode: String
+  addrState: String
   afterDate: Timestamp
   beforeDate: Timestamp
+  hasOnlineEvents: Boolean
+  regOpen: Boolean
+  isFeatured: Boolean
+  location: TournamentLocationFilter
+}
+
+input TournamentLocationFilter {
+  distanceFrom: String
+  distance: String
 }
 
 type TournamentConnection {
@@ -119,6 +129,7 @@ type Tournament {
   venueName: String
   images(type: String): [Image]
   events(limit: Int, filter: EventFilter): [Event]
+  participants(query: ParticipantPaginationQuery): ParticipantConnection
 }
 
 type Event {
@@ -176,6 +187,17 @@ type Participant {
   prefix: String
   user: User
   player: Player
+  entrants: [Entrant]
+}
+
+input ParticipantPaginationQuery {
+  page: Int
+  perPage: Int
+}
+
+type ParticipantConnection {
+  pageInfo: PageInfo
+  nodes: [Participant]
 }
 
 type Player {
@@ -230,6 +252,8 @@ type Set {
   games: [Game]
   event: Event
   phaseGroup: PhaseGroup
+  winnerProgressionSeed: Seed
+  loserProgressionSeed: Seed
 }
 
 type SetSlot {
@@ -257,12 +281,18 @@ type GameSelection {
   selectionValue: Int
 }
 
+type Progression {
+  id: ID
+  originPhase: Phase
+}
+
 type Seed {
   id: ID
   seedNum: Int
   entrant: Entrant
   phase: Phase
   phaseGroup: PhaseGroup
+  progressionSource: Progression
 }
 
 type Phase {
@@ -275,6 +305,23 @@ type Phase {
   numSeeds: Int
   event: Event
   phaseGroups: PhaseGroupConnection
+  progressingInData: [ProgressionData]
+  seeds(query: SeedPaginationQuery): SeedConnection
+}
+
+input SeedPaginationQuery {
+  page: Int
+  perPage: Int
+}
+
+type SeedConnection {
+  pageInfo: PageInfo
+  nodes: [Seed]
+}
+
+type ProgressionData {
+  origin: Int
+  numProgressing: Int
 }
 
 type PhaseGroupConnection {

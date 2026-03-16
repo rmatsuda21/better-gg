@@ -1,0 +1,205 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Trigger button */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+  appearance: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  white-space: nowrap;
+}
+
+.trigger:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.trigger:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.triggerOpen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.triggerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hero variant */
+.hero {
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border-color: var(--border-medium);
+  background-color: rgba(18, 18, 26, 0.6);
+}
+
+/* Chevron */
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform var(--duration-fast);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Backdrop (mobile only) */
+.backdrop {
+  display: none;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  z-index: 100;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+  animation: scaleIn 0.2s var(--ease-out-expo);
+}
+
+/* Search input */
+.searchInput {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Option list */
+.optionList {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: 260px;
+}
+
+.optionList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.optionList::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 2px;
+}
+
+/* Option */
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 2px solid transparent;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  transition: background-color var(--duration-fast), border-left-color var(--duration-fast);
+  white-space: nowrap;
+}
+
+.optionIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.option:last-child {
+  border-bottom: none;
+}
+
+.optionActive {
+  background-color: var(--accent-subtle);
+  border-left-color: var(--accent);
+}
+
+.optionSelected {
+  color: var(--accent);
+}
+
+/* Empty state */
+.emptyMessage {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* Mobile bottom-sheet */
+@media (max-width: 480px) {
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+
+  .dropdown {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    top: auto;
+    min-width: 0;
+    max-height: 60vh;
+    border-radius: 12px;
+    animation: slideUp 0.25s var(--ease-out-expo);
+  }
+
+  .option {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .searchInput {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

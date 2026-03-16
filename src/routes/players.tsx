@@ -8,6 +8,7 @@ import { buildCharacterMap, getCharacterStockIcon } from '../lib/character-utils
 import { countryCodeToFlag } from '../lib/country-utils'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import type { PlayerRecord } from '../lib/player-search-types'
+import { FilterSelect } from '../components/FilterSelect/FilterSelect'
 import styles from './players.module.css'
 
 const ULTIMATE_VIDEOGAME_ID = '1386'
@@ -61,6 +62,29 @@ function PlayersPage() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [charactersData])
 
+  const playerCountryOptions = useMemo(
+    () => [
+      { value: '', label: 'All regions' },
+      ...(countriesData ?? []).map((c) => ({
+        value: c,
+        label: `${countryCodeToFlag(c) ?? ''} ${c}`,
+      })),
+    ],
+    [countriesData],
+  )
+
+  const charSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'All characters' },
+      ...characterOptions.map((c) => ({
+        value: String(c.id),
+        label: c.name,
+        icon: getCharacterStockIcon(c.id),
+      })),
+    ],
+    [characterOptions],
+  )
+
   const virtualizer = useVirtualizer({
     count: players.length,
     getScrollElement: () => parentRef.current,
@@ -78,6 +102,7 @@ function PlayersPage() {
         ...prev,
         ...updates,
       }),
+      replace: true,
     })
   }
 
@@ -106,38 +131,26 @@ function PlayersPage() {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
         />
-        <select
+        <FilterSelect
           className={styles.filterSelect}
           value={country ?? ''}
-          onChange={(e) => {
-            updateSearch({ country: e.target.value || undefined })
+          options={playerCountryOptions}
+          onChange={(v) => {
+            updateSearch({ country: v || undefined })
             scrollToTop()
           }}
-        >
-          <option value="">All regions</option>
-          {(countriesData ?? []).map((c) => (
-            <option key={c} value={c}>
-              {countryCodeToFlag(c) ?? ''} {c}
-            </option>
-          ))}
-        </select>
-        <select
+        />
+        <FilterSelect
           className={styles.filterSelect}
-          value={character ?? ''}
-          onChange={(e) => {
+          value={String(character ?? '')}
+          options={charSelectOptions}
+          onChange={(v) => {
             updateSearch({
-              character: e.target.value ? Number(e.target.value) : undefined,
+              character: v ? Number(v) : undefined,
             })
             scrollToTop()
           }}
-        >
-          <option value="">All characters</option>
-          {characterOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       {isLoading ? (

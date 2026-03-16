@@ -12,11 +12,20 @@ import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 import type { PlayerRecord } from '../lib/player-search-types'
+import type { TournamentSearchQuery } from '../gql/graphql'
+
+type TournamentResult = NonNullable<NonNullable<NonNullable<TournamentSearchQuery['tournaments']>['nodes']>[number]>
 import styles from './index.module.css'
 
 const PlayerSearch = lazy(() =>
   import('../components/PlayerSearch/PlayerSearch').then((m) => ({
     default: m.PlayerSearch,
+  })),
+)
+
+const TournamentSearch = lazy(() =>
+  import('../components/TournamentSearch/TournamentSearch').then((m) => ({
+    default: m.TournamentSearch,
   })),
 )
 
@@ -68,10 +77,16 @@ function HomePage() {
     navigate({ to: '/player/$playerId', params: { playerId: player.pid } })
   }
 
+  function handleTournamentSelect(tournament: TournamentResult) {
+    if (!tournament.id) return
+    navigate({ to: '/tournament/$tournamentId', params: { tournamentId: String(tournament.id) } })
+  }
+
   return (
     <>
       <HeroSection
         onSelect={handlePlayerSelect}
+        onTournamentSelect={handleTournamentSelect}
         input={input}
         setInput={setInput}
         onSubmit={handleSubmit}
@@ -138,6 +153,7 @@ function SearchFields({
 
 function HeroSection({
   onSelect,
+  onTournamentSelect,
   input,
   setInput,
   onSubmit,
@@ -145,6 +161,7 @@ function HeroSection({
   resolveError,
 }: {
   onSelect: (player: PlayerRecord) => void
+  onTournamentSelect: (tournament: TournamentResult) => void
   input: string
   setInput: (v: string) => void
   onSubmit: (e: FormEvent) => void
@@ -196,8 +213,8 @@ function HeroSection({
           ) : (
             <>
               <h2 className={styles.heroTitle}>
-                Level up your{' '}
-                <span className={styles.heroAccent}>competitive edge</span>
+                Better Start.gg,<br />
+                <span className={styles.heroAccent}>because you deserve it</span>
               </h2>
               <p className={styles.heroSub}>
                 Visualize brackets, analyze opponents, and track your results across tournaments.
@@ -210,7 +227,7 @@ function HeroSection({
         </div>
 
         <div className={styles.heroSearch}>
-          <div className={styles.searchCard}>
+          <div className={`${styles.searchCard} ${styles.searchCardTop}`}>
             <p className={styles.searchCardHeader}>Find a player</p>
             <SearchFields
               input={input}
@@ -220,6 +237,12 @@ function HeroSection({
               isResolving={isResolving}
               resolveError={resolveError}
             />
+          </div>
+          <div className={styles.searchCard}>
+            <p className={styles.searchCardHeader}>Find a tournament</p>
+            <Suspense fallback={null}>
+              <TournamentSearch onSelect={onTournamentSelect} />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -288,9 +311,9 @@ function TournamentResults({ discriminator, playerId }: { discriminator: string;
   const filtered = onlineFilter === 'all'
     ? tournaments
     : tournaments.filter((t) => {
-        if (!t) return false
-        return onlineFilter === 'online' ? t.isOnline : !t.isOnline
-      })
+      if (!t) return false
+      return onlineFilter === 'online' ? t.isOnline : !t.isOnline
+    })
 
   const { current, upcoming, past } = categorizeTournaments(filtered)
 

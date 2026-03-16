@@ -102,6 +102,28 @@
   color: var(--accent);
 }
 
+/* Players Section */
+.playerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.playerSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.countBadge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
 /* Events Section */
 .eventsSection {
   display: flex;
@@ -404,41 +426,32 @@
   margin-right: 0.25rem;
 }
 
-/* Pagination */
-.pagination {
+/* Standings Header */
+.standingsHeader {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.25rem 0;
+  gap: 0.5rem;
 }
 
-.pageButton {
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color var(--duration-fast), color var(--duration-fast), background-color var(--duration-fast);
+/* Standings Scroll Container */
+.standingsScrollContainer {
+  overflow-y: auto;
+  height: 400px;
+  min-height: 200px;
 }
 
-.pageButton:hover:not(:disabled) {
-  border-color: var(--accent);
+/* Entrant Link */
+.entrantLink {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entrantLink:hover {
   color: var(--accent);
-}
-
-.pageButton:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.pageInfo {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-secondary);
 }
 
 .noResults {

@@ -5,13 +5,20 @@ import {
   buildBracketData,
   buildProjectedResults,
 } from '../../lib/bracket-utils'
-import type { BracketRound, BracketSet, BracketEntrant, ProjectedSet } from '../../lib/bracket-utils'
+import type { BracketRound, BracketSet, BracketEntrant, ProjectedSet, PhaseNavInfo } from '../../lib/bracket-utils'
+import type { SetProgressionInfo } from '../../hooks/use-phase-bracket'
 import styles from './BracketVisualization.module.css'
 
 interface BracketVisualizationProps {
   phaseGroup: PhaseGroupInfo
   userEntrantId?: string
   showProjectionToggle?: boolean
+  projected?: boolean
+  onProjectedChange?: (v: boolean) => void
+  eventId?: string
+  phaseNav?: PhaseNavInfo
+  progressionMap?: Map<string, SetProgressionInfo>
+  seedEntrantOverrides?: Map<number, BracketEntrant>
 }
 
 function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo): Map<string, string> {
@@ -32,9 +39,20 @@ export function BracketVisualization({
   phaseGroup,
   userEntrantId,
   showProjectionToggle = true,
+  projected,
+  onProjectedChange,
+  eventId,
+  phaseNav,
+  progressionMap,
+  seedEntrantOverrides,
 }: BracketVisualizationProps) {
-  const [showProjected, setShowProjected] = useState(false)
-  const bracketData = buildBracketData(phaseGroup, userEntrantId)
+  const [internalProjected, setInternalProjected] = useState(false)
+  const isControlled = projected !== undefined
+  const showProjected = isControlled ? projected : internalProjected
+  const handleProjectedChange = isControlled
+    ? (v: boolean) => onProjectedChange?.(v)
+    : setInternalProjected
+  const bracketData = buildBracketData(phaseGroup, userEntrantId, seedEntrantOverrides)
   const projectedResults = showProjected
     ? buildProjectedResults(bracketData)
     : null
@@ -46,13 +64,13 @@ export function BracketVisualization({
         <div className={styles.toggleRow}>
           <button
             className={`${styles.toggleBtn} ${!showProjected ? styles.toggleBtnActive : ''}`}
-            onClick={() => setShowProjected(false)}
+            onClick={() => handleProjectedChange(false)}
           >
             Actual
           </button>
           <button
             className={`${styles.toggleBtn} ${showProjected ? styles.toggleBtnActive : ''}`}
-            onClick={() => setShowProjected(true)}
+            onClick={() => handleProjectedChange(true)}
           >
             Projected
           </button>
@@ -69,6 +87,10 @@ export function BracketVisualization({
             userEntrantId={userEntrantId}
             projectedResults={projectedResults}
             entrantPlayerMap={entrantPlayerMap}
+            eventId={eventId}
+            prevPhase={phaseNav?.prevPhase ?? null}
+            nextPhase={phaseNav?.nextPhase ?? null}
+            progressionMap={progressionMap}
           />
         </>
       )}
@@ -81,6 +103,10 @@ export function BracketVisualization({
             userEntrantId={userEntrantId}
             projectedResults={projectedResults}
             entrantPlayerMap={entrantPlayerMap}
+            eventId={eventId}
+            prevPhase={phaseNav?.prevPhase ?? null}
+            nextPhase={phaseNav?.nextPhase ?? null}
+            progressionMap={progressionMap}
           />
         </>
       )}
@@ -198,10 +224,31 @@ function computeTreePositions(
   // Assign from roots
   let rootCursor = 0
   for (const root of rootSets) {
-    const lc = getLeafCount(root.id)
-    assignPositions(root.id, rootCursor, rootCursor + lc)
-    rootCursor += lc
+    // Check if this root's feeders are already positioned (shared subtree)
+    const feeders: string[] = []
+    for (const prereq of root.prereqs) {
+      if (prereq?.prereqId && prereq.prereqType === 'set') {
+        const pid = String(prereq.prereqId)
+        if (setById.has(pid)) feeders.push(pid)
+      }
+    }
+    const allFeedersPositioned = feeders.length > 0 && feeders.every(fid => positions.has(fid))
+
+    if (allFeedersPositioned) {
+      // Shared feeder subtree — position root based on existing feeder positions
+      const feederPositions = feeders.map(fid => positions.get(fid)!)
+      const start = Math.min(...feederPositions.map(p => p.start))
+      const end = Math.max(...feederPositions.map(p => p.end))
+      positions.set(root.id, { start, end })
+    } else {
+      const lc = getLeafCount(root.id)
+      assignPositions(root.id, rootCursor, rootCursor + lc)
+      rootCursor += lc
+    }
   }
+
+  // Use actual cursor (excludes shared roots) for totalLeaves
+  totalLeaves = rootCursor || 1
 
   // Any sets not reached (disconnected) get uniform fallback
   for (const round of rounds) {
@@ -222,27 +269,45 @@ function BracketSection({
   userEntrantId,
   projectedResults,
   entrantPlayerMap,
+  eventId,
+  prevPhase,
+  nextPhase,
+  progressionMap,
 }: {
   rounds: BracketRound[]
   userEntrantId?: string
   projectedResults: Map<string, ProjectedSet> | null
   entrantPlayerMap: Map<string, string>
+  eventId?: string
+  prevPhase?: { id: string; name: string } | null
+  nextPhase?: { id: string; name: string } | null
+  progressionMap?: Map<string, SetProgressionInfo>
 }) {
   if (rounds.length === 0) return null
 
   const { positions, totalLeaves } = computeTreePositions(rounds)
 
-  // Grid columns: for each round a set column + connector column (except last)
-  const colTemplate = rounds
-    .map((_, i) =>
-      i < rounds.length - 1 ? 'minmax(200px, 1fr) 24px' : 'minmax(200px, 1fr)'
-    )
-    .join(' ')
+  // Grid columns: round columns + inter-round connectors (no FROM/TO phase columns)
+  const parts: string[] = []
+  for (let i = 0; i < rounds.length; i++) {
+    parts.push('minmax(200px, 1fr)')
+    if (i < rounds.length - 1) parts.push('24px')
+  }
+  const colTemplate = parts.join(' ')
 
   // Build a set of set IDs per round for quick lookup in connector logic
   const roundSetIds: Set<string>[] = rounds.map(
     r => new Set(r.sets.map(s => s.id)),
   )
+
+  // Compute per-set winner phase for last-round sets
+  const lastRoundSets = rounds[rounds.length - 1]?.sets ?? []
+  const perSetWinnerPhases = progressionMap && eventId
+    ? new Map(lastRoundSets.map(set => {
+        const prog = progressionMap.get(set.id)
+        return [set.id, prog?.winnerPhase ?? null] as const
+      }))
+    : null
 
   return (
     <div className={styles.scrollContainer}>
@@ -275,6 +340,20 @@ function BracketSection({
                 if (!pos) return null
                 const rowStart = Math.round(pos.start) + 2
                 const rowEnd = Math.max(Math.round(pos.end) + 2, rowStart + 1)
+
+                // Source phase badge for first-round sets
+                const sourcePhase = roundIdx === 0 && prevPhase && eventId
+                  ? { id: prevPhase.id, name: prevPhase.name, eventId }
+                  : undefined
+
+                // Winner destination badge for last-round sets
+                const winnerPhase = isLast
+                  ? (perSetWinnerPhases?.get(set.id) ?? (!progressionMap && nextPhase ? nextPhase : null))
+                  : null
+                const winnerDest = winnerPhase && eventId
+                  ? { phase: winnerPhase, eventId }
+                  : undefined
+
                 return (
                   <div
                     key={set.id}
@@ -294,6 +373,10 @@ function BracketSection({
                       userEntrantId={userEntrantId}
                       projectedResults={projectedResults}
                       entrantPlayerMap={entrantPlayerMap}
+                      progressionInfo={progressionMap?.get(set.id)}
+                      eventId={eventId}
+                      sourcePhase={sourcePhase}
+                      winnerDest={winnerDest}
                     />
                   </div>
                 )
@@ -376,11 +459,19 @@ function SetCard({
   userEntrantId,
   projectedResults,
   entrantPlayerMap,
+  progressionInfo,
+  eventId,
+  sourcePhase,
+  winnerDest,
 }: {
   set: BracketSet
   userEntrantId?: string
   projectedResults: Map<string, ProjectedSet> | null
   entrantPlayerMap: Map<string, string>
+  progressionInfo?: SetProgressionInfo
+  eventId?: string
+  sourcePhase?: { id: string; name: string; eventId: string }
+  winnerDest?: { phase: { id: string; name: string }; eventId: string }
 }) {
   const proj = projectedResults?.get(set.id)
   const e0 = proj ? proj.entrants[0] : set.entrants[0]
@@ -407,8 +498,23 @@ function SetCard({
   const isUserSet = userEntrantId != null && (e0?.id === userEntrantId || e1?.id === userEntrantId)
   const cardClass = `${styles.setCard} ${isUserSet ? styles.setCardUser : ''}`
 
+  // Determine destination badge for the losing entrant
+  const loserDest = progressionInfo?.loserPhase && eventId
+    ? { phase: progressionInfo.loserPhase, eventId }
+    : undefined
+
   return (
     <div className={cardClass}>
+      {sourcePhase && (
+        <Link
+          to="/event/$eventId/phase/$phaseId"
+          params={{ eventId: sourcePhase.eventId, phaseId: sourcePhase.id }}
+          search={userEntrantId ? { entrantId: userEntrantId } : {}}
+          className={styles.sourceBadge}
+        >
+          &larr; {sourcePhase.name}
+        </Link>
+      )}
       <EntrantRow
         entrant={e0}
         isWinner={isE0Winner}
@@ -416,6 +522,7 @@ function SetCard({
         isUser={userEntrantId != null && e0?.id === userEntrantId}
         playerId={e0?.id ? entrantPlayerMap.get(e0.id) : undefined}
         score={score0}
+        destinationBadge={isE0Loser ? loserDest : (isE0Winner ? winnerDest : undefined)}
       />
       <EntrantRow
         entrant={e1}
@@ -424,6 +531,7 @@ function SetCard({
         isUser={userEntrantId != null && e1?.id === userEntrantId}
         playerId={e1?.id ? entrantPlayerMap.get(e1.id) : undefined}
         score={score1}
+        destinationBadge={isE1Loser ? loserDest : (isE1Winner ? winnerDest : undefined)}
       />
     </div>
   )
@@ -436,6 +544,7 @@ function EntrantRow({
   isUser,
   playerId,
   score,
+  destinationBadge,
 }: {
   entrant: BracketEntrant | null
   isWinner: boolean
@@ -443,6 +552,7 @@ function EntrantRow({
   isUser: boolean
   playerId?: string
   score: string | null
+  destinationBadge?: { phase: { id: string; name: string }; eventId: string }
 }) {
   const rowClass = [
     styles.entrantRow,
@@ -497,6 +607,16 @@ function EntrantRow({
         <span className={nameClass}>{entrant.name}</span>
       )}
       {score != null && <span className={scoreClass}>{score}</span>}
+      {destinationBadge && (
+        <Link
+          to="/event/$eventId/phase/$phaseId"
+          params={{ eventId: destinationBadge.eventId, phaseId: destinationBadge.phase.id }}
+          search={entrant.id ? { entrantId: String(entrant.id) } : {}}
+          className={styles.destinationBadge}
+        >
+          &rarr; {destinationBadge.phase.name}
+        </Link>
+      )}
     </div>
   )
 }

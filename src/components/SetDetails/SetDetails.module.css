@@ -39,14 +39,38 @@
   background-color: rgba(255, 255, 255, 0.03);
 }
 
-.expandChevron {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  transition: transform var(--duration-fast);
-  line-height: 1;
+.setCardExpandable {
+  border-left: 2px solid var(--accent);
 }
 
-.expandChevron.expanded {
+.gamesBadge {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  transition: background-color var(--duration-fast);
+  white-space: nowrap;
+}
+
+.gamesBadgeExpanded {
+  background: var(--accent-glow);
+}
+
+.setHeaderClickable:hover .gamesBadge {
+  background: var(--accent-glow);
+}
+
+.badgeChevron {
+  display: inline-block;
+  margin-left: 0.2rem;
+  font-size: 0.6rem;
+  transition: transform var(--duration-fast);
+}
+
+.gamesBadgeExpanded .badgeChevron {
   transform: rotate(180deg);
 }
 

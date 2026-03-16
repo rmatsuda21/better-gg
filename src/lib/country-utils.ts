@@ -35,6 +35,18 @@ function resolveCountryCode(cc: string): string | null {
   return COUNTRY_NAME_TO_CODE[cc] ?? null
 }
 
+export function getCountryOptions(): Array<{ code: string; name: string }> {
+  const codeToName = new Map<string, string>()
+  for (const [name, code] of Object.entries(COUNTRY_NAME_TO_CODE)) {
+    // Skip duplicates (England/Scotland/Wales all map to GB — keep "United Kingdom")
+    if (!codeToName.has(code) || name.length > codeToName.get(code)!.length) {
+      codeToName.set(code, name)
+    }
+  }
+  return Array.from(codeToName, ([code, name]) => ({ code, name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export function countryCodeToFlag(cc: string): string | null {
   const code = resolveCountryCode(cc)
   if (!code) return null

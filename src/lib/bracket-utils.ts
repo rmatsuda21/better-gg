@@ -1,4 +1,5 @@
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
+import type { SiblingPhaseInfo } from '../hooks/use-phase-bracket'
 
 export interface BracketEntrant {
   id: string | null
@@ -58,7 +59,14 @@ function resolveEntrant(slot: SlotNode | null | undefined) {
   return slot?.entrant ?? slot?.seed?.entrant
 }
 
-function resolveEntrantInfo(slot: SlotNode | null | undefined): BracketEntrant | null {
+function resolveEntrantInfo(
+  slot: SlotNode | null | undefined,
+  seedEntrantOverrides?: Map<number, BracketEntrant>,
+): BracketEntrant | null {
+  const seedNum = slot?.seed?.seedNum
+  if (seedNum != null && seedEntrantOverrides?.has(seedNum)) {
+    return seedEntrantOverrides.get(seedNum)!
+  }
   const ent = resolveEntrant(slot)
   if (!ent?.id) return null
   return {
@@ -93,6 +101,7 @@ function parseSlotScores(displayScore: string | null | undefined): { scores: [st
 export function buildBracketData(
   phaseGroup: PhaseGroupInfo,
   userEntrantId?: string,
+  seedEntrantOverrides?: Map<number, BracketEntrant>,
 ): BracketData {
   const allSets = phaseGroup.allSets
   const parsedSets: Array<{ set: SetNode; round: number; index: number }> = []
@@ -143,8 +152,8 @@ export function buildBracketData(
       entries.sort((a, b) => a.index - b.index)
 
       const sets: BracketSet[] = entries.map(({ set, index }) => {
-        const e0 = resolveEntrantInfo(set.slots?.[0])
-        const e1 = resolveEntrantInfo(set.slots?.[1])
+        const e0 = resolveEntrantInfo(set.slots?.[0], seedEntrantOverrides)
+        const e1 = resolveEntrantInfo(set.slots?.[1], seedEntrantOverrides)
         const p0 = extractPrereq(set.slots?.[0])
         const p1 = extractPrereq(set.slots?.[1])
         const involvesUser = userEntrantId != null && (e0?.id === userEntrantId || e1?.id === userEntrantId)
@@ -192,12 +201,12 @@ function pickHigherSeed(a: BracketEntrant, b: BracketEntrant): BracketEntrant {
   return aSeed <= bSeed ? a : b
 }
 
-function getWinnerFromProjected(ps: ProjectedSet): BracketEntrant | null {
+export function getWinnerFromProjected(ps: ProjectedSet): BracketEntrant | null {
   if (!ps.winnerId) return null
   return ps.entrants[0]?.id === ps.winnerId ? ps.entrants[0] : ps.entrants[1]
 }
 
-function getLoserFromProjected(ps: ProjectedSet): BracketEntrant | null {
+export function getLoserFromProjected(ps: ProjectedSet): BracketEntrant | null {
   if (!ps.winnerId) return null
   return ps.entrants[0]?.id === ps.winnerId ? ps.entrants[1] : ps.entrants[0]
 }
@@ -354,4 +363,42 @@ export function buildProjectedResults(
   }
 
   return projected
+}
+
+export interface PhaseNavInfo {
+  prevPhase: { id: string; name: string } | null
+  nextPhase: { id: string; name: string } | null
+}
+
+export function computePhaseNav(
+  siblingPhases: SiblingPhaseInfo[],
+  currentPhaseOrder: number | null,
+  originPhaseIds?: string[],
+): PhaseNavInfo {
+  // Use originPhaseIds for prevPhase when available
+  let prevPhase: { id: string; name: string } | null = null
+  if (originPhaseIds && originPhaseIds.length > 0) {
+    const origin = siblingPhases.find(p => originPhaseIds.includes(p.id))
+    if (origin) prevPhase = { id: origin.id, name: origin.name }
+  }
+
+  if (currentPhaseOrder == null || siblingPhases.length <= 1) {
+    return { prevPhase, nextPhase: null }
+  }
+
+  const sorted = [...siblingPhases].sort((a, b) => a.phaseOrder - b.phaseOrder)
+  const idx = sorted.findIndex(p => p.phaseOrder === currentPhaseOrder)
+  if (idx === -1) return { prevPhase, nextPhase: null }
+
+  // Fall back to phaseOrder-based prev if originPhaseIds didn't resolve
+  if (!prevPhase) {
+    const prev = idx > 0 ? sorted[idx - 1] : null
+    prevPhase = prev ? { id: prev.id, name: prev.name } : null
+  }
+
+  const next = idx < sorted.length - 1 ? sorted[idx + 1] : null
+  return {
+    prevPhase,
+    nextPhase: next ? { id: next.id, name: next.name } : null,
+  }
 }
