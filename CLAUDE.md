@@ -107,8 +107,8 @@ better-gg/
       use-filtered-players.ts
       use-debounced-value.ts
     routes/
-      __root.tsx               # Root layout (header + outlet)
-      index.tsx                # Home: hero (logged out) / dashboard (logged in)
+      __root.tsx               # Root layout: header + CommandPalette + MobileNav + outlet
+      index.tsx                # Home: tabbed search hero (logged out) / dashboard (logged in)
       auth.callback.tsx        # OAuth callback
       player.$playerId.tsx     # Player profile
       player.$playerId_.event.$eventId.tsx  # Player event view with opponent analysis
@@ -122,9 +122,12 @@ better-gg/
       ErrorMessage/
       LoginModal/
       UserMenu/
+      CommandPalette/          # Unified search modal (Cmd+K) with Players/Tournaments tabs
+      MobileNav/               # Bottom tab bar for mobile (Home, Tournaments, Search, Profile)
+      DataTable/               # Shared table primitives (DataTable, DataTableHeader, DataTableRow, dataTableStyles)
       TournamentSection/
-      TournamentCard/          # Reused on homepage + /tournaments page
-      TournamentSearch/        # Homepage autocomplete with country filter + "See all results" link
+      TournamentCard/          # Reused on homepage + /tournaments page (variant: compact|grid)
+      TournamentSearch/        # Autocomplete with country filter + "See all results" link (inline mode for CommandPalette)
       EventHeader/
       OpponentAnalysis/
       OpponentCard/
@@ -135,8 +138,9 @@ better-gg/
       CharacterBar/
       PlacementList/
       PlayerProfileHeader/
-      PlayerSearch/
-      ParticipantList/
+      PlayerSearch/            # Fuzzy player search with character icons (inline mode for CommandPalette)
+      ParticipantList/         # Virtualized participant table with search + event phase links
+      FilterSelect/
       FilterToggle/
 ```
 
@@ -190,13 +194,24 @@ OAuth flow: login → `start.gg/oauth/authorize` → `/auth/callback?code=...` �
 
 For production, `/api/auth/token` and `/api/auth/refresh` need serverless deployment (same logic as `src/server/auth-proxy.ts`).
 
+### Navigation
+
+- **Desktop**: Top nav bar with links + search button (⌘K). Header gains border on scroll via IntersectionObserver sentinel.
+- **Mobile** (≤640px): Bottom tab bar (MobileNav) with Home, Tournaments, Search, Profile. Top nav links hidden.
+- **CommandPalette** (⌘K / Ctrl+K): Portal-based modal with Players/Tournaments tabs. Both PlayerSearch and TournamentSearch accept an `inline` prop to adapt styling for the palette.
+
 ### Data Flow
 
-1. Home page (`/`): Logged-out users see hero landing + player/tournament search. Logged-in users see their tournaments. Tournament search dropdown includes country filter and "See all results →" link to `/tournaments`.
+1. Home page (`/`): Logged-out users see tabbed hero with Players/Tournaments search. Logged-in users see their tournaments with online/offline FilterToggle + quick search trigger. Tournament search dropdown includes country filter and "See all results →" link to `/tournaments`.
 2. Tournaments page (`/tournaments`): Full search/browse with filters (name, country, US state, online/offline, upcoming/past, featured, reg open), sorting, and pagination. All filters are URL search params for shareable deep links.
 3. Event page (`/event/$eventId`): Phase items are clickable links to the bracket route. For player-specific views, use `/player/$playerId/event/$eventId`.
 4. Phase bracket page (`/event/$eventId/phase/$phaseId`): Two query variants (slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). `userEntrantId` is optional throughout.
 5. For CREATED events, each phase group has a **List/Bracket** toggle. Bracket view has **Actual/Projected** sub-toggle (projected fills empty slots via `bracket-utils.ts`).
+6. Player event page: Collapsible phase groups when multiple exist, per-group bracket visualization with seed badges.
+
+### Virtualization
+
+Large lists use `@tanstack/react-virtual` for performance: player directory (`/players`), tournament participants (ParticipantList), and event standings. Row height is fixed (typically 44px) for accurate scroll estimation.
 
 ### Crawl Script
 

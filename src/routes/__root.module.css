@@ -2,6 +2,7 @@
   max-width: 960px;
   margin: 0 auto;
   padding: 2rem 1.25rem;
+  padding-top: 4.5rem; /* space for sticky header */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,16 +11,49 @@
 
 @media (max-width: 640px) {
   .app {
-    padding: 1.5rem 1rem;
+    padding: 4rem 1rem 4rem; /* extra bottom padding for mobile nav */
   }
 }
 
+/* Sentinel for IntersectionObserver scroll detection */
+.sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 1px;
+  width: 1px;
+  pointer-events: none;
+}
+
 .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--duration-normal);
   animation: fadeInUp 0.5s var(--ease-out-expo);
+}
+
+/* Use a wrapper approach — make header span full width, content centered */
+.header {
+  max-width: none;
+  padding-left: max(1.25rem, calc((100% - 960px) / 2 + 1.25rem));
+  padding-right: max(1.25rem, calc((100% - 960px) / 2 + 1.25rem));
+}
+
+.headerScrolled {
+  border-bottom-color: var(--border-subtle);
 }
 
 .headerLeft {
@@ -37,15 +71,30 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   transition: color var(--duration-fast);
+  padding-bottom: 2px;
+  border-bottom: 1.5px solid transparent;
 }
 
 .navLink:hover {
   color: var(--accent);
 }
 
+.navLinkActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Hide desktop nav links on mobile — bottom nav replaces them */
+@media (max-width: 640px) {
+  .navLink {
+    display: none;
+  }
+}
+
 .headerRight {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .title {
@@ -69,6 +118,38 @@
 
 .titleLink:hover .title {
   filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+.searchButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.searchButton:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.searchKbd {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .searchButton {
+    display: none;
+  }
 }
 
 .connectButton {

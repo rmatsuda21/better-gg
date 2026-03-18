@@ -244,7 +244,7 @@ export function usePhaseBracket(phaseId: string) {
       const pgNodes = phase.phaseGroups?.nodes ?? []
       const isStarted = phase.state === 'ACTIVE' || phase.state === 'COMPLETED'
       const query = isStarted ? phaseBracketSetsActiveQuery : phaseBracketSetsCreatedQuery
-      const perPage = 50
+      const perPage = isStarted ? 50 : 35
 
       // Step 2: fetch sets per phase group in parallel
       const pgResults = await Promise.all(

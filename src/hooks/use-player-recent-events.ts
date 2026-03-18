@@ -58,14 +58,14 @@ export function usePlayerRecentEvents(
         playerId: playerId!,
         userId: userId!,
         page: pageParam,
-        perPage: 50,
+        perPage: 15,
         videogameId: videogameId ? [videogameId] : null,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       const pageInfo = lastPage?.player?.user?.tournaments?.pageInfo
       if (!pageInfo) return undefined
-      if (allPages.length >= 3) return undefined
+      if (allPages.length >= 10) return undefined
       if (pageInfo.page != null && pageInfo.totalPages != null && pageInfo.page >= pageInfo.totalPages) return undefined
       return (pageInfo.page ?? 0) + 1
     },

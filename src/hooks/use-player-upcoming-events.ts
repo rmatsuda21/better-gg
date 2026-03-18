@@ -49,7 +49,7 @@ export function usePlayerUpcomingEvents(
     queryFn: () =>
       graphqlClient.request(playerUpcomingEventsQuery, {
         playerId: playerId!,
-        perPage: 20,
+        perPage: 8,
       }),
     enabled: !!playerId && !!userId,
     staleTime: 5 * 60 * 1000,

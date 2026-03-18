@@ -15,8 +15,9 @@ const tournamentListQuery = graphql(`
       pageInfo { total totalPages page perPage }
       nodes {
         id name slug startAt endAt numAttendees
-        city addrState countryCode isOnline
+        city addrState countryCode isOnline venueName
         images(type: "profile") { id url }
+        bannerImages: images(type: "banner") { id url }
         events(limit: 5, filter: { videogameId: [1386] }) { id name numEntrants }
       }
     }

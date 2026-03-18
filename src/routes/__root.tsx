@@ -1,9 +1,11 @@
 import { createRootRoute, Link, Outlet, useMatches } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/use-auth'
 import { useCurrentUser } from '../hooks/use-current-user'
 import { UserMenu } from '../components/UserMenu/UserMenu'
 import { LoginModal } from '../components/LoginModal/LoginModal'
+import { MobileNav } from '../components/MobileNav/MobileNav'
+import { CommandPalette } from '../components/CommandPalette/CommandPalette'
 import styles from './__root.module.css'
 
 export const Route = createRootRoute({
@@ -15,13 +17,46 @@ function RootLayout() {
   const isHome = matches[matches.length - 1]?.id === '/'
   const { isAuthenticated } = useAuth()
   const [showLogin, setShowLogin] = useState(false)
+  const [showPalette, setShowPalette] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Fetch current user profile when authenticated
   useCurrentUser()
 
+  // Cmd+K / Ctrl+K shortcut
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowPalette((prev) => !prev)
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [])
+
+  // Track scroll for header border
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolled(!entry.isIntersecting),
+      { threshold: 1 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
+
+  const openPalette = useCallback(() => setShowPalette(true), [])
+  const closePalette = useCallback(() => setShowPalette(false), [])
+  const openLogin = useCallback(() => setShowLogin(true), [])
+  const closeLogin = useCallback(() => setShowLogin(false), [])
+
   return (
     <div className={styles.app}>
-      <header className={styles.header}>
+      <div ref={sentinelRef} className={styles.sentinel} />
+      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
         <div className={styles.headerLeft}>
           {isHome ? (
             <h1 className={styles.title}>better.gg</h1>
@@ -30,25 +65,46 @@ function RootLayout() {
               <h1 className={styles.title}>better.gg</h1>
             </Link>
           )}
-          <Link to="/tournaments" className={styles.navLink}>
+          <Link
+            to="/tournaments"
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
+          >
             Tournaments
           </Link>
-          <Link to="/players" className={styles.navLink}>
+          <Link
+            to="/players"
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
+          >
             Players
           </Link>
         </div>
         <div className={styles.headerRight}>
+          <button
+            className={styles.searchButton}
+            onClick={openPalette}
+            aria-label="Search"
+            title="Search (⌘K)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <span className={styles.searchKbd}>⌘K</span>
+          </button>
           {isAuthenticated ? (
             <UserMenu />
           ) : (
-            <button className={styles.connectButton} onClick={() => setShowLogin(true)}>
+            <button className={styles.connectButton} onClick={openLogin}>
               Connect
             </button>
           )}
         </div>
       </header>
       <Outlet />
-      <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
+      <MobileNav onSearchOpen={openPalette} onLoginOpen={openLogin} />
+      <LoginModal isOpen={showLogin} onClose={closeLogin} />
+      <CommandPalette isOpen={showPalette} onClose={closePalette} />
     </div>
   )
 }

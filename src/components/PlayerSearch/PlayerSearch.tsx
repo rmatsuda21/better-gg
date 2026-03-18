@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, FormEvent } from 'react'
 import { usePlayerSearch, usePlayerCountries } from '../../hooks/use-player-search'
 import { useCharacters } from '../../hooks/use-characters'
 import { buildCharacterMap, getCharacterStockIcon } from '../../lib/character-utils'
@@ -13,9 +13,11 @@ const ULTIMATE_VIDEOGAME_ID = '1386'
 
 interface PlayerSearchProps {
   onSelect: (player: PlayerRecord) => void
+  onSearch?: (query: string, country?: string) => void
+  inline?: boolean
 }
 
-export function PlayerSearch({ onSelect }: PlayerSearchProps) {
+export function PlayerSearch({ onSelect, onSearch, inline }: PlayerSearchProps) {
   const [query, setQuery] = useState('')
   const [country, setCountry] = useState<string>()
   const [isOpen, setIsOpen] = useState(false)
@@ -62,6 +64,12 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
   )
 
   function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' && showDropdown && activeIndex >= 0 && results[activeIndex]) {
+      e.preventDefault()
+      selectPlayer(results[activeIndex])
+      return
+    }
+
     if (!showDropdown) return
 
     if (e.key === 'ArrowDown') {
@@ -70,9 +78,6 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActiveIndex((i) => (i > 0 ? i - 1 : results.length - 1))
-    } else if (e.key === 'Enter' && activeIndex >= 0 && results[activeIndex]) {
-      e.preventDefault()
-      selectPlayer(results[activeIndex])
     } else if (e.key === 'Escape') {
       setIsOpen(false)
       inputRef.current?.blur()
@@ -80,8 +85,16 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
   }
 
   return (
-    <div className={styles.wrapper} ref={wrapperRef}>
-      <div className={styles.searchRow}>
+    <div className={`${styles.wrapper} ${inline ? styles.wrapperInline : ''}`} ref={wrapperRef}>
+      <form
+        className={styles.searchRow}
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault()
+          if (onSearch && query.trim()) {
+            onSearch(query.trim(), country)
+          }
+        }}
+      >
         <input
           ref={inputRef}
           className={styles.input}
@@ -99,23 +112,24 @@ export function PlayerSearch({ onSelect }: PlayerSearchProps) {
           placeholder="Search by gamer tag"
           autoComplete="off"
         />
-        <FilterSelect
-          variant="hero"
-          className={styles.countrySelect}
-          value={country ?? ''}
-          options={countryOptions}
-          onChange={(v) => {
-            setCountry(v || undefined)
-            setActiveIndex(-1)
-          }}
-        />
-      </div>
+        <div className={styles.regionSelect}>
+          <FilterSelect
+            variant="hero"
+            value={country ?? ''}
+            options={countryOptions}
+            onChange={(v) => {
+              setCountry(v || undefined)
+              setActiveIndex(-1)
+            }}
+          />
+        </div>
+      </form>
       {showDropdown && (
-        <div className={styles.dropdown}>
+        <div className={`${styles.dropdown} ${inline ? styles.dropdownInline : ''}`}>
           {isLoading ? (
             <div className={styles.loadingRows}>
               {Array.from({ length: 3 }, (_, i) => (
-                <Skeleton key={i} width="100%" height={44} borderRadius={6} />
+                <Skeleton key={i} width="100%" height={50} borderRadius={6} />
               ))}
             </div>
           ) : results.length === 0 ? (

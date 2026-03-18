@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type { CSSProperties } from 'react'
 import { useMemo, useState } from 'react'
 import { useTournamentList } from '../hooks/use-tournament-list'
 import { getCountryOptions } from '../lib/country-utils'
@@ -202,7 +203,7 @@ function TournamentsPage() {
       {isLoading ? (
         <div className={styles.skeletons}>
           {Array.from({ length: 8 }, (_, i) => (
-            <Skeleton key={i} width="100%" height={120} borderRadius={8} />
+            <Skeleton key={i} width="100%" height={200} borderRadius={10} />
           ))}
         </div>
       ) : tournaments.length === 0 ? (
@@ -216,9 +217,12 @@ function TournamentsPage() {
           <div className={styles.cardGrid}>
             {tournaments.map((tournament, i) =>
               tournament ? (
-                <div key={tournament.id ?? i} style={{ '--stagger': i } as React.CSSProperties}>
-                  <TournamentCard tournament={tournament} />
-                </div>
+                <TournamentCard
+                  key={tournament.id ?? i}
+                  tournament={tournament}
+                  variant="grid"
+                  style={{ '--stagger': i } as CSSProperties}
+                />
               ) : null,
             )}
           </div>

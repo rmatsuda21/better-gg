@@ -62,17 +62,19 @@
   transform: rotate(180deg);
 }
 
-/* Backdrop (mobile only) */
+/* Backdrop — transparent overlay to catch outside clicks */
 .backdrop {
-  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99;
 }
 
 /* Dropdown */
 .dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 100%;
+  position: fixed;
+  top: var(--dd-top);
+  left: var(--dd-left);
+  min-width: var(--dd-min-width);
   z-index: 100;
   background: var(--bg-elevated);
   border: 1px solid var(--border-medium);
@@ -161,11 +163,7 @@
 /* Mobile bottom-sheet */
 @media (max-width: 480px) {
   .backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 99;
   }
 
   .dropdown {

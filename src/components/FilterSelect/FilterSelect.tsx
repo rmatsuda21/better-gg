@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback, useId } from 'react'
+import { createPortal } from 'react-dom'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import styles from './FilterSelect.module.css'
 
@@ -39,6 +40,7 @@ export function FilterSelect({
 
   const id = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -55,16 +57,13 @@ export function FilterSelect({
     return match?.label ?? placeholder
   }, [options, value, placeholder])
 
-  // Close on click outside
+  // Compute dropdown position from trigger bounding rect
+  const [ddPos, setDdPos] = useState<{ top: number; left: number; width: number } | null>(null)
+
   useEffect(() => {
-    if (!isOpen) return
-    function handleMouseDown(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
+    if (!isOpen || !triggerRef.current) return
+    const rect = triggerRef.current.getBoundingClientRect()
+    setDdPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
   }, [isOpen])
 
   // Auto-focus search on open
@@ -142,6 +141,7 @@ export function FilterSelect({
   return (
     <div className={styles.wrapper} ref={wrapperRef} style={style}>
       <button
+        ref={triggerRef}
         type="button"
         className={triggerClasses}
         role="combobox"
@@ -167,70 +167,80 @@ export function FilterSelect({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {isOpen && (
-        <>
-          <div
-            className={styles.backdrop}
-            onMouseDown={(e) => {
-              e.preventDefault()
-              setIsOpen(false)
-            }}
-          />
-          <div
-            className={styles.dropdown}
-            role="listbox"
-            id={listboxId}
-            onKeyDown={handleKeyDown}
-          >
-            {showSearch && (
-              <input
-                ref={searchRef}
-                className={styles.searchInput}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setActiveIndex(-1)
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="Search..."
-                autoComplete="off"
-              />
-            )}
-            <div className={styles.optionList} ref={listRef}>
-              {filteredOptions.length === 0 ? (
-                <div className={styles.emptyMessage}>No matches</div>
-              ) : (
-                filteredOptions.map((opt, index) => (
-                  <div
-                    key={opt.value}
-                    id={`${id}-option-${index}`}
-                    role="option"
-                    aria-selected={opt.value === value}
-                    className={[
-                      styles.option,
-                      index === activeIndex ? styles.optionActive : '',
-                      opt.value === value ? styles.optionSelected : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      select(opt.value)
-                    }}
-                  >
-                    {opt.icon && (
-                      <img src={opt.icon} alt="" className={styles.optionIcon} />
-                    )}
-                    {opt.label}
-                  </div>
-                ))
+      {isOpen &&
+        ddPos &&
+        createPortal(
+          <>
+            <div
+              className={styles.backdrop}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                setIsOpen(false)
+              }}
+            />
+            <div
+              className={styles.dropdown}
+              role="listbox"
+              id={listboxId}
+              onKeyDown={handleKeyDown}
+              style={
+                {
+                  '--dd-top': `${ddPos.top}px`,
+                  '--dd-left': `${ddPos.left}px`,
+                  '--dd-min-width': `${ddPos.width}px`,
+                } as CSSProperties
+              }
+            >
+              {showSearch && (
+                <input
+                  ref={searchRef}
+                  className={styles.searchInput}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setActiveIndex(-1)
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search..."
+                  autoComplete="off"
+                />
               )}
+              <div className={styles.optionList} ref={listRef}>
+                {filteredOptions.length === 0 ? (
+                  <div className={styles.emptyMessage}>No matches</div>
+                ) : (
+                  filteredOptions.map((opt, index) => (
+                    <div
+                      key={opt.value}
+                      id={`${id}-option-${index}`}
+                      role="option"
+                      aria-selected={opt.value === value}
+                      className={[
+                        styles.option,
+                        index === activeIndex ? styles.optionActive : '',
+                        opt.value === value ? styles.optionSelected : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        select(opt.value)
+                      }}
+                    >
+                      {opt.icon && (
+                        <img src={opt.icon} alt="" className={styles.optionIcon} />
+                      )}
+                      {opt.label}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   )
 }

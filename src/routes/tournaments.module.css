@@ -75,7 +75,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
+  padding: calc(0.35rem + 3px) 0.75rem;
   border-radius: 6px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
@@ -144,11 +144,17 @@
   letter-spacing: 0.05em;
 }
 
-/* Card Grid */
+/* Card Grid — mobile-first */
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Pagination */
@@ -198,19 +204,24 @@
 
 .skeletons {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 0.75rem;
 }
 
-/* Responsive */
+@media (min-width: 640px) {
+  .skeletons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive — mobile-first */
 @media (max-width: 640px) {
   .filterBar {
     flex-direction: column;
   }
 
   .filterRow {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: wrap;
   }
 
   .searchInput {
@@ -219,13 +230,5 @@
 
   .filterSelect {
     min-width: 0;
-  }
-
-  .cardGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .skeletons {
-    grid-template-columns: 1fr;
   }
 }

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatDateRange } from '../../lib/format'
 import styles from './TournamentCard.module.css'
@@ -15,6 +16,7 @@ export interface TournamentCardData {
   isOnline?: boolean | null
   venueName?: string | null
   images?: Array<{ url?: string | null } | null> | null
+  bannerImages?: Array<{ url?: string | null } | null> | null
   events?: Array<{
     id?: string | null
     name?: string | null
@@ -24,12 +26,72 @@ export interface TournamentCardData {
 
 interface TournamentCardProps {
   tournament: TournamentCardData
+  variant?: 'compact' | 'grid'
   status?: 'upcoming' | 'current' | 'past'
   playerId?: string
+  className?: string
+  style?: CSSProperties
 }
 
-export function TournamentCard({ tournament, status, playerId }: TournamentCardProps) {
+const MAX_VISIBLE_EVENTS = 3
+
+function EventPills({
+  events,
+  playerId,
+  variant,
+}: {
+  events: TournamentCardData['events']
+  playerId?: string
+  variant: 'compact' | 'grid'
+}) {
+  const validEvents = events?.filter((e): e is NonNullable<typeof e> => !!e?.id) ?? []
+  if (validEvents.length === 0) return null
+
+  const visible = variant === 'grid' ? validEvents.slice(0, MAX_VISIBLE_EVENTS) : validEvents
+  const overflow = variant === 'grid' ? validEvents.length - MAX_VISIBLE_EVENTS : 0
+
+  return (
+    <div className={variant === 'grid' ? styles.eventsGrid : styles.events}>
+      {visible.map((event) =>
+        playerId ? (
+          <Link
+            key={event.id}
+            to="/player/$playerId/event/$eventId"
+            params={{ playerId, eventId: String(event.id) }}
+            className={styles.eventPill}
+          >
+            {event.name}
+            {event.numEntrants != null && ` (${event.numEntrants})`}
+          </Link>
+        ) : (
+          <Link
+            key={event.id}
+            to="/event/$eventId"
+            params={{ eventId: String(event.id) }}
+            className={styles.eventPill}
+          >
+            {event.name}
+            {event.numEntrants != null && ` (${event.numEntrants})`}
+          </Link>
+        ),
+      )}
+      {overflow > 0 && (
+        <span className={styles.eventOverflow}>+{overflow} more</span>
+      )}
+    </div>
+  )
+}
+
+export function TournamentCard({
+  tournament,
+  variant = 'compact',
+  status,
+  playerId,
+  className,
+  style,
+}: TournamentCardProps) {
   const profileImage = tournament.images?.[0]?.url
+  const bannerImage = tournament.bannerImages?.[0]?.url
   const location = tournament.isOnline
     ? null
     : [tournament.city, tournament.addrState, tournament.countryCode]
@@ -43,8 +105,66 @@ export function TournamentCard({ tournament, status, playerId }: TournamentCardP
         ? styles.accentUpcoming
         : styles.accentPast
 
+  if (variant === 'grid') {
+    const initial = (tournament.name ?? '?')[0].toUpperCase()
+    const gridBanner = bannerImage ?? profileImage
+
+    return (
+      <div
+        className={`${styles.cardGrid} ${accentClass} ${className ?? ''}`}
+        style={style}
+      >
+        <Link
+          to="/tournament/$tournamentId"
+          params={{ tournamentId: String(tournament.id) }}
+          className={styles.imageWrap}
+        >
+          {gridBanner ? (
+            <img
+              className={styles.imageGrid}
+              src={gridBanner}
+              alt={tournament.name ?? ''}
+            />
+          ) : (
+            <div className={styles.imagePlaceholderGrid}>{initial}</div>
+          )}
+          {profileImage && bannerImage && (
+            <img
+              className={styles.iconOverlay}
+              src={profileImage}
+              alt=""
+            />
+          )}
+          <span className={styles.nameOverlay}>
+            {tournament.name}
+          </span>
+        </Link>
+        <div className={styles.bodyGrid}>
+          <div className={styles.metaLine}>
+            {tournament.startAt && tournament.endAt && (
+              <span>{formatDateRange(tournament.startAt, tournament.endAt)}</span>
+            )}
+            {tournament.isOnline ? (
+              <span className={styles.onlineBadge}>Online</span>
+            ) : (
+              location && <span>{location}</span>
+            )}
+            {tournament.numAttendees != null && (
+              <span>{tournament.numAttendees.toLocaleString()} entrants</span>
+            )}
+          </div>
+          <EventPills events={tournament.events} playerId={playerId} variant="grid" />
+        </div>
+      </div>
+    )
+  }
+
+  // Compact variant (default) — original horizontal layout
   return (
-    <div className={`${styles.card} ${accentClass}`}>
+    <div
+      className={`${styles.card} ${accentClass} ${className ?? ''}`}
+      style={style}
+    >
       {profileImage ? (
         <img
           className={styles.image}
@@ -75,37 +195,7 @@ export function TournamentCard({ tournament, status, playerId }: TournamentCardP
             <span>{tournament.numAttendees} attendees</span>
           )}
         </div>
-        {tournament.events && tournament.events.length > 0 && (
-          <div className={styles.events}>
-            {tournament.events.map(
-              (event) =>
-                event &&
-                event.id && (
-                  playerId ? (
-                    <Link
-                      key={event.id}
-                      to="/player/$playerId/event/$eventId"
-                      params={{ playerId, eventId: String(event.id) }}
-                      className={styles.eventPill}
-                    >
-                      {event.name}
-                      {event.numEntrants != null && ` (${event.numEntrants})`}
-                    </Link>
-                  ) : (
-                    <Link
-                      key={event.id}
-                      to="/event/$eventId"
-                      params={{ eventId: String(event.id) }}
-                      className={styles.eventPill}
-                    >
-                      {event.name}
-                      {event.numEntrants != null && ` (${event.numEntrants})`}
-                    </Link>
-                  )
-                ),
-            )}
-          </div>
-        )}
+        <EventPills events={tournament.events} playerId={playerId} variant="compact" />
       </div>
     </div>
   )

@@ -33,3 +33,69 @@
   border-left: 3px solid var(--accent);
   margin: 0;
 }
+
+/* Collapsible phase group sections */
+
+.phaseGroupSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.phaseGroupToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color var(--duration-fast), border-color var(--duration-fast);
+}
+
+.phaseGroupToggle:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+}
+
+.phaseGroupToggleOpen {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.phaseGroupArrow {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  width: 0.75rem;
+  transition: color var(--duration-fast);
+}
+
+.phaseGroupToggle:hover .phaseGroupArrow {
+  color: var(--accent);
+}
+
+.phaseGroupLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.seedBadge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--accent);
+  background-color: var(--accent-subtle);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-left: auto;
+}

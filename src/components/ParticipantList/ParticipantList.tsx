@@ -5,6 +5,7 @@ import { useDebouncedValue } from '../../hooks/use-debounced-value'
 import { formatPlacement } from '../../lib/format'
 import type { TournamentParticipant } from '../../hooks/use-tournament-participants'
 import { Skeleton } from '../Skeleton/Skeleton'
+import { DataTable, DataTableHeader, DataTableRow } from '../DataTable/DataTable'
 import styles from './ParticipantList.module.css'
 
 const ROW_HEIGHT = 44
@@ -101,12 +102,12 @@ export function ParticipantList({
       {filtered.length === 0 ? (
         <div className={styles.noResults}>No players found</div>
       ) : (
-        <div className={styles.list}>
-          <div className={styles.rowHeader}>
+        <DataTable>
+          <DataTableHeader className={styles.columns}>
             <span>Seed</span>
             <span>Player</span>
             <span>Events</span>
-          </div>
+          </DataTableHeader>
           <div ref={parentRef} className={styles.scrollContainer}>
             <div
               style={{
@@ -135,7 +136,7 @@ export function ParticipantList({
               ))}
             </div>
           </div>
-        </div>
+        </DataTable>
       )}
     </div>
   )
@@ -151,7 +152,7 @@ function ParticipantRow({
   eventNameMap: Map<string, string>
 }) {
   return (
-    <div className={styles.row}>
+    <DataTableRow className={styles.rowColumns}>
       <div className={styles.seed}>
         {participant.bestSeed ?? '-'}
       </div>
@@ -217,6 +218,6 @@ function ParticipantRow({
           )
         })}
       </div>
-    </div>
+    </DataTableRow>
   )
 }

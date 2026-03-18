@@ -7,6 +7,7 @@ import { useAllEventStandings } from '../hooks/use-event-standings'
 import { useEventEntrantSearch } from '../hooks/use-event-entrant-search'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
+import { DataTable, DataTableHeader, DataTableRow } from '../components/DataTable/DataTable'
 import {
   ParticipantList,
 } from '../components/ParticipantList/ParticipantList'
@@ -344,7 +345,7 @@ function StandingsRow({
   playerId?: string | null
 }) {
   return (
-    <div className={styles.standingsRow}>
+    <DataTableRow className={styles.standingsColumns}>
       <span className={styles.placement}>
         {placement != null ? formatPlacement(placement) : '-'}
       </span>
@@ -366,7 +367,7 @@ function StandingsRow({
           </>
         )}
       </span>
-    </div>
+    </DataTableRow>
   )
 }
 
@@ -388,12 +389,12 @@ function SearchResults({
   }
 
   return (
-    <div className={styles.standingsTable}>
-      <div className={styles.standingsRowHeader}>
+    <DataTable>
+      <DataTableHeader className={styles.standingsColumns}>
         <span>Place</span>
         <span>Seed</span>
         <span>Player</span>
-      </div>
+      </DataTableHeader>
       {entrants.map(
         (entrant) =>
           entrant && (
@@ -407,7 +408,7 @@ function SearchResults({
             />
           ),
       )}
-    </div>
+    </DataTable>
   )
 }
 
@@ -444,12 +445,12 @@ function VirtualizedStandings({
           {standings.length.toLocaleString()} entrants
         </span>
       </div>
-      <div className={styles.standingsTable}>
-        <div className={styles.standingsRowHeader}>
+      <DataTable>
+        <DataTableHeader className={styles.standingsColumns}>
           <span>Place</span>
           <span>Seed</span>
           <span>Player</span>
-        </div>
+        </DataTableHeader>
         <div ref={parentRef} className={styles.standingsScrollContainer}>
           <div
             style={{
@@ -480,7 +481,7 @@ function VirtualizedStandings({
             ))}
           </div>
         </div>
-      </div>
+      </DataTable>
     </>
   )
 }

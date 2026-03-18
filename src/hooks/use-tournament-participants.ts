@@ -51,7 +51,7 @@ export interface TournamentParticipant {
 async function fetchAllParticipants(
   tournamentId: string,
 ): Promise<TournamentParticipant[]> {
-  const perPage = 100
+  const perPage = 50
 
   const firstPage = await graphqlClient.request(tournamentParticipantsQuery, {
     tournamentId,

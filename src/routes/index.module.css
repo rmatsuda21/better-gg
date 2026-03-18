@@ -1,5 +1,5 @@
 /* ============================================
-   Hero Section — full-width breakout
+   Hero Section — full-width breakout (logged out)
    ============================================ */
 .hero {
   position: relative;
@@ -75,27 +75,6 @@
   gap: 1rem;
 }
 
-.heroBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.heroBadgeDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow);
-  animation: pulseGlow 2s ease-in-out infinite;
-}
-
 .heroTitle {
   font-size: 1.8rem;
   font-weight: 800;
@@ -122,8 +101,14 @@
   max-width: 420px;
 }
 
+.heroCtas {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .heroCta {
-  align-self: flex-start;
   padding: 0.6rem 1.5rem;
   border-radius: 8px;
   border: 1px solid var(--accent);
@@ -151,13 +136,22 @@
   transform: translateY(0);
 }
 
+.heroSecondary {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+.heroSecondary:hover {
+  color: var(--accent);
+}
+
 /* Hero search card */
 .heroSearch {
   position: relative;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  width: 100%;
   animation: slideInRight 0.6s var(--ease-out-expo) 0.15s both;
 }
 
@@ -167,8 +161,9 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(99, 102, 241, 0.15);
   border-radius: 12px;
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 0;
   position: relative;
+  overflow: hidden;
 }
 
 .searchCard::before {
@@ -189,35 +184,69 @@
   border-radius: 12px 12px 0 0;
 }
 
-.searchCardTop {
-  z-index: 1;
+.searchTabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.searchCardHeader {
+.searchTab {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--duration-fast), background-color var(--duration-fast);
+  position: relative;
+}
+
+.searchTab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.searchTabActive {
   color: var(--accent);
-  margin: 0 0 1rem;
+}
+
+.searchTabActive::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 1rem;
+  right: 1rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+.searchBody {
+  padding: 1.25rem 1.5rem 1.5rem;
+  min-height: 130px;
 }
 
 /* ============================================
-   Features strip — compact row
+   Features strip
    ============================================ */
 .features {
   position: relative;
+  width: 100%;
   max-width: 960px;
-  margin: 2rem auto 0;
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.5rem;
+  animation: fadeInUp 0.5s var(--ease-out-expo) 0.3s both;
 }
 
 .featureCard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: rgba(18, 18, 26, 0.5);
@@ -250,128 +279,125 @@
 }
 
 .featureDesc {
-  display: none;
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 /* ============================================
-   Search fields
+   Welcome bar (logged in)
    ============================================ */
-.sectionLabel {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin: 0 0 0.5rem;
-}
-
-.orDivider {
+.welcomeBar {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-block: 0.75rem;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: rgba(18, 18, 26, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  animation: fadeInUp 0.4s var(--ease-out-expo);
 }
 
-.orLine {
-  flex: 1;
-  height: 1px;
-  background: var(--border-subtle);
+.welcomeText {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.orText {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
+.welcomeText strong {
+  color: var(--text-heading);
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
 }
 
-.form {
+.profilePill {
   display: flex;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.input {
-  flex: 1;
-  padding: 0.65rem 0.9rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-medium);
-  background-color: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  font-family: inherit;
-  outline: none;
-  transition:
-    border-color var(--duration-fast),
-    box-shadow var(--duration-fast);
-}
-
-.input::placeholder {
-  color: var(--text-secondary);
-}
-
-.input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.button {
-  padding: 0.65rem 1.2rem;
-  border-radius: 8px;
-  border: none;
-  background-color: var(--accent);
-  color: #fff;
-  font-size: 0.95rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 0.75rem;
   font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    background-color var(--duration-fast),
-    transform var(--duration-fast),
-    box-shadow var(--duration-fast);
-  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
 }
 
-.button:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
-
-.button:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.resolveError {
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
-  color: var(--error);
+.profilePill:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* ============================================
-   Tournament list
+   Quick search trigger (logged in, desktop only)
    ============================================ */
-.filterRow {
+.quickSearch {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-medium);
+  background: rgba(18, 18, 26, 0.4);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast);
+  animation: fadeInUp 0.4s var(--ease-out-expo) 0.1s both;
 }
 
-.list {
+.quickSearch:hover {
+  border-color: var(--accent);
+  background: rgba(18, 18, 26, 0.6);
+}
+
+.quickSearchText {
+  flex: 1;
+  text-align: left;
+}
+
+.quickSearchKbd {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .quickSearch {
+    display: none;
+  }
+}
+
+/* ============================================
+   Tournament hub (logged in)
+   ============================================ */
+.hub {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
+  animation: fadeInUp 0.4s var(--ease-out-expo) 0.15s both;
+}
+
+.hubHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hubTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-heading);
 }
 
 .staggerWrapper {
@@ -383,6 +409,106 @@
   text-align: center;
   color: var(--text-secondary);
   padding: 2rem;
+}
+
+/* Past section — collapsible */
+.pastSection {
+  width: 100%;
+}
+
+.showPastButton {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(18, 18, 26, 0.4);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.showPastButton:hover {
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+  background: rgba(18, 18, 26, 0.6);
+}
+
+.pastContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: fadeInUp 0.3s var(--ease-out-expo);
+}
+
+.viewAllLink {
+  align-self: center;
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+.viewAllLink:hover {
+  color: var(--accent-hover);
+}
+
+/* ============================================
+   Empty hub CTA card
+   ============================================ */
+.emptyCta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  border: 1px dashed var(--border-medium);
+  background: rgba(18, 18, 26, 0.3);
+  text-decoration: none;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.emptyCta:hover {
+  border-color: var(--accent);
+  background: rgba(18, 18, 26, 0.5);
+}
+
+.emptyCtaIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.emptyCtaTitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.emptyCtaSub {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.emptyCtaArrow {
+  margin-left: auto;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: color var(--duration-fast), transform var(--duration-fast);
+}
+
+.emptyCta:hover .emptyCtaArrow {
+  color: var(--accent);
+  transform: translateX(2px);
 }
 
 /* ============================================
@@ -400,9 +526,15 @@
   .features {
     grid-template-columns: repeat(3, 1fr);
   }
+}
 
-  .searchCard {
-    max-width: 400px;
+@media (max-width: 400px) {
+  .hero {
+    padding-inline: 1rem;
+  }
+
+  .searchBody {
+    padding: 1rem 1rem 1.25rem;
   }
 }
 
@@ -426,7 +558,8 @@
   }
 
   .heroSearch {
-    flex: 0 0 380px;
+    flex: 0 0 440px;
+    min-width: 0;
   }
 
   .heroTitle {

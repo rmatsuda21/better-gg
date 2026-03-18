@@ -91,25 +91,29 @@ export function SetDetails({
     <div className={styles.list}>
       {sets.map((set) => {
         const userSlot = set.slots?.find(
-          (s) => resolveEntrant(s)?.id === userEntrantId,
+          (s) => {
+            const id = resolveEntrant(s)?.id
+            return id != null && String(id) === String(userEntrantId)
+          },
         )
         const oppSlot = set.slots?.find(
           (s) => {
             const e = resolveEntrant(s)
-            return e?.id != null && e.id !== userEntrantId
+            return e?.id != null && String(e.id) !== String(userEntrantId)
           },
         )
 
         const userEntrant = resolveEntrant(userSlot)
         const oppEntrant = resolveEntrant(oppSlot)
-        const userName = userEntrant?.name ?? 'You'
-        const oppName = oppEntrant?.name ?? 'Opponent'
+        const userName = userEntrant?.name ?? 'Unknown'
+        const oppName = oppEntrant?.name ?? 'Unknown'
         const userPlayerId = getPlayerId(userEntrant)
         const oppPlayerId = getPlayerId(oppEntrant)
 
         const userEntrantNumId = Number(userEntrantId)
         const scores = parseScores(set.displayScore)
-        const isSlot0User = resolveEntrant(set.slots?.[0])?.id === userEntrantId
+        const slot0Id = resolveEntrant(set.slots?.[0])?.id
+        const isSlot0User = slot0Id != null && String(slot0Id) === String(userEntrantId)
         const userScore = scores[isSlot0User ? 0 : 1]
         const oppScore = scores[isSlot0User ? 1 : 0]
 
@@ -194,12 +198,12 @@ export function SetDetails({
                   <Link
                     to="/player/$playerId"
                     params={{ playerId: userPlayerId }}
-                    className={styles.playerName}
+                    className={`${styles.playerName} ${styles.playerNameUser}`}
                   >
                     {userName}
                   </Link>
                 ) : (
-                  <span className={styles.playerName}>{userName}</span>
+                  <span className={`${styles.playerName} ${styles.playerNameUser}`}>{userName}</span>
                 )}
               </div>
             </div>
@@ -211,12 +215,14 @@ export function SetDetails({
                   const userChar = game.selections?.find(
                     (s) =>
                       s?.selectionType === 'CHARACTER' &&
-                      s.entrant?.id === userEntrantId,
+                      s.entrant?.id != null &&
+                      String(s.entrant.id) === String(userEntrantId),
                   )
                   const oppChar = game.selections?.find(
                     (s) =>
                       s?.selectionType === 'CHARACTER' &&
-                      s.entrant?.id !== userEntrantId,
+                      s.entrant?.id != null &&
+                      String(s.entrant.id) !== String(userEntrantId),
                   )
                   const gameUserWon = game.winnerId === userEntrantNumId
                   const hasWinner = game.winnerId != null

@@ -33,11 +33,12 @@ const COUNTRY_SELECT_OPTIONS = COUNTRY_OPTIONS.map((opt) => ({
 
 interface TournamentSearchProps {
   onSelect: (tournament: TournamentResult) => void
+  inline?: boolean
 }
 
 export type { TournamentResult }
 
-export function TournamentSearch({ onSelect }: TournamentSearchProps) {
+export function TournamentSearch({ onSelect, inline }: TournamentSearchProps) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -102,7 +103,7 @@ export function TournamentSearch({ onSelect }: TournamentSearchProps) {
   }
 
   return (
-    <div className={styles.wrapper} ref={wrapperRef}>
+    <div className={`${styles.wrapper} ${inline ? styles.wrapperInline : ''}`} ref={wrapperRef}>
       <div className={styles.searchRow}>
         <input
           ref={inputRef}
@@ -121,24 +122,27 @@ export function TournamentSearch({ onSelect }: TournamentSearchProps) {
           placeholder="Search tournaments"
           autoComplete="off"
         />
-        <FilterSelect
-          variant="hero"
-          style={{ flexShrink: 0 }}
-          value={countryCode}
-          options={COUNTRY_SELECT_OPTIONS}
-          onChange={(v) => {
-            setCountryCode(v)
-            setActiveIndex(-1)
-          }}
-        />
+        <div className={styles.regionSelect}>
+          <FilterSelect
+            variant="hero"
+            value={countryCode}
+            options={COUNTRY_SELECT_OPTIONS}
+            onChange={(v) => {
+              setCountryCode(v)
+              setActiveIndex(-1)
+            }}
+          />
+        </div>
+      </div>
+      <div className={styles.filterRow}>
         <FilterToggle value={onlineFilter} onChange={(v) => { setOnlineFilter(v); setActiveIndex(-1) }} />
       </div>
       {showDropdown && (
-        <div className={styles.dropdown}>
+        <div className={`${styles.dropdown} ${inline ? styles.dropdownInline : ''}`}>
           {isLoading ? (
             <div className={styles.loadingRows}>
               {Array.from({ length: 3 }, (_, i) => (
-                <Skeleton key={i} width="100%" height={56} borderRadius={6} />
+                <Skeleton key={i} width="100%" height={50} borderRadius={6} />
               ))}
             </div>
           ) : results.length === 0 ? (

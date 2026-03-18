@@ -9,6 +9,8 @@ import { countryCodeToFlag } from '../lib/country-utils'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import type { PlayerRecord } from '../lib/player-search-types'
 import { FilterSelect } from '../components/FilterSelect/FilterSelect'
+import { DataTable, DataTableHeader } from '../components/DataTable/DataTable'
+import { dataTableStyles } from '../components/DataTable/dataTableStyles'
 import styles from './players.module.css'
 
 const ULTIMATE_VIDEOGAME_ID = '1386'
@@ -166,12 +168,12 @@ function PlayersPage() {
           <div className={styles.resultsSummary}>
             {total.toLocaleString()} players
           </div>
-          <div className={styles.playerList}>
-            <div className={styles.playerRowHeader}>
+          <DataTable variant="border">
+            <DataTableHeader bordered className={styles.playerColumns}>
               <span>Player</span>
               <span>Characters</span>
               <span>Tournaments</span>
-            </div>
+            </DataTableHeader>
             <div ref={parentRef} className={styles.scrollContainer}>
               <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
                 {virtualizer.getVirtualItems().map((virtualRow) => (
@@ -194,7 +196,7 @@ function PlayersPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </DataTable>
         </>
       )}
     </div>
@@ -214,7 +216,7 @@ function PlayerRow({
     <Link
       to="/player/$playerId"
       params={{ playerId: player.pid }}
-      className={styles.playerRow}
+      className={`${dataTableStyles.row} ${dataTableStyles.rowBorder} ${styles.playerColumns}`}
     >
       <span className={styles.playerName}>
         {player.pfx && <span className={styles.prefix}>{player.pfx}</span>}

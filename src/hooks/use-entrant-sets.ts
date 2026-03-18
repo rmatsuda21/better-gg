@@ -248,7 +248,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
             // (seed.entrant is nullable in the full type, consumers use optional chaining)
             const castNode = node as unknown as NonNullable<PhaseGroupSetNode>
             allPgSets.push(castNode)
-            const involvesUser = castNode.slots?.some(s => resolveEntrant(s)?.id === entrantId)
+            const involvesUser = castNode.slots?.some(s => String(resolveEntrant(s)?.id) === entrantId)
             if (involvesUser) {
               allSets.push(castNode)
               pgSets.push(castNode)
@@ -306,7 +306,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
           // Fetch page 1
           const firstPage = await graphqlClient.request(phaseGroupSetsCreatedQuery, {
-            phaseGroupId: pgId, page: 1, perPage: 50,
+            phaseGroupId: pgId, page: 1, perPage: 35,
           })
           const allNodes = [...(firstPage.phaseGroup?.sets?.nodes ?? [])]
 
@@ -316,7 +316,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
             const remaining = await Promise.all(
               Array.from({ length: totalPages - 1 }, (_, i) =>
                 graphqlClient.request(phaseGroupSetsCreatedQuery, {
-                  phaseGroupId: pgId, page: i + 2, perPage: 50,
+                  phaseGroupId: pgId, page: i + 2, perPage: 35,
                 })
               )
             )
@@ -342,7 +342,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
           if (!node?.id || seenIds.has(node.id)) continue
           seenIds.add(node.id)
           allPgSets.push(node)
-          const involvesUser = node.slots?.some(s => resolveEntrant(s)?.id === entrantId)
+          const involvesUser = node.slots?.some(s => String(resolveEntrant(s)?.id) === entrantId)
           if (involvesUser) {
             allSets.push(node)
             pgSets.push(node)
