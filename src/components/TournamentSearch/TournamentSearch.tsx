@@ -104,6 +104,9 @@ export function TournamentSearch({ onSelect, inline }: TournamentSearchProps) {
 
   return (
     <div className={`${styles.wrapper} ${inline ? styles.wrapperInline : ''}`} ref={wrapperRef}>
+      <div className={styles.filterRow}>
+        <FilterToggle value={onlineFilter} onChange={(v) => { setOnlineFilter(v); setActiveIndex(-1) }} />
+      </div>
       <div className={styles.searchRow}>
         <input
           ref={inputRef}
@@ -133,9 +136,6 @@ export function TournamentSearch({ onSelect, inline }: TournamentSearchProps) {
             }}
           />
         </div>
-      </div>
-      <div className={styles.filterRow}>
-        <FilterToggle value={onlineFilter} onChange={(v) => { setOnlineFilter(v); setActiveIndex(-1) }} />
       </div>
       {showDropdown && (
         <div className={`${styles.dropdown} ${inline ? styles.dropdownInline : ''}`}>

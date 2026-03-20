@@ -136,99 +136,42 @@
   transform: translateY(0);
 }
 
-.heroSecondary {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  text-decoration: none;
-  transition: color var(--duration-fast);
-}
 
-.heroSecondary:hover {
-  color: var(--accent);
-}
-
-/* Hero search card */
+/* Hero search area */
 .heroSearch {
   position: relative;
   z-index: 2;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
   animation: slideInRight 0.6s var(--ease-out-expo) 0.15s both;
 }
 
-.searchCard {
-  background: rgba(18, 18, 26, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  border-radius: 12px;
-  padding: 0;
+.searchSection {
   position: relative;
-  overflow: hidden;
+  z-index: 1;
+  background: rgba(18, 18, 26, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  padding: 1rem 1.25rem 1.25rem;
 }
 
-.searchCard::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--accent),
-    var(--accent-hover),
-    transparent
-  );
-  opacity: 0.8;
-  border-radius: 12px 12px 0 0;
+.searchSection:first-child {
+  z-index: 2;
 }
 
-.searchTabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.searchTab {
-  flex: 1;
-  padding: 0.7rem 1rem;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
+.searchLabel {
+  margin: 0 0 0.6rem;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  cursor: pointer;
-  transition: color var(--duration-fast), background-color var(--duration-fast);
-  position: relative;
-}
-
-.searchTab:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.searchTabActive {
-  color: var(--accent);
-}
-
-.searchTabActive::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 1rem;
-  right: 1rem;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 1px;
-}
-
-.searchBody {
-  padding: 1.25rem 1.5rem 1.5rem;
-  min-height: 130px;
+  color: var(--text-secondary);
 }
 
 /* ============================================
@@ -532,10 +475,6 @@
   .hero {
     padding-inline: 1rem;
   }
-
-  .searchBody {
-    padding: 1rem 1rem 1.25rem;
-  }
 }
 
 /* ============================================
@@ -566,7 +505,4 @@
     font-size: 2.6rem;
   }
 
-  .searchCard {
-    max-width: none;
-  }
 }

@@ -30,8 +30,6 @@ export const Route = createFileRoute('/')({
   component: HomePage,
 })
 
-type SearchTab = 'players' | 'tournaments'
-
 function HomePage() {
   const navigate = useNavigate()
   const { isAuthenticated, user: authUser } = useAuth()
@@ -89,7 +87,6 @@ function HeroSection({
   onTournamentSelect: (tournament: TournamentResult) => void
 }) {
   const { startOAuthFlow } = useAuth()
-  const [searchTab, setSearchTab] = useState<SearchTab>('players')
 
   return (
     <div className={styles.hero}>
@@ -112,39 +109,21 @@ function HeroSection({
             <button className={styles.heroCta} onClick={startOAuthFlow}>
               Login with start.gg
             </button>
-            <a className={styles.heroSecondary} href="#search-card">
-              or search without logging in
-            </a>
           </div>
         </div>
 
         <div className={styles.heroSearch} id="search-card">
-          <div className={styles.searchCard}>
-            <div className={styles.searchTabs}>
-              <button
-                className={`${styles.searchTab} ${searchTab === 'players' ? styles.searchTabActive : ''}`}
-                onClick={() => setSearchTab('players')}
-                type="button"
-              >
-                Players
-              </button>
-              <button
-                className={`${styles.searchTab} ${searchTab === 'tournaments' ? styles.searchTabActive : ''}`}
-                onClick={() => setSearchTab('tournaments')}
-                type="button"
-              >
-                Tournaments
-              </button>
-            </div>
-            <div className={styles.searchBody}>
-              <Suspense fallback={null}>
-                {searchTab === 'players' ? (
-                  <PlayerSearch onSelect={onPlayerSelect} onSearch={onPlayerSearch} />
-                ) : (
-                  <TournamentSearch onSelect={onTournamentSelect} />
-                )}
-              </Suspense>
-            </div>
+          <div className={styles.searchSection}>
+            <h3 className={styles.searchLabel}>Players</h3>
+            <Suspense fallback={null}>
+              <PlayerSearch onSelect={onPlayerSelect} onSearch={onPlayerSearch} />
+            </Suspense>
+          </div>
+          <div className={styles.searchSection}>
+            <h3 className={styles.searchLabel}>Tournaments</h3>
+            <Suspense fallback={null}>
+              <TournamentSearch onSelect={onTournamentSelect} />
+            </Suspense>
           </div>
         </div>
       </div>
