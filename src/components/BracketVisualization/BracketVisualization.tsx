@@ -1,95 +1,40 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import { Link } from '@tanstack/react-router'
-import type { PhaseGroupInfo } from '../../hooks/use-entrant-sets'
-import {
-  buildBracketData,
-  buildProjectedResults,
+import type {
+  BracketData,
+  BracketRound,
+  BracketSet,
+  BracketEntrant,
+  ProjectedSet,
+  PhaseNavInfo,
+  SetClickInfo,
+  SetProgressionInfo,
 } from '../../lib/bracket-utils'
-import type { BracketRound, BracketSet, BracketEntrant, ProjectedSet, PhaseNavInfo, SetClickInfo } from '../../lib/bracket-utils'
-import type { SetProgressionInfo } from '../../hooks/use-phase-bracket'
 import styles from './BracketVisualization.module.css'
 
 interface BracketVisualizationProps {
-  phaseGroup: PhaseGroupInfo
-  projectionPhaseGroup?: PhaseGroupInfo
+  bracketData: BracketData
+  projectedResults?: Map<string, ProjectedSet> | null
   userEntrantId?: string
-  showProjectionToggle?: boolean
-  projected?: boolean
-  onProjectedChange?: (v: boolean) => void
+  entrantPlayerMap: Map<string, string>
   eventId?: string
   phaseNav?: PhaseNavInfo
   progressionMap?: Map<string, SetProgressionInfo>
-  seedEntrantOverrides?: Map<number, BracketEntrant>
-  seedIdToSeedNum?: Map<string, number>
   onSetClick?: (info: SetClickInfo) => void
-  receivesProgressions?: boolean
-}
-
-function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo): Map<string, string> {
-  const map = new Map<string, string>()
-  for (const set of phaseGroup.allSets) {
-    for (const slot of set.slots ?? []) {
-      const entrant = slot?.entrant ?? slot?.seed?.entrant
-      if (entrant?.id) {
-        const playerId = entrant.participants?.[0]?.player?.id
-        if (playerId) map.set(String(entrant.id), String(playerId))
-      }
-    }
-  }
-  return map
 }
 
 export function BracketVisualization({
-  phaseGroup,
-  projectionPhaseGroup,
+  bracketData,
+  projectedResults,
   userEntrantId,
-  showProjectionToggle = true,
-  projected,
-  onProjectedChange,
+  entrantPlayerMap,
   eventId,
   phaseNav,
   progressionMap,
-  seedEntrantOverrides,
-  seedIdToSeedNum,
   onSetClick,
-  receivesProgressions,
 }: BracketVisualizationProps) {
-  const [internalProjected, setInternalProjected] = useState(false)
-  const isControlled = projected !== undefined
-  const showProjected = isControlled ? projected : internalProjected
-  const handleProjectedChange = isControlled
-    ? (v: boolean) => onProjectedChange?.(v)
-    : setInternalProjected
-  const shouldSuppressEntrants = !showProjected && !!receivesProgressions
-  const bracketData = buildBracketData(phaseGroup, userEntrantId, seedEntrantOverrides, seedIdToSeedNum, shouldSuppressEntrants)
-  // Use bye-inclusive data for projection when available (resolves hidden bye rounds in DE brackets)
-  const projectionBracketData = projectionPhaseGroup
-    ? buildBracketData(projectionPhaseGroup, userEntrantId, seedEntrantOverrides, seedIdToSeedNum)
-    : bracketData
-  const projectedResults = showProjected
-    ? buildProjectedResults(projectionBracketData)
-    : null
-  const entrantPlayerMap = buildEntrantPlayerMap(phaseGroup)
-
   return (
     <div className={styles.wrapper}>
-      {showProjectionToggle && (
-        <div className={styles.toggleRow}>
-          <button
-            className={`${styles.toggleBtn} ${!showProjected ? styles.toggleBtnActive : ''}`}
-            onClick={() => handleProjectedChange(false)}
-          >
-            Actual
-          </button>
-          <button
-            className={`${styles.toggleBtn} ${showProjected ? styles.toggleBtnActive : ''}`}
-            onClick={() => handleProjectedChange(true)}
-          >
-            Projected
-          </button>
-        </div>
-      )}
-
       {bracketData.winnersRounds.length > 0 && (
         <>
           {bracketData.losersRounds.length > 0 && (
@@ -98,7 +43,7 @@ export function BracketVisualization({
           <BracketSection
             rounds={bracketData.winnersRounds}
             userEntrantId={userEntrantId}
-            projectedResults={projectedResults}
+            projectedResults={projectedResults ?? null}
             entrantPlayerMap={entrantPlayerMap}
             eventId={eventId}
             prevPhase={phaseNav?.prevPhase ?? null}
@@ -115,7 +60,7 @@ export function BracketVisualization({
           <BracketSection
             rounds={bracketData.losersRounds}
             userEntrantId={userEntrantId}
-            projectedResults={projectedResults}
+            projectedResults={projectedResults ?? null}
             entrantPlayerMap={entrantPlayerMap}
             eventId={eventId}
             prevPhase={phaseNav?.prevPhase ?? null}
@@ -142,11 +87,9 @@ function computeTreePositions(
 
   // Build setById map across all rounds in this section
   const setById = new Map<string, BracketSet>()
-  const setRoundIndex = new Map<string, number>() // set id -> round index in `rounds`
   for (let ri = 0; ri < rounds.length; ri++) {
     for (const s of rounds[ri].sets) {
       setById.set(s.id, s)
-      setRoundIndex.set(s.id, ri)
     }
   }
 
@@ -549,7 +492,10 @@ function SetCard({
       {...(isClickable ? {
         role: 'button',
         tabIndex: 0,
-        onClick: handleClick,
+        onClick: (e: React.MouseEvent) => {
+          if ((e.target as HTMLElement).closest('a')) return
+          handleClick()
+        },
         onKeyDown: (e: React.KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()

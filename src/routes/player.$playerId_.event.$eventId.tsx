@@ -7,6 +7,7 @@ import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { useCharacters } from '../hooks/use-characters'
 import { useSetDetails } from '../hooks/use-set-details'
 import type { SetClickInfo } from '../lib/bracket-utils'
+import { buildBracketData, buildEntrantPlayerMap } from '../lib/bracket-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
@@ -85,20 +86,16 @@ function PlayerEventPage() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Bracket</h3>
           {phaseGroups.length === 1 ? (
-            <BracketVisualization
+            <PlayerBracket
               phaseGroup={phaseGroups[0]}
               userEntrantId={entrantId}
-              showProjectionToggle={eventState !== 'COMPLETED'}
               eventId={eventId}
-              onSetClick={handleSetClick}
             />
           ) : (
             <CollapsiblePhaseGroups
               phaseGroups={phaseGroups}
               userEntrantId={entrantId}
-              eventState={eventState}
               eventId={eventId}
-              onSetClick={handleSetClick}
             />
           )}
         </div>
@@ -141,18 +138,42 @@ function PlayerEventPage() {
   )
 }
 
+function PlayerBracket({
+  phaseGroup,
+  userEntrantId,
+  eventId,
+}: {
+  phaseGroup: PhaseGroupInfo
+  userEntrantId?: string
+  eventId: string
+}) {
+  const bracketData = useMemo(
+    () => buildBracketData(phaseGroup, userEntrantId),
+    [phaseGroup, userEntrantId],
+  )
+  const entrantPlayerMap = useMemo(
+    () => buildEntrantPlayerMap(phaseGroup),
+    [phaseGroup],
+  )
+
+  return (
+    <BracketVisualization
+      bracketData={bracketData}
+      userEntrantId={userEntrantId}
+      entrantPlayerMap={entrantPlayerMap}
+      eventId={eventId}
+    />
+  )
+}
+
 function CollapsiblePhaseGroups({
   phaseGroups,
   userEntrantId,
-  eventState,
   eventId,
-  onSetClick,
 }: {
   phaseGroups: PhaseGroupInfo[]
   userEntrantId?: string
-  eventState?: string | null
   eventId: string
-  onSetClick?: (info: SetClickInfo) => void
 }) {
   const sorted = [...phaseGroups].sort(
     (a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0),
@@ -200,12 +221,10 @@ function CollapsiblePhaseGroups({
               )}
             </button>
             {isOpen && (
-              <BracketVisualization
+              <PlayerBracket
                 phaseGroup={pg}
                 userEntrantId={userEntrantId}
-                showProjectionToggle={eventState !== 'COMPLETED'}
                 eventId={eventId}
-                onSetClick={onSetClick}
               />
             )}
           </div>

@@ -1,5 +1,17 @@
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
-import type { SiblingPhaseInfo } from '../hooks/use-phase-bracket'
+
+export interface SiblingPhaseInfo {
+  id: string
+  name: string
+  phaseOrder: number
+}
+
+export interface SetProgressionInfo {
+  winnerPhase: { id: string; name: string } | null
+  loserPhase: { id: string; name: string } | null
+  loserSeedNum: number | null
+  winnerSeedNum: number | null
+}
 
 export interface BracketEntrant {
   id: string | null
@@ -310,6 +322,20 @@ export interface BracketEntrantInfo {
   prefix: string | null
   phaseGroupId: string
   poolLabel: string | null
+}
+
+export function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const set of phaseGroup.allSets) {
+    for (const slot of set.slots ?? []) {
+      const entrant = slot?.entrant ?? slot?.seed?.entrant
+      if (entrant?.id) {
+        const playerId = entrant.participants?.[0]?.player?.id
+        if (playerId) map.set(String(entrant.id), String(playerId))
+      }
+    }
+  }
+  return map
 }
 
 export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[]): BracketEntrantInfo[] {

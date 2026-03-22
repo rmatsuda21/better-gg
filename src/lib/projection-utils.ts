@@ -1,4 +1,8 @@
-import type { OriginSeedEntrant } from '../hooks/use-phase-bracket'
+export interface OriginSeedEntrant {
+  id: string
+  name: string
+  seedNum: number | null
+}
 
 export interface ParsedPlaceholder {
   groupId: string

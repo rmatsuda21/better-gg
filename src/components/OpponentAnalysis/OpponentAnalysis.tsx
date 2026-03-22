@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { PhaseGroupInfo } from '../../hooks/use-entrant-sets'
 import { useEntrantSets } from '../../hooks/use-entrant-sets'
-import { buildBracketData, buildProjectedResults } from '../../lib/bracket-utils'
+import { buildBracketData, buildProjectedResults, buildEntrantPlayerMap } from '../../lib/bracket-utils'
 import type { BracketEntrant } from '../../lib/bracket-utils'
 import { computeHeadToHead } from '../../lib/stats-utils'
 import { OpponentCard } from '../OpponentCard/OpponentCard'
@@ -247,20 +247,6 @@ function getFeederEntrants(
   return `${names[0]} vs ${names[1]}`
 }
 
-function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo): Map<string, string> {
-  const map = new Map<string, string>()
-  for (const set of phaseGroup.allSets) {
-    for (const slot of set.slots ?? []) {
-      const entrant = slot?.entrant ?? slot?.seed?.entrant
-      if (entrant?.id) {
-        const playerId = entrant.participants?.[0]?.player?.id
-        if (playerId) map.set(entrant.id, playerId)
-      }
-    }
-  }
-  return map
-}
-
 function buildProjectedOpponents(
   phaseGroup: PhaseGroupInfo,
   entrantId: string,
@@ -397,6 +383,20 @@ function PhaseGroupSection({
     ? buildProjectedOpponents(phaseGroup, entrantId)
     : actualOpponents
 
+  // Pre-compute bracket data for bracket view mode (must be before early return)
+  const bracketData = useMemo(
+    () => buildBracketData(phaseGroup, entrantId),
+    [phaseGroup, entrantId],
+  )
+  const entrantPlayerMap = useMemo(
+    () => buildEntrantPlayerMap(phaseGroup),
+    [phaseGroup],
+  )
+  const projectedResults = useMemo(() => {
+    if (!showProjected || viewMode !== 'bracket') return null
+    return buildProjectedResults(bracketData)
+  }, [showProjected, viewMode, bracketData])
+
   if (actualOpponents.length === 0) return null
 
   const title = [
@@ -447,9 +447,10 @@ function PhaseGroupSection({
 
       {viewMode === 'bracket' ? (
         <BracketVisualization
-          phaseGroup={phaseGroup}
+          bracketData={bracketData}
+          projectedResults={projectedResults}
           userEntrantId={entrantId}
-          showProjectionToggle={eventState === 'CREATED'}
+          entrantPlayerMap={entrantPlayerMap}
         />
       ) : (
         opponents.map((op) => (

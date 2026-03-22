@@ -92,7 +92,9 @@ better-gg/
       use-event-standings.ts
       use-event-entrant-search.ts
       use-entrant-sets.ts      # Two query variants: ACTIVE/COMPLETED vs CREATED
-      use-phase-bracket.ts     # Two query variants by event state
+      use-bracket-meta.ts      # Phase metadata (name, state, PG nodes, origin phases)
+      use-bracket-sets.ts      # Per-PG set fetching + PhaseGroupSetResult builder
+      use-cross-phase-overrides.ts  # Lazy cross-phase seed override resolution
       use-characters.ts
       use-opponent-stats.ts
       use-player-profile.ts
