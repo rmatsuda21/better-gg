@@ -191,15 +191,6 @@ export function SetDetailModal({
                 {rightScore ?? '-'}
               </span>
             </div>
-            {hasResult && hasUser && (
-              <span
-                className={`${styles.resultTag} ${
-                  userIsWinner ? styles.resultWin : styles.resultLoss
-                }`}
-              >
-                {userIsWinner ? 'Victory' : 'Defeat'}
-              </span>
-            )}
           </div>
 
           <div className={styles.bannerPlayer}>

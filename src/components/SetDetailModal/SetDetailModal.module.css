@@ -151,25 +151,6 @@ a.bannerName:hover {
   opacity: 0.5;
 }
 
-.resultTag {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-}
-
-.resultWin {
-  background: rgba(52, 211, 153, 0.12);
-  color: var(--success);
-}
-
-.resultLoss {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--error);
-}
-
 /* --- Games List --- */
 
 .noGames {

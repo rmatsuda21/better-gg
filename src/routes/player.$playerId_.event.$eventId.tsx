@@ -90,12 +90,14 @@ function PlayerEventPage() {
               phaseGroup={phaseGroups[0]}
               userEntrantId={entrantId}
               eventId={eventId}
+              onSetClick={handleSetClick}
             />
           ) : (
             <CollapsiblePhaseGroups
               phaseGroups={phaseGroups}
               userEntrantId={entrantId}
               eventId={eventId}
+              onSetClick={handleSetClick}
             />
           )}
         </div>
@@ -142,10 +144,12 @@ function PlayerBracket({
   phaseGroup,
   userEntrantId,
   eventId,
+  onSetClick,
 }: {
   phaseGroup: PhaseGroupInfo
   userEntrantId?: string
   eventId: string
+  onSetClick?: (info: SetClickInfo) => void
 }) {
   const bracketData = useMemo(
     () => buildBracketData(phaseGroup, userEntrantId),
@@ -162,6 +166,7 @@ function PlayerBracket({
       userEntrantId={userEntrantId}
       entrantPlayerMap={entrantPlayerMap}
       eventId={eventId}
+      onSetClick={onSetClick}
     />
   )
 }
@@ -170,10 +175,12 @@ function CollapsiblePhaseGroups({
   phaseGroups,
   userEntrantId,
   eventId,
+  onSetClick,
 }: {
   phaseGroups: PhaseGroupInfo[]
   userEntrantId?: string
   eventId: string
+  onSetClick?: (info: SetClickInfo) => void
 }) {
   const sorted = [...phaseGroups].sort(
     (a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0),
@@ -225,6 +232,7 @@ function CollapsiblePhaseGroups({
                 phaseGroup={pg}
                 userEntrantId={userEntrantId}
                 eventId={eventId}
+                onSetClick={onSetClick}
               />
             )}
           </div>
