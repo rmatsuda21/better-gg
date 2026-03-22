@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useTournamentDetails } from '../hooks/use-tournament-details'
@@ -11,13 +11,16 @@ import { DataTable, DataTableHeader, DataTableRow } from '../components/DataTabl
 import {
   ParticipantList,
 } from '../components/ParticipantList/ParticipantList'
-import type { EventInfo } from '../components/ParticipantList/ParticipantList'
+import type { EventInfo, ParticipantViewMode } from '../components/ParticipantList/ParticipantList'
 import type { EventStanding } from '../hooks/use-event-standings'
 import { formatDateRange, formatPlacement } from '../lib/format'
 import type { TournamentDetailsQuery } from '../gql/graphql'
 import styles from './tournament.$tournamentId.module.css'
 
 export const Route = createFileRoute('/tournament/$tournamentId')({
+  validateSearch: (search: Record<string, unknown>): { event?: string } => ({
+    event: typeof search.event === 'string' && search.event ? search.event : undefined,
+  }),
   component: TournamentPage,
 })
 
@@ -27,6 +30,8 @@ type EventData = NonNullable<
 
 function TournamentPage() {
   const { tournamentId } = Route.useParams()
+  const { event: selectedEventId } = Route.useSearch()
+  const navigate = useNavigate({ from: '/tournament/$tournamentId' })
   const { data, isLoading, isError, error, refetch } =
     useTournamentDetails(tournamentId)
   const {
@@ -117,6 +122,13 @@ function TournamentPage() {
         tournament={tournament}
         participants={participants ?? []}
         isLoading={participantsLoading}
+        selectedEventId={selectedEventId ?? ''}
+        onSelectEvent={(eventId) => {
+          navigate({
+            search: (prev) => ({ ...prev, event: eventId || undefined }),
+            replace: true,
+          })
+        }}
       />
 
       {tournament.events && tournament.events.length > 0 && (
@@ -142,10 +154,14 @@ function PlayersSection({
   tournament,
   participants,
   isLoading,
+  selectedEventId,
+  onSelectEvent,
 }: {
   tournament: NonNullable<TournamentDetailsQuery['tournament']>
   participants: import('../hooks/use-tournament-participants').TournamentParticipant[]
   isLoading: boolean
+  selectedEventId: string
+  onSelectEvent: (eventId: string) => void
 }) {
   const eventInfos: EventInfo[] = useMemo(
     () =>
@@ -164,20 +180,60 @@ function PlayersSection({
     [tournament.events],
   )
 
+  const isMultiEvent = eventInfos.length > 1
+
+  const viewMode: ParticipantViewMode = useMemo(() => {
+    if (!isMultiEvent && eventInfos.length === 1) {
+      return { kind: 'event', eventId: eventInfos[0].id }
+    }
+    if (selectedEventId) {
+      return { kind: 'event', eventId: selectedEventId }
+    }
+    return { kind: 'all' }
+  }, [isMultiEvent, eventInfos, selectedEventId])
+
+  // Compute display count based on current view
+  const displayCount = useMemo(() => {
+    if (viewMode.kind === 'all') return participants.length
+    return participants.filter((p) =>
+      p.entrants.some((e) => e.eventId === viewMode.eventId),
+    ).length
+  }, [participants, viewMode])
+
   return (
     <div className={styles.playerSection}>
       <div className={styles.playerSectionHeader}>
         <h3 className={styles.sectionTitle}>Players</h3>
-        {!isLoading && participants.length > 0 && (
+        {!isLoading && displayCount > 0 && (
           <span className={styles.countBadge}>
-            {participants.length.toLocaleString()}
+            {displayCount.toLocaleString()}
           </span>
         )}
       </div>
+      {isMultiEvent && (
+        <div className={styles.playerViewTabs}>
+          <button
+            className={`${styles.playerViewTab} ${selectedEventId === '' ? styles.playerViewTabActive : ''}`}
+            onClick={() => onSelectEvent('')}
+          >
+            All
+          </button>
+          {eventInfos.map((event) => (
+            <button
+              key={event.id}
+              className={`${styles.playerViewTab} ${selectedEventId === event.id ? styles.playerViewTabActive : ''}`}
+              onClick={() => onSelectEvent(event.id)}
+            >
+              {event.name}
+            </button>
+          ))}
+        </div>
+      )}
       <ParticipantList
         participants={participants}
         events={eventInfos}
         isLoading={isLoading}
+        viewMode={viewMode}
       />
     </div>
   )
@@ -421,8 +477,10 @@ function VirtualizedStandings({
   standings: EventStanding[]
   isLoading: boolean
 }) {
+  'use no memo'
   const parentRef = useRef<HTMLDivElement>(null)
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: standings.length,
     getScrollElement: () => parentRef.current,

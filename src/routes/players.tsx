@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { createFileRoute, Link, useElementScrollRestoration, useNavigate } from '@tanstack/react-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useFilteredPlayers } from '../hooks/use-filtered-players'
 import { usePlayerCountries } from '../hooks/use-player-search'
@@ -35,6 +35,7 @@ export const Route = createFileRoute('/players')({
 })
 
 function PlayersPage() {
+  'use no memo'
   const { q, country, character } = Route.useSearch()
   const navigate = useNavigate({ from: '/players' })
 
@@ -87,12 +88,25 @@ function PlayersPage() {
     [characterOptions],
   )
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: players.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 20,
   })
+
+  // Element scroll restoration for back/forward navigation
+  const scrollEntry = useElementScrollRestoration({ id: 'players-list' })
+  const hasRestoredRef = useRef(false)
+
+  useEffect(() => {
+    if (hasRestoredRef.current || !scrollEntry?.scrollY || players.length === 0) return
+    hasRestoredRef.current = true
+    requestAnimationFrame(() => {
+      parentRef.current?.scrollTo({ top: scrollEntry.scrollY })
+    })
+  }, [scrollEntry, players.length])
 
   const scrollToTop = useCallback(() => {
     parentRef.current?.scrollTo({ top: 0 })
@@ -174,7 +188,7 @@ function PlayersPage() {
               <span>Characters</span>
               <span>Tournaments</span>
             </DataTableHeader>
-            <div ref={parentRef} className={styles.scrollContainer}>
+            <div ref={parentRef} className={styles.scrollContainer} data-scroll-restoration-id="players-list">
               <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
                 {virtualizer.getVirtualItems().map((virtualRow) => (
                   <div

@@ -124,6 +124,69 @@
   color: var(--text-secondary);
 }
 
+/* Player View Tabs */
+.playerViewTabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.playerViewTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.playerViewTab {
+  position: relative;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.playerViewTab::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--border-subtle);
+}
+
+.playerViewTab:hover:not(.playerViewTabActive) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.playerViewTab:last-child::after {
+  display: none;
+}
+
+.playerViewTabActive::after {
+  display: none;
+}
+
+.playerViewTabActive {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* Events Section */
 .eventsSection {
   display: flex;

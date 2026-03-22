@@ -34,11 +34,12 @@ const COUNTRY_SELECT_OPTIONS = COUNTRY_OPTIONS.map((opt) => ({
 interface TournamentSearchProps {
   onSelect: (tournament: TournamentResult) => void
   inline?: boolean
+  autoFocus?: boolean
 }
 
 export type { TournamentResult }
 
-export function TournamentSearch({ onSelect, inline }: TournamentSearchProps) {
+export function TournamentSearch({ onSelect, inline, autoFocus }: TournamentSearchProps) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -58,6 +59,11 @@ export function TournamentSearch({ onSelect, inline }: TournamentSearchProps) {
   })
 
   const showDropdown = isOpen && query.trim().length >= 3
+
+  // Auto-focus input when mounted with autoFocus
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, [autoFocus])
 
   useEffect(() => {
     function handleMouseDown(e: MouseEvent) {

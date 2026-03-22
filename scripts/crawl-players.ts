@@ -153,9 +153,10 @@ class ApiPool {
       await slot.limiter.acquire()
       try {
         return await slot.client.request<T>(query, variables)
-      } catch (err: any) {
-        const is429 = err?.response?.status === 429
-          || err?.message?.includes('Rate limit ex')
+      } catch (err: unknown) {
+        const errObj = err as { response?: { status?: number }; message?: string }
+        const is429 = errObj?.response?.status === 429
+          || errObj?.message?.includes('Rate limit ex')
         if (is429) {
           console.warn(`  ⚠ Rate limited (key ${slotIndex}), waiting 60s...`)
           await new Promise(r => setTimeout(r, 60_000))
@@ -388,7 +389,24 @@ async function fetchTournaments(
   const { query, variables } = buildTournamentsQuery(afterDate, beforeDate)
   variables.page = page
   variables.perPage = perPage
-  const data = await apiPool.request<any>(query, variables)
+  const data = await apiPool.request<{
+    tournaments?: {
+      nodes: typeof undefined extends never ? never : Array<{
+        id: string
+        name: string | null
+        slug: string | null
+        startAt: number | null
+        events: Array<{
+          id: string
+          name: string
+          videogame: { id: string } | null
+          numEntrants: number | null
+          isOnline: boolean | null
+        }> | null
+      }> | null
+      pageInfo?: { totalPages?: number }
+    }
+  }>(query, variables)
   return {
     nodes: data.tournaments?.nodes,
     totalPages: data.tournaments?.pageInfo?.totalPages ?? 1,
@@ -410,7 +428,22 @@ async function fetchEventEntrants(
   }> | null
   totalPages: number
 }> {
-  const data = await apiPool.request<any>(eventEntrantsQuery, {
+  const data = await apiPool.request<{
+    event?: {
+      entrants?: {
+        nodes: Array<{
+          id: string
+          participants: Array<{
+            gamerTag: string | null
+            prefix: string | null
+            player: { id: string } | null
+            user: { slug: string | null; location: { country: string | null } | null } | null
+          }> | null
+        }> | null
+        pageInfo?: { totalPages?: number }
+      }
+    }
+  }>(eventEntrantsQuery, {
     eventId,
     page,
     perPage: 100,
@@ -438,7 +471,24 @@ async function fetchEventSets(
   }> | null
   totalPages: number
 }> {
-  const data = await apiPool.request<any>(eventSetsQuery, {
+  const data = await apiPool.request<{
+    event?: {
+      sets?: {
+        nodes: Array<{
+          games: Array<{
+            selections: Array<{
+              entrant: {
+                participants: Array<{ player: { id: string } | null }> | null
+              } | null
+              selectionType: string | null
+              selectionValue: number | null
+            }> | null
+          }> | null
+        }> | null
+        pageInfo?: { totalPages?: number }
+      }
+    }
+  }>(eventSetsQuery, {
     eventId,
     page,
     perPage: 15,
@@ -591,9 +641,7 @@ async function crawlCycle(
   let completedNaturally = true
 
   // Outer loop: slide date window when API caps pagination (10k result limit)
-  let windowNum = 0
   outer: while (true) {
-    windowNum++
     let windowOldestStartAt: number | undefined
 
     for (let tPage = 1; ; tPage++) {

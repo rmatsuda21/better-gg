@@ -15,9 +15,10 @@ interface PlayerSearchProps {
   onSelect: (player: PlayerRecord) => void
   onSearch?: (query: string, country?: string) => void
   inline?: boolean
+  autoFocus?: boolean
 }
 
-export function PlayerSearch({ onSelect, onSearch, inline }: PlayerSearchProps) {
+export function PlayerSearch({ onSelect, onSearch, inline, autoFocus }: PlayerSearchProps) {
   const [query, setQuery] = useState('')
   const [country, setCountry] = useState<string>()
   const [isOpen, setIsOpen] = useState(false)
@@ -42,6 +43,11 @@ export function PlayerSearch({ onSelect, onSearch, inline }: PlayerSearchProps) 
   )
 
   const showDropdown = isOpen && query.trim().length >= 2
+
+  // Auto-focus input when mounted with autoFocus
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, [autoFocus])
 
   // Close on click outside
   useEffect(() => {

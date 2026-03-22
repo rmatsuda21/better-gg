@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import type { CSSProperties } from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTournamentList } from '../hooks/use-tournament-list'
 import { getCountryOptions } from '../lib/country-utils'
 import { TournamentCard } from '../components/TournamentCard/TournamentCard'
@@ -43,7 +43,6 @@ interface TournamentsSearch {
   featured?: boolean
   regOpen?: boolean
   sort?: string
-  page?: number
 }
 
 export const Route = createFileRoute('/tournaments')({
@@ -56,7 +55,6 @@ export const Route = createFileRoute('/tournaments')({
     featured: search.featured === true || search.featured === 'true' ? true : undefined,
     regOpen: search.regOpen === true || search.regOpen === 'true' ? true : undefined,
     sort: typeof search.sort === 'string' && search.sort ? search.sort : undefined,
-    page: search.page ? Number(search.page) : undefined,
   }),
   component: TournamentsPage,
 })
@@ -70,7 +68,7 @@ function isStatusFilter(v: unknown): v is 'all' | 'upcoming' | 'past' {
 }
 
 function TournamentsPage() {
-  const { q, country, state, online, status, featured, regOpen, sort, page } = Route.useSearch()
+  const { q, country, state, online, status, featured, regOpen, sort } = Route.useSearch()
   const navigate = useNavigate({ from: '/tournaments' })
 
   const [searchInput, setSearchInput] = useState(q ?? '')
@@ -83,12 +81,19 @@ function TournamentsPage() {
     [],
   )
 
-  const currentPage = page ?? 1
   const onlineFilter: OnlineFilter = online ?? 'all'
   const statusFilter: StatusFilter = status ?? 'all'
   const sortBy = (sort ?? 'startAt desc') as SortOption
 
-  const { tournaments, pageInfo, isLoading, isFetching } = useTournamentList({
+  const {
+    tournaments,
+    total,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useTournamentList({
     name: searchInput || undefined,
     countryCode: country,
     addrState: state,
@@ -97,20 +102,31 @@ function TournamentsPage() {
     featured,
     regOpen,
     sortBy,
-    page: currentPage,
   })
 
-  const total = pageInfo?.total ?? 0
-  const totalPages = pageInfo?.totalPages ?? 0
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   function updateSearch(updates: Partial<TournamentsSearch>) {
-    // Reset page when any filter changes (unless page is explicitly set)
-    const resetPage = !('page' in updates)
     navigate({
       search: (prev) => ({
         ...prev,
         ...updates,
-        ...(resetPage ? { page: undefined } : {}),
       }),
       replace: true,
     })
@@ -212,7 +228,7 @@ function TournamentsPage() {
         <>
           <div className={styles.resultsSummary}>
             {total.toLocaleString()} tournament{total !== 1 ? 's' : ''}
-            {isFetching && ' ...'}
+            {isFetching && !isFetchingNextPage && ' ...'}
           </div>
           <div className={styles.cardGrid}>
             {tournaments.map((tournament, i) =>
@@ -221,34 +237,16 @@ function TournamentsPage() {
                   key={tournament.id ?? i}
                   tournament={tournament}
                   variant="grid"
-                  style={{ '--stagger': i } as CSSProperties}
+                  style={{ '--stagger': i < 24 ? i : 0 } as CSSProperties}
                 />
               ) : null,
             )}
           </div>
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                type="button"
-                className={styles.pageButton}
-                disabled={currentPage <= 1}
-                onClick={() => updateSearch({ page: currentPage > 2 ? currentPage - 1 : undefined })}
-              >
-                Prev
-              </button>
-              <span className={styles.pageInfo}>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                className={styles.pageButton}
-                disabled={currentPage >= totalPages}
-                onClick={() => updateSearch({ page: currentPage + 1 })}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <div ref={sentinelRef} className={styles.loadingMore}>
+            {isFetchingNextPage && (
+              <span className={styles.loadingIndicator}>Loading more...</span>
+            )}
+          </div>
         </>
       )}
     </div>

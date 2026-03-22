@@ -1,14 +1,17 @@
-import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { useMemo, useState } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEventDetails } from '../hooks/use-event-details'
 import { usePlayerEntrant } from '../hooks/use-player-entrant'
 import { useEntrantSets } from '../hooks/use-entrant-sets'
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { useCharacters } from '../hooks/use-characters'
+import { useSetDetails } from '../hooks/use-set-details'
+import type { SetClickInfo } from '../lib/bracket-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
 import { SetDetails } from '../components/SetDetails/SetDetails'
+import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import styles from './player.$playerId_.event.$eventId.module.css'
@@ -16,6 +19,9 @@ import styles from './player.$playerId_.event.$eventId.module.css'
 const ULTIMATE_VIDEOGAME_ID = '1386'
 
 export const Route = createFileRoute('/player/$playerId_/event/$eventId')({
+  validateSearch: (search: Record<string, unknown>): { expanded?: string } => ({
+    expanded: typeof search.expanded === 'string' && search.expanded ? search.expanded : undefined,
+  }),
   component: PlayerEventPage,
 })
 
@@ -30,6 +36,11 @@ function PlayerEventPage() {
   const { data: setsData, isLoading: setsLoading } = useEntrantSets(entrantId, eventState)
 
   const characterMap = buildCharacterMap(charData?.videogame?.characters)
+
+  const [modalInfo, setModalInfo] = useState<SetClickInfo | null>(null)
+  const { data: setDetailData } = useSetDetails(modalInfo?.setId ?? null)
+
+  const handleSetClick = (info: SetClickInfo) => setModalInfo(info)
 
   if (eventLoading || entrantLoading) {
     return (
@@ -79,6 +90,7 @@ function PlayerEventPage() {
               userEntrantId={entrantId}
               showProjectionToggle={eventState !== 'COMPLETED'}
               eventId={eventId}
+              onSetClick={handleSetClick}
             />
           ) : (
             <CollapsiblePhaseGroups
@@ -86,6 +98,7 @@ function PlayerEventPage() {
               userEntrantId={entrantId}
               eventState={eventState}
               eventId={eventId}
+              onSetClick={handleSetClick}
             />
           )}
         </div>
@@ -102,9 +115,28 @@ function PlayerEventPage() {
             sets={sets}
             userEntrantId={entrantId!}
             characterMap={characterMap}
+            onSetClick={handleSetClick}
           />
         )}
       </div>
+
+      {modalInfo && entrantId && (
+        <SetDetailModal
+          isOpen
+          onClose={() => setModalInfo(null)}
+          preview={{
+            fullRoundText: modalInfo.fullRoundText,
+            winnerId: modalInfo.winnerId,
+            scores: modalInfo.scores,
+            isDQ: modalInfo.isDQ,
+            entrants: modalInfo.entrants,
+          }}
+          userEntrantId={entrantId}
+          games={setDetailData?.set?.games}
+          gamesLoading={!setDetailData}
+          characterMap={characterMap}
+        />
+      )}
     </div>
   )
 }
@@ -114,24 +146,34 @@ function CollapsiblePhaseGroups({
   userEntrantId,
   eventState,
   eventId,
+  onSetClick,
 }: {
   phaseGroups: PhaseGroupInfo[]
   userEntrantId?: string
   eventState?: string | null
   eventId: string
+  onSetClick?: (info: SetClickInfo) => void
 }) {
   const sorted = [...phaseGroups].sort(
     (a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0),
   )
 
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  const { expanded: expandedParam } = Route.useSearch()
+  const navigate = useNavigate({ from: '/player/$playerId/event/$eventId' })
+
+  const expanded = useMemo(
+    () => new Set(expandedParam ? expandedParam.split(',') : []),
+    [expandedParam],
+  )
 
   const toggle = (id: string) => {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+    const next = new Set(expanded)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    const value = [...next].join(',')
+    navigate({
+      search: (prev) => ({ ...prev, expanded: value || undefined }),
+      replace: true,
     })
   }
 
@@ -163,6 +205,7 @@ function CollapsiblePhaseGroups({
                 userEntrantId={userEntrantId}
                 showProjectionToggle={eventState !== 'COMPLETED'}
                 eventId={eventId}
+                onSetClick={onSetClick}
               />
             )}
           </div>

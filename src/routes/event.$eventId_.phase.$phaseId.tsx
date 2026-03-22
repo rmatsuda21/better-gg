@@ -4,6 +4,9 @@ import { useEventDetails } from '../hooks/use-event-details'
 import { usePhaseBracket } from '../hooks/use-phase-bracket'
 import type { SetProgressionInfo } from '../hooks/use-phase-bracket'
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
+import { useSetDetails } from '../hooks/use-set-details'
+import { useCharacters } from '../hooks/use-characters'
+import { buildCharacterMap } from '../lib/character-utils'
 import {
   extractBracketEntrants,
   computePhaseNav,
@@ -12,10 +15,11 @@ import {
   getWinnerFromProjected,
   getLoserFromProjected,
 } from '../lib/bracket-utils'
-import type { PhaseNavInfo, BracketEntrant } from '../lib/bracket-utils'
+import type { PhaseNavInfo, BracketEntrant, SetClickInfo } from '../lib/bracket-utils'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
 import { BracketSearch } from '../components/BracketSearch/BracketSearch'
+import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import styles from './event.$eventId_.phase.$phaseId.module.css'
@@ -36,7 +40,9 @@ export const Route = createFileRoute('/event/$eventId_/phase/$phaseId')({
     projected:
       search.projected === true || search.projected === 'true'
         ? true
-        : undefined,
+        : search.projected === false || search.projected === 'false'
+          ? false
+          : undefined,
   }),
   component: PhaseBracketPage,
 })
@@ -45,6 +51,15 @@ function PhaseBracketPage() {
   const { eventId, phaseId } = Route.useParams()
   const { data: eventData, isLoading: eventLoading } = useEventDetails(eventId)
   const { data: bracketData, isLoading: bracketLoading, isError, error, refetch } = usePhaseBracket(phaseId)
+
+  const [modalInfo, setModalInfo] = useState<SetClickInfo | null>(null)
+  const { data: setDetailData } = useSetDetails(modalInfo?.setId ?? null)
+
+  const videogameId = eventData?.event?.videogame?.id ? String(eventData.event.videogame.id) : undefined
+  const { data: charData } = useCharacters(videogameId)
+  const characterMap = useMemo(() => buildCharacterMap(charData?.videogame?.characters), [charData])
+
+  const { entrantId: urlEntrantId } = Route.useSearch()
 
   // Detect empty phase (no entrants populated yet)
   const hasAnyEntrants = useMemo(() => {
@@ -63,31 +78,46 @@ function PhaseBracketPage() {
   const originPhaseId = (!hasAnyEntrants && bracketData?.originPhaseIds?.[0]) || ''
   const { data: originData, isLoading: originLoading } = usePhaseBracket(originPhaseId)
 
-  // Build seed overrides from projected origin phase losers/winners
+  // Build seed overrides from projected origin phase results
   const seedOverrides = useMemo(() => {
-    if (!originData || hasAnyEntrants) return undefined
+    if (hasAnyEntrants) return undefined
     const overrides = new Map<number, BracketEntrant>()
 
-    for (const pg of originData.phaseGroups) {
-      const bracket = buildBracketData(pg)
-      const projected = buildProjectedResults(bracket)
+    // Strategy 1: Hook's recursive projection chain (handles multi-level empty phases)
+    if (bracketData?.projectedOverrides) {
+      for (const [seedNum, entrant] of bracketData.projectedOverrides) {
+        overrides.set(seedNum, {
+          id: entrant.id,
+          name: entrant.name,
+          seedNum: entrant.seedNum,
+          isProjected: true,
+        })
+      }
+    }
 
-      for (const [setId, progInfo] of originData.progressionMap) {
-        if (progInfo.loserPhase?.id === phaseId && progInfo.loserSeedNum != null) {
-          const projSet = projected.get(setId)
-          if (projSet) {
-            const loser = getLoserFromProjected(projSet)
-            if (loser) {
-              overrides.set(progInfo.loserSeedNum, { ...loser, isProjected: true })
+    // Strategy 2: progressionMap-based fallback (for ACTIVE/COMPLETED origins)
+    if (overrides.size === 0 && originData) {
+      for (const pg of originData.phaseGroups) {
+        const bracket = buildBracketData(pg)
+        const projected = buildProjectedResults(bracket)
+
+        for (const [setId, progInfo] of originData.progressionMap) {
+          if (progInfo.loserPhase?.id === phaseId && progInfo.loserSeedNum != null) {
+            const projSet = projected.get(setId)
+            if (projSet) {
+              const loser = getLoserFromProjected(projSet)
+              if (loser) {
+                overrides.set(progInfo.loserSeedNum, { ...loser, isProjected: true })
+              }
             }
           }
-        }
-        if (progInfo.winnerPhase?.id === phaseId && progInfo.winnerSeedNum != null) {
-          const projSet = projected.get(setId)
-          if (projSet) {
-            const winner = getWinnerFromProjected(projSet)
-            if (winner) {
-              overrides.set(progInfo.winnerSeedNum, { ...winner, isProjected: true })
+          if (progInfo.winnerPhase?.id === phaseId && progInfo.winnerSeedNum != null) {
+            const projSet = projected.get(setId)
+            if (projSet) {
+              const winner = getWinnerFromProjected(projSet)
+              if (winner) {
+                overrides.set(progInfo.winnerSeedNum, { ...winner, isProjected: true })
+              }
             }
           }
         }
@@ -95,7 +125,7 @@ function PhaseBracketPage() {
     }
 
     return overrides.size > 0 ? overrides : undefined
-  }, [originData, hasAnyEntrants, phaseId])
+  }, [bracketData, originData, hasAnyEntrants, phaseId])
 
   const isLoading = eventLoading || bracketLoading || (!!originPhaseId && originLoading)
 
@@ -124,8 +154,7 @@ function PhaseBracketPage() {
   const event = eventData?.event
   const showProjectionToggle = bracketData.phaseState !== 'COMPLETED'
   const phaseNav = computePhaseNav(bracketData.siblingPhases, bracketData.currentPhaseOrder, bracketData.originPhaseIds)
-  // When cross-phase projection is active, force projected mode
-  const forceProjected = !!seedOverrides
+  const receivesProgressions = bracketData.phaseState === 'CREATED' && bracketData.originPhaseIds.length > 0
 
   return (
     <div className={styles.container}>
@@ -164,16 +193,31 @@ function PhaseBracketPage() {
       <BracketSearchSection
         key={phaseId}
         bracketData={bracketData}
+        projectionPhaseGroups={bracketData.projectionPhaseGroups}
         showProjectionToggle={showProjectionToggle}
         eventId={bracketData.eventId ?? eventId}
         phaseNav={phaseNav}
         progressionMap={bracketData.progressionMap}
         seedEntrantOverrides={seedOverrides}
-        forceProjected={forceProjected}
+        seedIdToSeedNum={bracketData.seedIdToSeedNum}
+        receivesProgressions={receivesProgressions}
+        onSetClick={setModalInfo}
       />
 
       {bracketData.phaseGroups.length === 0 && (
         <ErrorMessage message="No bracket data available for this phase" />
+      )}
+
+      {modalInfo && (
+        <SetDetailModal
+          isOpen
+          onClose={() => setModalInfo(null)}
+          preview={{ ...modalInfo }}
+          userEntrantId={urlEntrantId}
+          games={setDetailData?.set?.games}
+          gamesLoading={!setDetailData}
+          characterMap={characterMap}
+        />
       )}
     </div>
   )
@@ -181,27 +225,37 @@ function PhaseBracketPage() {
 
 function BracketSearchSection({
   bracketData,
+  projectionPhaseGroups,
   showProjectionToggle,
   eventId,
   phaseNav,
   progressionMap,
   seedEntrantOverrides,
-  forceProjected,
+  seedIdToSeedNum,
+  receivesProgressions,
+  onSetClick,
 }: {
   bracketData: { phaseGroups: PhaseGroupInfo[] }
+  projectionPhaseGroups?: PhaseGroupInfo[]
   showProjectionToggle: boolean
   eventId: string
   phaseNav: PhaseNavInfo
   progressionMap?: Map<string, SetProgressionInfo>
   seedEntrantOverrides?: Map<number, BracketEntrant>
-  forceProjected?: boolean
+  seedIdToSeedNum?: Map<string, number>
+  receivesProgressions?: boolean
+  onSetClick?: (info: SetClickInfo) => void
 }) {
   const { entrantId: urlEntrantId, projected: urlProjected } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const projected = forceProjected || (urlProjected ?? false)
+  const hasOverrides = !!seedEntrantOverrides
+  // URL param takes priority; default to projected when overrides exist
+  const projected = urlProjected ?? (hasOverrides ? true : false)
   const setProjected = useCallback((value: boolean) => {
-    navigate({ search: (prev) => ({ ...prev, projected: value || undefined }), replace: true })
-  }, [navigate])
+    // When overrides exist, default is true — store explicit false. Otherwise, default is false — omit false.
+    const searchValue = value ? true : (hasOverrides ? false : undefined)
+    navigate({ search: (prev) => ({ ...prev, projected: searchValue }), replace: true })
+  }, [navigate, hasOverrides])
   const [searchedEntrantId, setSearchedEntrantId] = useState<string | null>(
     urlEntrantId ?? null,
   )
@@ -278,6 +332,7 @@ function BracketSearchSection({
       {bracketData.phaseGroups.length > 1 ? (
         <CollapsiblePools
           phaseGroups={bracketData.phaseGroups}
+          projectionPhaseGroups={projectionPhaseGroups}
           userEntrantId={effectiveEntrantId}
           showProjectionToggle={showProjectionToggle}
           projected={projected}
@@ -286,12 +341,16 @@ function BracketSearchSection({
           phaseNav={phaseNav}
           progressionMap={progressionMap}
           seedEntrantOverrides={seedEntrantOverrides}
+          seedIdToSeedNum={seedIdToSeedNum}
+          receivesProgressions={receivesProgressions}
+          onSetClick={onSetClick}
         />
       ) : (
         bracketData.phaseGroups.map((pg) => (
           <div key={pg.phaseGroupId} className={styles.phaseGroupSection}>
             <BracketVisualization
               phaseGroup={pg}
+              projectionPhaseGroup={projectionPhaseGroups?.find(p => p.phaseGroupId === pg.phaseGroupId)}
               userEntrantId={effectiveEntrantId}
               showProjectionToggle={showProjectionToggle}
               projected={projected}
@@ -300,6 +359,9 @@ function BracketSearchSection({
               phaseNav={phaseNav}
               progressionMap={progressionMap}
               seedEntrantOverrides={seedEntrantOverrides}
+              seedIdToSeedNum={seedIdToSeedNum}
+              receivesProgressions={receivesProgressions}
+              onSetClick={onSetClick}
             />
           </div>
         ))
@@ -328,6 +390,7 @@ function findUserPool(
 
 function CollapsiblePools({
   phaseGroups,
+  projectionPhaseGroups,
   userEntrantId,
   showProjectionToggle,
   projected,
@@ -336,8 +399,12 @@ function CollapsiblePools({
   phaseNav,
   progressionMap,
   seedEntrantOverrides,
+  seedIdToSeedNum,
+  receivesProgressions,
+  onSetClick,
 }: {
   phaseGroups: PhaseGroupInfo[]
+  projectionPhaseGroups?: PhaseGroupInfo[]
   userEntrantId?: string
   showProjectionToggle: boolean
   projected: boolean
@@ -346,6 +413,9 @@ function CollapsiblePools({
   phaseNav: PhaseNavInfo
   progressionMap?: Map<string, SetProgressionInfo>
   seedEntrantOverrides?: Map<number, BracketEntrant>
+  seedIdToSeedNum?: Map<string, number>
+  receivesProgressions?: boolean
+  onSetClick?: (info: SetClickInfo) => void
 }) {
   const userPoolId = useMemo(
     () => findUserPool(phaseGroups, userEntrantId),
@@ -361,11 +431,13 @@ function CollapsiblePools({
   })
 
   // Auto-expand the pool when userEntrantId changes (e.g. from search)
-  useEffect(() => {
+  const [trackedUserPoolId, setTrackedUserPoolId] = useState(userPoolId)
+  if (trackedUserPoolId !== userPoolId) {
+    setTrackedUserPoolId(userPoolId)
     if (userPoolId && !expanded.has(userPoolId)) {
       setExpanded(prev => new Set([...prev, userPoolId]))
     }
-  }, [userPoolId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   const toggle = (id: string) => {
     setExpanded(prev => {
@@ -397,6 +469,7 @@ function CollapsiblePools({
             {isOpen && (
               <BracketVisualization
                 phaseGroup={pg}
+                projectionPhaseGroup={projectionPhaseGroups?.find(p => p.phaseGroupId === pg.phaseGroupId)}
                 userEntrantId={userEntrantId}
                 showProjectionToggle={showProjectionToggle}
                 projected={projected}
@@ -405,6 +478,9 @@ function CollapsiblePools({
                 phaseNav={phaseNav}
                 progressionMap={progressionMap}
                 seedEntrantOverrides={seedEntrantOverrides}
+                seedIdToSeedNum={seedIdToSeedNum}
+                receivesProgressions={receivesProgressions}
+                onSetClick={onSetClick}
               />
             )}
           </div>

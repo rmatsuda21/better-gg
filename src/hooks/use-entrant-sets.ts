@@ -130,17 +130,6 @@ const phaseGroupSetsQuery = graphql(`
               seedNum
             }
           }
-          games {
-            orderNum
-            winnerId
-            selections {
-              entrant {
-                id
-              }
-              selectionType
-              selectionValue
-            }
-          }
         }
       }
     }

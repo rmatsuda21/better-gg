@@ -35,6 +35,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     if (!isOpen) return
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
+      if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        setTab((t) => (t === 'players' ? 'tournaments' : 'players'))
+      }
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
@@ -103,13 +107,16 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         <div className={styles.body}>
           <Suspense fallback={null}>
             {tab === 'players' ? (
-              <PlayerSearch onSelect={handlePlayerSelect} onSearch={handlePlayerSearch} inline />
+              <PlayerSearch onSelect={handlePlayerSelect} onSearch={handlePlayerSearch} inline autoFocus />
             ) : (
-              <TournamentSearch onSelect={handleTournamentSelect} inline />
+              <TournamentSearch onSelect={handleTournamentSelect} inline autoFocus />
             )}
           </Suspense>
         </div>
         <div className={styles.footer}>
+          <span className={styles.hint}>
+            <kbd className={styles.kbd}>Tab</kbd> to switch
+          </span>
           <span className={styles.hint}>
             <kbd className={styles.kbd}>Esc</kbd> to close
           </span>

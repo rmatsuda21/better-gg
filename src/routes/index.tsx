@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense } from 'react'
 import { useAuth } from '../hooks/use-auth'
 import { useUserTournaments } from '../hooks/use-user-tournaments'
 import { categorizeTournaments } from '../lib/tournament-utils'
@@ -27,11 +27,19 @@ const TournamentSearch = lazy(() =>
 )
 
 export const Route = createFileRoute('/')({
+  validateSearch: (search: Record<string, unknown>): { online?: 'online' | 'offline'; showPast?: boolean } => ({
+    online:
+      search.online === 'online' || search.online === 'offline'
+        ? search.online
+        : undefined,
+    showPast: search.showPast === true || search.showPast === 'true' ? true : undefined,
+  }),
   component: HomePage,
 })
 
 function HomePage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate({ from: '/' })
+  const { online, showPast } = Route.useSearch()
   const { isAuthenticated, user: authUser } = useAuth()
 
   function handlePlayerSelect(player: PlayerRecord) {
@@ -56,7 +64,24 @@ function HomePage() {
           <WelcomeBar />
           <QuickSearchTrigger />
           {authUser?.discriminator && (
-            <TournamentHub discriminator={authUser.discriminator} playerId={authUser.playerId ?? undefined} />
+            <TournamentHub
+              discriminator={authUser.discriminator}
+              playerId={authUser.playerId ?? undefined}
+              onlineFilter={online ?? 'all'}
+              showPast={showPast ?? false}
+              onOnlineFilterChange={(value) => {
+                navigate({
+                  search: (prev) => ({ ...prev, online: value === 'all' ? undefined : value }),
+                  replace: true,
+                })
+              }}
+              onShowPastChange={(value) => {
+                navigate({
+                  search: (prev) => ({ ...prev, showPast: value || undefined }),
+                  replace: true,
+                })
+              }}
+            />
           )}
         </>
       ) : (
@@ -230,9 +255,21 @@ function QuickSearchTrigger() {
    Logged-in: Tournament hub
    ================================================================ */
 
-function TournamentHub({ discriminator, playerId }: { discriminator: string; playerId?: string }) {
-  const [onlineFilter, setOnlineFilter] = useState<OnlineFilter>('all')
-  const [showPast, setShowPast] = useState(false)
+function TournamentHub({
+  discriminator,
+  playerId,
+  onlineFilter,
+  showPast,
+  onOnlineFilterChange,
+  onShowPastChange,
+}: {
+  discriminator: string
+  playerId?: string
+  onlineFilter: OnlineFilter
+  showPast: boolean
+  onOnlineFilterChange: (value: OnlineFilter) => void
+  onShowPastChange: (value: boolean) => void
+}) {
   const { data, isLoading, isError, error, refetch } = useUserTournaments(discriminator)
 
   if (isLoading) {
@@ -280,7 +317,7 @@ function TournamentHub({ discriminator, playerId }: { discriminator: string; pla
     <div className={styles.hub}>
       <div className={styles.hubHeader}>
         <h3 className={styles.hubTitle}>Your Tournaments</h3>
-        <FilterToggle value={onlineFilter} onChange={setOnlineFilter} />
+        <FilterToggle value={onlineFilter} onChange={onOnlineFilterChange} />
       </div>
 
       {current.length > 0 && (
@@ -319,7 +356,7 @@ function TournamentHub({ discriminator, playerId }: { discriminator: string; pla
           {!showPast ? (
             <button
               className={styles.showPastButton}
-              onClick={() => setShowPast(true)}
+              onClick={() => onShowPastChange(true)}
               type="button"
             >
               Show past ({past.length})

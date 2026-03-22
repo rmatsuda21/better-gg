@@ -14,6 +14,22 @@ export interface SlotPrereq {
   prereqType: string | null // "set" or "bye"
 }
 
+export interface SetClickEntrant {
+  id: string | null
+  name: string
+  playerId: string | null
+  seedNum: number | null
+}
+
+export interface SetClickInfo {
+  setId: string
+  fullRoundText: string | null
+  winnerId: string | null
+  scores: [string | null, string | null]
+  isDQ: boolean
+  entrants: [SetClickEntrant | null, SetClickEntrant | null]
+}
+
 export interface BracketSet {
   id: string
   round: number
@@ -62,8 +78,17 @@ function resolveEntrant(slot: SlotNode | null | undefined) {
 function resolveEntrantInfo(
   slot: SlotNode | null | undefined,
   seedEntrantOverrides?: Map<number, BracketEntrant>,
+  seedIdToSeedNum?: Map<string, number>,
+  suppressEntrants?: boolean,
 ): BracketEntrant | null {
-  const seedNum = slot?.seed?.seedNum
+  if (suppressEntrants) return null
+  // Try slot.seed.seedNum first (works for CREATED phases with direct seed assignments)
+  let seedNum = slot?.seed?.seedNum
+  // Fallback: for progression-receiving CREATED phases, slot.seed is null but
+  // prereqId references the seed ID — map it to seedNum via the lookup table
+  if (seedNum == null && slot?.prereqType === 'seed' && slot?.prereqId && seedIdToSeedNum) {
+    seedNum = seedIdToSeedNum.get(String(slot.prereqId))
+  }
   if (seedNum != null && seedEntrantOverrides?.has(seedNum)) {
     return seedEntrantOverrides.get(seedNum)!
   }
@@ -102,6 +127,8 @@ export function buildBracketData(
   phaseGroup: PhaseGroupInfo,
   userEntrantId?: string,
   seedEntrantOverrides?: Map<number, BracketEntrant>,
+  seedIdToSeedNum?: Map<string, number>,
+  suppressEntrants?: boolean,
 ): BracketData {
   const allSets = phaseGroup.allSets
   const parsedSets: Array<{ set: SetNode; round: number; index: number }> = []
@@ -152,8 +179,8 @@ export function buildBracketData(
       entries.sort((a, b) => a.index - b.index)
 
       const sets: BracketSet[] = entries.map(({ set, index }) => {
-        const e0 = resolveEntrantInfo(set.slots?.[0], seedEntrantOverrides)
-        const e1 = resolveEntrantInfo(set.slots?.[1], seedEntrantOverrides)
+        const e0 = resolveEntrantInfo(set.slots?.[0], seedEntrantOverrides, seedIdToSeedNum, suppressEntrants)
+        const e1 = resolveEntrantInfo(set.slots?.[1], seedEntrantOverrides, seedIdToSeedNum, suppressEntrants)
         const p0 = extractPrereq(set.slots?.[0])
         const p1 = extractPrereq(set.slots?.[1])
         const involvesUser = userEntrantId != null && (e0?.id === userEntrantId || e1?.id === userEntrantId)
@@ -225,6 +252,7 @@ export function getLoserFromProjected(ps: ProjectedSet): BracketEntrant | null {
 function resolvePrereq(
   prereq: SlotPrereq,
   projected: Map<string, ProjectedSet>,
+  minWinnersRound: number,
 ): BracketEntrant | null {
   const { prereqPlacement } = prereq
   const prereqId = prereq.prereqId ? String(prereq.prereqId) : null
@@ -251,18 +279,11 @@ function resolvePrereq(
   // hidden round. The innermost hidden round (-2) directly references WR1 sets.
   //
   // We trace by: index → 2*index+1 for each hidden level, until we reach a
-  // round that references a WR1 set (positive round) in its prereq.
+  // round that references a WR1 set (positive round) which IS in our data.
   const parsed = parsePreviewSetId(String(prereqId))
   if (!parsed) return null
 
   let currentIndex = parsed.index
-
-  // Trace through hidden rounds: round-3 → round-2 → WR1
-  // From round-3[i], non-bye child is round-2[2i+1]
-  // From round-2[j], if j is odd, it holds WR1[j] loser
-  // The number of hidden levels = abs(first visible losers round) - abs(WR1 round) - 1
-  // For this bracket: hidden rounds -3, -2, -1 (3 levels)
-  // But only -3 and -2 have real data; -1 is all byes.
 
   // Each level maps index → 2*index + 1 until we reach round -2
   const hiddenLevels = Math.abs(parsed.round) - 2 // number of hops to reach round -2
@@ -270,8 +291,9 @@ function resolvePrereq(
     currentIndex = currentIndex * 2 + 1
   }
 
-  // Now currentIndex points to round-2[currentIndex], which references WR1[currentIndex] loser
-  const wrSetId = `preview_${parsed.pgId}_1_${currentIndex}`
+  // Now currentIndex points to round-2[currentIndex], which references WR1[currentIndex] loser.
+  // The first winners round may not be round 1 (e.g., round 2 for progression-receiving phases).
+  const wrSetId = `preview_${parsed.pgId}_${minWinnersRound}_${currentIndex}`
   const wrPs = projected.get(wrSetId)
   if (wrPs) {
     const loser = getLoserFromProjected(wrPs)
@@ -319,11 +341,19 @@ export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[]): BracketEn
 /**
  * Generate projected bracket results assuming the higher (lower number) seed always wins.
  * Uses prereq data from the API to follow exact feeder chains.
+ *
+ * Uses a convergence loop because DE bracket dependencies are cross-sided:
+ * Grand Finals depends on Losers Final, but both are in different bracket sides.
+ * A single pass with winners-first ordering can't resolve GF/GFR.
  */
 export function buildProjectedResults(
   data: BracketData,
 ): Map<string, ProjectedSet> {
   const projected = new Map<string, ProjectedSet>()
+
+  const minWinnersRound = data.winnersRounds.length > 0
+    ? Math.min(...data.winnersRounds.map(r => r.round))
+    : 1
 
   // Process all rounds in dependency order:
   // Winners first (ascending round), then losers (ascending round number)
@@ -337,32 +367,134 @@ export function buildProjectedResults(
     return a.round - b.round
   })
 
-  for (const round of allRounds) {
-    for (const set of round.sets) {
-      let e0 = set.entrants[0]
-      let e1 = set.entrants[1]
+  // Convergence loop: GF/GFR (winners side) depend on Losers Final,
+  // so a single pass can't resolve everything. Iterate until stable.
+  let changed = true
+  let passes = 0
+  while (changed && passes < 3) {
+    changed = false
+    passes++
 
-      // Resolve empty slots from prereqs
-      if (!e0 && set.prereqs[0]) {
-        e0 = resolvePrereq(set.prereqs[0], projected)
-      }
-      if (!e1 && set.prereqs[1]) {
-        e1 = resolvePrereq(set.prereqs[1], projected)
-      }
+    for (const round of allRounds) {
+      for (const set of round.sets) {
+        const existing = projected.get(set.id)
 
-      // Determine projected winner
-      let winnerId: string | null = set.winnerId
-      if (!winnerId && e0 && e1) {
-        winnerId = pickHigherSeed(e0, e1).id
-      } else if (!winnerId && (e0 || e1)) {
-        winnerId = (e0 ?? e1)!.id
-      }
+        let e0 = set.entrants[0] ?? existing?.entrants[0] ?? null
+        let e1 = set.entrants[1] ?? existing?.entrants[1] ?? null
 
-      projected.set(set.id, { entrants: [e0, e1], winnerId })
+        // Resolve empty slots from prereqs
+        if (!e0 && set.prereqs[0]) {
+          e0 = resolvePrereq(set.prereqs[0], projected, minWinnersRound)
+        }
+        if (!e1 && set.prereqs[1]) {
+          e1 = resolvePrereq(set.prereqs[1], projected, minWinnersRound)
+        }
+
+        // Determine projected winner
+        let winnerId: string | null = set.winnerId
+        if (!winnerId && e0 && e1) {
+          winnerId = pickHigherSeed(e0, e1).id
+        } else if (!winnerId && (e0 || e1)) {
+          winnerId = (e0 ?? e1)!.id
+        }
+
+        // Check if anything changed from the existing projected result
+        if (!existing ||
+            existing.winnerId !== winnerId ||
+            existing.entrants[0] !== e0 ||
+            existing.entrants[1] !== e1) {
+          projected.set(set.id, { entrants: [e0, e1], winnerId })
+          changed = true
+        }
+      }
     }
   }
 
   return projected
+}
+
+export interface ProjectedStanding {
+  entrant: BracketEntrant
+  placement: number
+}
+
+/**
+ * Compute projected standings from bracket results.
+ * For DE brackets: GF winner = 1st, GF loser = 2nd, LF loser = 3rd/4th, etc.
+ * For single elim: final winner = 1st, final loser = 2nd, semifinal losers = 3rd, etc.
+ */
+export function computeProjectedStandings(
+  data: BracketData,
+  projectedResults: Map<string, ProjectedSet>,
+): ProjectedStanding[] {
+  const standings: ProjectedStanding[] = []
+  const placed = new Set<string>()
+
+  // Process winners rounds in reverse (finals first)
+  const wRounds = [...data.winnersRounds].reverse()
+  const lRounds = [...data.losersRounds].reverse()
+
+  // Grand Finals / Finals winner = 1st place
+  if (wRounds.length > 0) {
+    const finalRound = wRounds[0]
+    for (const set of finalRound.sets) {
+      const ps = projectedResults.get(set.id)
+      if (!ps) continue
+      const winner = getWinnerFromProjected(ps)
+      const loser = getLoserFromProjected(ps)
+      if (winner?.id && !placed.has(winner.id)) {
+        standings.push({ entrant: winner, placement: 1 })
+        placed.add(winner.id)
+      }
+      if (loser?.id && !placed.has(loser.id)) {
+        standings.push({ entrant: loser, placement: 2 })
+        placed.add(loser.id)
+      }
+    }
+  }
+
+  // Losers finals losers = 3rd/4th, etc.
+  let placement = standings.length + 1
+  for (const round of lRounds) {
+    const roundLosers: BracketEntrant[] = []
+    for (const set of round.sets) {
+      const ps = projectedResults.get(set.id)
+      if (!ps) continue
+      const loser = getLoserFromProjected(ps)
+      if (loser?.id && !placed.has(loser.id)) {
+        roundLosers.push(loser)
+        placed.add(loser.id)
+      }
+    }
+    if (roundLosers.length > 0) {
+      for (const ent of roundLosers) {
+        standings.push({ entrant: ent, placement })
+      }
+      placement += roundLosers.length
+    }
+  }
+
+  // Winners bracket losers (who didn't appear in losers bracket)
+  for (const round of wRounds) {
+    const roundLosers: BracketEntrant[] = []
+    for (const set of round.sets) {
+      const ps = projectedResults.get(set.id)
+      if (!ps) continue
+      const loser = getLoserFromProjected(ps)
+      if (loser?.id && !placed.has(loser.id)) {
+        roundLosers.push(loser)
+        placed.add(loser.id)
+      }
+    }
+    if (roundLosers.length > 0) {
+      for (const ent of roundLosers) {
+        standings.push({ entrant: ent, placement })
+      }
+      placement += roundLosers.length
+    }
+  }
+
+  return standings
 }
 
 export interface PhaseNavInfo {

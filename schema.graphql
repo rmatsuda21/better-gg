@@ -7,6 +7,7 @@ type Query {
   videogame(id: ID, slug: String): Videogame
   phase(id: ID): Phase
   phaseGroup(id: ID): PhaseGroup
+  set(id: ID!): Set
   tournament(id: ID, slug: String): Tournament
   tournaments(query: TournamentQuery): TournamentConnection
 }
@@ -162,6 +163,7 @@ input EventEntrantPageQueryFilter {
 input SetFilters {
   entrantIds: [ID]
   state: [Int]
+  showByes: Boolean
 }
 
 input StandingPaginationQuery {
@@ -271,7 +273,15 @@ type Game {
   orderNum: Int
   winnerId: Int
   state: Int
+  entrant1Score: Int
+  entrant2Score: Int
   selections: [GameSelection]
+  stage: Stage
+}
+
+type Stage {
+  id: ID
+  name: String
 }
 
 type GameSelection {
@@ -289,6 +299,8 @@ type Progression {
 type Seed {
   id: ID
   seedNum: Int
+  progressionSeedId: Int
+  placeholderName: String
   entrant: Entrant
   phase: Phase
   phaseGroup: PhaseGroup

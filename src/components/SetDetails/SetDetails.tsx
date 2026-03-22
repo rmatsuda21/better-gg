@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import type { SetClickInfo } from '../../lib/bracket-utils'
 import { getCharacterStockIcon } from '../../lib/character-utils'
 import styles from './SetDetails.module.css'
 
@@ -27,7 +28,10 @@ interface GameSelection {
 interface Game {
   orderNum?: number | null
   winnerId?: number | null
+  entrant1Score?: number | null
+  entrant2Score?: number | null
   selections?: Array<GameSelection | null> | null
+  stage?: { id?: string | null; name?: string | null } | null
 }
 
 interface SetNode {
@@ -43,6 +47,7 @@ interface SetDetailsProps {
   sets: SetNode[]
   userEntrantId: string
   characterMap: Map<number, string>
+  onSetClick?: (info: SetClickInfo) => void
 }
 
 function resolveEntrant(slot: SetSlot | null | undefined) {
@@ -71,6 +76,7 @@ export function SetDetails({
   sets,
   userEntrantId,
   characterMap,
+  onSetClick,
 }: SetDetailsProps) {
   const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set())
 
@@ -128,21 +134,42 @@ export function SetDetails({
         const hasGames = gamesWithSelections.length > 0
         const setId = String(set.id ?? '')
         const isExpanded = expandedSets.has(setId)
+        const isClickable = hasGames || (onSetClick != null && set.winnerId != null)
+
+        const handleClick = () => {
+          if (onSetClick && set.winnerId != null) {
+            const opp = resolveEntrant(oppSlot)
+            const user = resolveEntrant(userSlot)
+            onSetClick({
+              setId,
+              fullRoundText: set.fullRoundText ?? null,
+              winnerId: set.winnerId != null ? String(set.winnerId) : null,
+              scores: [oppScore ?? null, userScore ?? null],
+              isDQ: set.displayScore === 'DQ',
+              entrants: [
+                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp), seedNum: null } : null,
+                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user), seedNum: null } : null,
+              ],
+            })
+          } else if (hasGames) {
+            toggleSet(setId)
+          }
+        }
 
         return (
-          <div key={set.id} className={`${styles.setCard} ${hasGames ? styles.setCardExpandable : ''}`}>
+          <div key={set.id} className={`${styles.setCard} ${isClickable ? styles.setCardExpandable : ''}`}>
             {/* Set header: Opp | scores + round | User */}
             <div
-              className={`${styles.setHeader} ${hasGames ? styles.setHeaderClickable : ''}`}
-              {...(hasGames
+              className={`${styles.setHeader} ${isClickable ? styles.setHeaderClickable : ''}`}
+              {...(isClickable
                 ? {
                     role: 'button',
                     tabIndex: 0,
-                    onClick: () => toggleSet(setId),
+                    onClick: handleClick,
                     onKeyDown: (e: React.KeyboardEvent) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        toggleSet(setId)
+                        handleClick()
                       }
                     },
                   }

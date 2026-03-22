@@ -157,41 +157,19 @@
   }
 }
 
-/* Pagination */
-.pagination {
+/* Loading sentinel */
+.loadingMore {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
+  padding: 1rem 0;
+  min-height: 1px;
 }
 
-.pageButton {
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  font-size: 0.8rem;
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: background-color var(--duration-fast), border-color var(--duration-fast);
-}
-
-.pageButton:hover:not(:disabled) {
-  background: var(--accent-subtle);
-  border-color: var(--accent);
-}
-
-.pageButton:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.pageInfo {
+.loadingIndicator {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--text-secondary);
+  letter-spacing: 0.03em;
 }
 
 /* States */

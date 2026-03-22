@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useEffect, useMemo } from 'react'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useOpponentStats } from '../hooks/use-opponent-stats'
 import { usePlayerProfile } from '../hooks/use-player-profile'
 import { usePlayerRecentEvents } from '../hooks/use-player-recent-events'
@@ -25,6 +25,12 @@ import styles from './player.$playerId.module.css'
 const ULTIMATE_VIDEOGAME_ID = '1386'
 
 export const Route = createFileRoute('/player/$playerId')({
+  validateSearch: (search: Record<string, unknown>): { online?: 'online' | 'offline' } => ({
+    online:
+      search.online === 'online' || search.online === 'offline'
+        ? search.online
+        : undefined,
+  }),
   component: PlayerPage,
 })
 
@@ -83,7 +89,15 @@ function buildPlacementsFromEvents(
 function PlayerPage() {
   const { playerId } = Route.useParams()
   const router = useRouter()
-  const [onlineFilter, setOnlineFilter] = useState<OnlineFilter>('all')
+  const { online } = Route.useSearch()
+  const navigate = useNavigate({ from: '/player/$playerId' })
+  const onlineFilter: OnlineFilter = online ?? 'all'
+  const setOnlineFilter = (value: OnlineFilter) => {
+    navigate({
+      search: (prev) => ({ ...prev, online: value === 'all' ? undefined : value }),
+      replace: true,
+    })
+  }
 
   // Phase 1: Profile (header data)
   const {
@@ -113,11 +127,12 @@ function PlayerPage() {
   )
 
   // Auto-fetch next pages
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = eventsQuery
   useEffect(() => {
-    if (eventsQuery.hasNextPage && !eventsQuery.isFetchingNextPage) {
-      eventsQuery.fetchNextPage()
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
     }
-  }, [eventsQuery.hasNextPage, eventsQuery.isFetchingNextPage, eventsQuery.fetchNextPage])
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // Compute stats from opponent stats data
   const player = statsData?.player
@@ -134,10 +149,11 @@ function PlayerPage() {
     : []
 
   // Build placements from infinite query pages
+  const pages = eventsQuery.data?.pages
   const placements = useMemo(() => {
-    if (!eventsQuery.data?.pages) return []
-    return buildPlacementsFromEvents(eventsQuery.data.pages, playerId, onlineFilter)
-  }, [eventsQuery.data?.pages, playerId, onlineFilter])
+    if (!pages) return []
+    return buildPlacementsFromEvents(pages, playerId, onlineFilter)
+  }, [pages, playerId, onlineFilter])
 
   // Compute avg placement from events data
   const avgPlacement = useMemo(() => {

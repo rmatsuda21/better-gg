@@ -73,13 +73,11 @@ export function FilterSelect({
     }
   }, [isOpen, showSearch])
 
-  // Reset search + active index when closing
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchQuery('')
-      setActiveIndex(-1)
-    }
-  }, [isOpen])
+  const close = useCallback(() => {
+    setIsOpen(false)
+    setSearchQuery('')
+    setActiveIndex(-1)
+  }, [])
 
   // Scroll active option into view
   useEffect(() => {
@@ -91,9 +89,9 @@ export function FilterSelect({
   const select = useCallback(
     (val: string) => {
       onChange(val)
-      setIsOpen(false)
+      close()
     },
-    [onChange],
+    [onChange, close],
   )
 
   function handleTriggerKeyDown(e: KeyboardEvent) {
@@ -117,7 +115,7 @@ export function FilterSelect({
       }
     } else if (e.key === 'Escape') {
       e.preventDefault()
-      setIsOpen(false)
+      close()
     } else if (e.key === 'Home') {
       e.preventDefault()
       setActiveIndex(0)
@@ -149,7 +147,7 @@ export function FilterSelect({
         aria-haspopup="listbox"
         aria-controls={isOpen ? listboxId : undefined}
         aria-label={ariaLabel}
-        onClick={() => setIsOpen((o) => !o)}
+        onClick={() => isOpen ? close() : setIsOpen(true)}
         onKeyDown={handleTriggerKeyDown}
       >
         <span className={styles.triggerLabel}>{selectedLabel}</span>
@@ -175,7 +173,7 @@ export function FilterSelect({
               className={styles.backdrop}
               onMouseDown={(e) => {
                 e.preventDefault()
-                setIsOpen(false)
+                close()
               }}
             />
             <div

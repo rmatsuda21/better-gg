@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { Link } from '@tanstack/react-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useElementScrollRestoration } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebouncedValue } from '../../hooks/use-debounced-value'
 import { formatPlacement } from '../../lib/format'
@@ -16,20 +16,41 @@ export interface EventInfo {
   phases: Array<{ id: string; phaseOrder: number | null }>
 }
 
+export type ParticipantViewMode =
+  | { kind: 'all' }
+  | { kind: 'event'; eventId: string }
+
+interface ProcessedParticipant {
+  participant: TournamentParticipant
+  displaySeed: number | null
+}
+
 interface ParticipantListProps {
   participants: TournamentParticipant[]
   events: EventInfo[]
   isLoading: boolean
+  viewMode?: ParticipantViewMode
 }
 
 export function ParticipantList({
   participants,
   events,
   isLoading,
+  viewMode = { kind: 'all' },
 }: ParticipantListProps) {
+  'use no memo'
   const [searchInput, setSearchInput] = useState('')
   const debouncedSearch = useDebouncedValue(searchInput, 200)
   const parentRef = useRef<HTMLDivElement>(null)
+
+  const showSeed = viewMode.kind === 'event'
+
+  // Reset scroll and search when viewMode changes
+  const viewModeKey = viewMode.kind === 'event' ? viewMode.eventId : 'all'
+  useEffect(() => {
+    setSearchInput('')
+    parentRef.current?.scrollTo({ top: 0 })
+  }, [viewModeKey])
 
   // Map eventId → first phase ID (sorted by phaseOrder)
   const eventPhaseMap = useMemo(() => {
@@ -54,23 +75,64 @@ export function ParticipantList({
     return map
   }, [events])
 
-  // Filter participants by search
+  // Process participants based on view mode
+  const processedParticipants = useMemo((): ProcessedParticipant[] => {
+    if (viewMode.kind === 'all') {
+      // All mode: alphabetical by gamerTag, no seed
+      const sorted = [...participants].sort((a, b) =>
+        a.gamerTag.localeCompare(b.gamerTag, undefined, { sensitivity: 'base' }),
+      )
+      return sorted.map((p) => ({ participant: p, displaySeed: null }))
+    }
+
+    // Event mode: filter to participants in this event, sort by seed
+    const eventId = viewMode.eventId
+    const result: ProcessedParticipant[] = []
+    for (const p of participants) {
+      const entrant = p.entrants.find((e) => e.eventId === eventId)
+      if (entrant) {
+        result.push({ participant: p, displaySeed: entrant.seed })
+      }
+    }
+    result.sort((a, b) => {
+      if (a.displaySeed == null && b.displaySeed == null) return 0
+      if (a.displaySeed == null) return 1
+      if (b.displaySeed == null) return -1
+      return a.displaySeed - b.displaySeed
+    })
+    return result
+  }, [participants, viewMode])
+
+  // Filter by search
   const filtered = useMemo(() => {
-    if (!debouncedSearch) return participants
+    if (!debouncedSearch) return processedParticipants
     const q = debouncedSearch.toLowerCase()
-    return participants.filter((p) => {
-      if (p.gamerTag.toLowerCase().includes(q)) return true
-      if (p.prefix && p.prefix.toLowerCase().includes(q)) return true
+    return processedParticipants.filter((item) => {
+      if (item.participant.gamerTag.toLowerCase().includes(q)) return true
+      if (item.participant.prefix && item.participant.prefix.toLowerCase().includes(q)) return true
       return false
     })
-  }, [participants, debouncedSearch])
+  }, [processedParticipants, debouncedSearch])
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 20,
   })
+
+  // Element scroll restoration for back/forward navigation
+  const scrollEntry = useElementScrollRestoration({ id: 'participant-list' })
+  const hasRestoredRef = useRef(false)
+
+  useEffect(() => {
+    if (hasRestoredRef.current || !scrollEntry?.scrollY || filtered.length === 0) return
+    hasRestoredRef.current = true
+    requestAnimationFrame(() => {
+      parentRef.current?.scrollTo({ top: scrollEntry.scrollY })
+    })
+  }, [scrollEntry, filtered.length])
 
   const scrollToTop = useCallback(() => {
     parentRef.current?.scrollTo({ top: 0 })
@@ -103,12 +165,12 @@ export function ParticipantList({
         <div className={styles.noResults}>No players found</div>
       ) : (
         <DataTable>
-          <DataTableHeader className={styles.columns}>
-            <span>Seed</span>
+          <DataTableHeader className={showSeed ? styles.columns : styles.columnsNoSeed}>
+            {showSeed && <span>Seed</span>}
             <span>Player</span>
             <span>Events</span>
           </DataTableHeader>
-          <div ref={parentRef} className={styles.scrollContainer}>
+          <div ref={parentRef} className={styles.scrollContainer} data-scroll-restoration-id="participant-list">
             <div
               style={{
                 height: virtualizer.getTotalSize(),
@@ -128,7 +190,9 @@ export function ParticipantList({
                   }}
                 >
                   <ParticipantRow
-                    participant={filtered[virtualRow.index]}
+                    participant={filtered[virtualRow.index].participant}
+                    displaySeed={filtered[virtualRow.index].displaySeed}
+                    showSeed={showSeed}
                     eventPhaseMap={eventPhaseMap}
                     eventNameMap={eventNameMap}
                   />
@@ -144,18 +208,24 @@ export function ParticipantList({
 
 function ParticipantRow({
   participant,
+  displaySeed,
+  showSeed,
   eventPhaseMap,
   eventNameMap,
 }: {
   participant: TournamentParticipant
+  displaySeed: number | null
+  showSeed: boolean
   eventPhaseMap: Map<string, string>
   eventNameMap: Map<string, string>
 }) {
   return (
-    <DataTableRow className={styles.rowColumns}>
-      <div className={styles.seed}>
-        {participant.bestSeed ?? '-'}
-      </div>
+    <DataTableRow className={showSeed ? styles.rowColumns : styles.rowColumnsNoSeed}>
+      {showSeed && (
+        <div className={styles.seed}>
+          {displaySeed ?? '-'}
+        </div>
+      )}
       <div className={styles.playerInfo}>
         {participant.playerId ? (
           <Link

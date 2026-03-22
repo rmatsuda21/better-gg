@@ -1,4 +1,4 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
@@ -33,7 +33,6 @@ export interface TournamentListOptions {
   featured?: boolean
   regOpen?: boolean
   sortBy?: string
-  page?: number
   perPage?: number
 }
 
@@ -47,7 +46,6 @@ export function useTournamentList(options: TournamentListOptions) {
     featured,
     regOpen,
     sortBy = 'startAt desc',
-    page = 1,
     perPage = 24,
   } = options
 
@@ -55,12 +53,21 @@ export function useTournamentList(options: TournamentListOptions) {
 
   const queryKey = [
     'tournamentList', debouncedName, countryCode, addrState,
-    online, status, featured, regOpen, sortBy, page, perPage,
+    online, status, featured, regOpen, sortBy, perPage,
   ]
 
-  const { data, isLoading, isFetching, isError, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    isError,
+    error,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey,
-    queryFn: ({ signal }) => {
+    queryFn: ({ pageParam, signal }) => {
       const filter: TournamentPageFilter = {
         videogameIds: [ULTIMATE_VIDEOGAME_ID],
       }
@@ -76,26 +83,37 @@ export function useTournamentList(options: TournamentListOptions) {
 
       return graphqlClient.request({
         document: tournamentListQuery,
-        variables: { page, perPage, sortBy, filter },
+        variables: { page: pageParam, perPage, sortBy, filter },
         signal,
       })
     },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const pageInfo = lastPage?.tournaments?.pageInfo
+      if (!pageInfo) return undefined
+      if (pageInfo.page != null && pageInfo.totalPages != null && pageInfo.page >= pageInfo.totalPages) return undefined
+      return (pageInfo.page ?? 0) + 1
+    },
     staleTime: 2 * 60 * 1000,
-    placeholderData: keepPreviousData,
   })
 
-  const nodes = data?.tournaments?.nodes ?? []
+  const allNodes = data?.pages.flatMap((p) => p?.tournaments?.nodes ?? []) ?? []
   // Client-side offline filter (API only has hasOnlineEvents for online)
   const tournaments = online === 'offline'
-    ? nodes.filter((t) => t && !t.isOnline)
-    : nodes
+    ? allNodes.filter((t) => t && !t.isOnline)
+    : allNodes
+
+  const total = data?.pages[0]?.tournaments?.pageInfo?.total ?? 0
 
   return {
     tournaments,
-    pageInfo: data?.tournaments?.pageInfo ?? null,
+    total,
     isLoading,
     isFetching,
+    isFetchingNextPage,
     isError,
     error,
+    hasNextPage,
+    fetchNextPage,
   }
 }

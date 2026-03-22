@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatPlacement } from '../../lib/format'
 import styles from './PlacementList.module.css'
@@ -18,12 +18,13 @@ interface PlacementListProps {
 }
 
 export function PlacementList({ placements, isLoadingMore }: PlacementListProps) {
-  const prevCountRef = useRef(0)
-  const animateOffset = prevCountRef.current
-
-  useEffect(() => {
-    prevCountRef.current = placements.length
-  }, [placements.length])
+  const [prevLength, setPrevLength] = useState(0)
+  const [trackedLength, setTrackedLength] = useState(placements.length)
+  if (trackedLength !== placements.length) {
+    setPrevLength(trackedLength)
+    setTrackedLength(placements.length)
+  }
+  const animateOffset = prevLength
 
   if (placements.length === 0 && !isLoadingMore) {
     return <p className={styles.empty}>No recent placements</p>
