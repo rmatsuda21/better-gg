@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from '@tanstack/react-router'
 import { getCharacterStockIcon } from '../../lib/character-utils'
+import { formatRoundLabel } from '../../lib/round-label-utils'
 import { Skeleton } from '../Skeleton/Skeleton'
 import styles from './SetDetailModal.module.css'
 
@@ -37,6 +38,8 @@ interface SetDetailModalProps {
     entrants: [ModalEntrant | null, ModalEntrant | null]
   }
   userEntrantId?: string
+  numEntrants?: number
+  roundLabel?: string
   games?: Array<Game | null> | null
   gamesLoading?: boolean
   characterMap: Map<number, string>
@@ -47,6 +50,8 @@ export function SetDetailModal({
   onClose,
   preview,
   userEntrantId,
+  numEntrants,
+  roundLabel,
   games,
   gamesLoading,
   characterMap,
@@ -137,7 +142,7 @@ export function SetDetailModal({
         {/* Header */}
         <div className={styles.header}>
           <span className={styles.roundText}>
-            {preview.fullRoundText ?? 'Set Details'}
+            {roundLabel ?? (preview.fullRoundText ? formatRoundLabel(preview.fullRoundText, numEntrants) : 'Set Details')}
           </span>
           <button
             className={styles.closeButton}

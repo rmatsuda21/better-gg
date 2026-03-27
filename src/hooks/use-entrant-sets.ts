@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import type { PhaseGroupSetsCreatedQuery } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
+import { computeBracketSizeFromSets } from '../lib/round-label-utils'
 
 // Per-phase-group sets for CREATED events (step 2)
 // Includes seed.entrant (slot.entrant may be null for unseeded brackets)
@@ -148,6 +149,7 @@ export interface PhaseGroupInfo {
   phaseName: string | null
   phaseOrder: number | null
   userSeedNum: number | null
+  bracketSize: number
   sets: Array<NonNullable<PhaseGroupSetNode>>
   allSets: Array<NonNullable<PhaseGroupSetNode>>
 }
@@ -246,11 +248,12 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
           if (pgSets.length > 0) {
             phaseGroups.push({
-              phaseGroupId: pg.id!,
+              phaseGroupId: String(pg.id!),
               displayIdentifier: pg.displayIdentifier ?? null,
               phaseName: pg.phase?.name ?? null,
               phaseOrder: pg.phase?.phaseOrder ?? null,
               userSeedNum: seed.seedNum ?? null,
+              bracketSize: computeBracketSizeFromSets(allPgSets),
               sets: pgSets,
               allSets: allPgSets,
             })
@@ -258,6 +261,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
         }
 
         phaseGroups.sort((a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0))
+        allSets.sort((a, b) => (a.completedAt ?? Infinity) - (b.completedAt ?? Infinity))
 
         return {
           entrant: {
@@ -340,11 +344,12 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
 
         if (pgSets.length > 0) {
           phaseGroups.push({
-            phaseGroupId: pg.id!,
+            phaseGroupId: String(pg.id!),
             displayIdentifier: pg.displayIdentifier ?? null,
             phaseName: pg.phase?.name ?? null,
             phaseOrder: pg.phase?.phaseOrder ?? null,
             userSeedNum: seed.seedNum ?? null,
+            bracketSize: computeBracketSizeFromSets(allPgSets),
             sets: pgSets,
             allSets: allPgSets,
           })

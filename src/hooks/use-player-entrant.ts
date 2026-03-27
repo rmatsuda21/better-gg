@@ -19,6 +19,9 @@ const playerEventEntrantsQuery = graphql(`
         nodes {
           id
           name
+          standing {
+            placement
+          }
           participants {
             id
             gamerTag
@@ -65,6 +68,7 @@ export function usePlayerEntrant(playerId: string, eventId: string) {
               entrantId: entrant.id!,
               entrantName: entrant.name,
               playerId: participant?.player?.id ?? null,
+              placement: entrant.standing?.placement ?? null,
             }
           }
         }

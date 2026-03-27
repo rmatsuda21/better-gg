@@ -3,6 +3,7 @@ import type { PhaseBracketSetsActiveQuery } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
 import type { PhaseGroupInfo } from './use-entrant-sets'
 import type { SetProgressionInfo } from '../lib/bracket-utils'
+import { computeBracketSizeFromSets } from '../lib/round-label-utils'
 
 // ACTIVE/COMPLETED: slot.entrant is always populated, no need for seed.entrant
 const bracketSetsActiveQuery = graphql(`
@@ -313,6 +314,7 @@ export async function fetchPhaseGroupSetData(
     phaseName,
     phaseOrder,
     userSeedNum: null,
+    bracketSize: computeBracketSizeFromSets(allPgSets),
     sets: allPgSets,
     allSets: allPgSets,
   }

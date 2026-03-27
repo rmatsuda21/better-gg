@@ -53,6 +53,46 @@ function EventPage() {
       )}
       <EventHeader event={event} />
 
+      {(!event.phases || event.phases.length === 0) ? (
+        <div className={styles.notPublished}>
+          <p className={styles.notPublishedMessage}>
+            Brackets have not been created yet.
+          </p>
+          <p className={styles.notPublishedHint}>
+            Check back closer to the event start time, or view the event on start.gg for updates.
+          </p>
+          {event.slug && (
+            <a
+              href={`https://start.gg/${event.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.notPublishedLink}
+            >
+              View on start.gg &rarr;
+            </a>
+          )}
+        </div>
+      ) : event.phases.every(p => p?.state === 'CREATED') ? (
+        <div className={styles.notPublished}>
+          <p className={styles.notPublishedMessage}>
+            Brackets have been created but are not published yet.
+          </p>
+          <p className={styles.notPublishedHint}>
+            Check back closer to the event start time, or view the event on start.gg for updates.
+          </p>
+          {event.slug && (
+            <a
+              href={`https://start.gg/${event.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.notPublishedLink}
+            >
+              View on start.gg &rarr;
+            </a>
+          )}
+        </div>
+      ) : null}
+
       {event.phases && event.phases.length > 0 && (
         <div className={styles.phases}>
           <h3 className={styles.sectionTitle}>Phases</h3>

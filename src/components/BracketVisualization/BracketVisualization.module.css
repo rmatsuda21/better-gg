@@ -19,7 +19,11 @@
   font-size: 0.8rem;
   font-family: inherit;
   cursor: pointer;
-  transition: background-color var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast), box-shadow var(--duration-fast);
+  transition:
+    background-color var(--duration-fast),
+    color var(--duration-fast),
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
 }
 
 .toggleBtn:hover {
@@ -89,7 +93,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: start;
   min-height: 0;
   padding: 2px 0;
 }
@@ -101,11 +105,12 @@
   border: 1px solid var(--border-subtle);
   background: var(--bg-card);
   overflow: hidden;
-  margin: 0 8px;
   font-size: 0.8rem;
   box-shadow: var(--shadow-card);
-  transition: border-color var(--duration-fast), box-shadow var(--duration-fast), transform var(--duration-fast);
-  max-width: 480px;
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast),
+    transform var(--duration-fast);
   width: 100%;
 }
 
@@ -120,12 +125,16 @@
 
 .setCardClickable:hover {
   border-color: var(--accent);
-  box-shadow: var(--shadow-elevated), 0 0 8px var(--accent-glow);
+  box-shadow:
+    var(--shadow-elevated),
+    0 0 8px var(--accent-glow);
 }
 
 .setCardUser {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent-glow), var(--shadow-card);
+  box-shadow:
+    0 0 0 1px var(--accent-glow),
+    var(--shadow-card);
 }
 
 .entrantRow {
@@ -173,6 +182,12 @@
   font-size: 0.8rem;
 }
 
+.entrantPrefix {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  margin-right: 3px;
+}
+
 .entrantNameTBD {
   color: var(--text-secondary);
   font-style: italic;
@@ -218,10 +233,10 @@
 }
 
 .connectorPair::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 25%;
-  bottom: 50%;
+  top: var(--arm-top, 25%);
+  bottom: calc(100% - var(--arm-mid, 50%));
   left: 0;
   right: 0;
   border-top: 1px solid var(--border-subtle);
@@ -231,10 +246,10 @@
 }
 
 .connectorPair::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 50%;
-  bottom: 25%;
+  top: var(--arm-mid, 50%);
+  bottom: calc(100% - var(--arm-bottom, 75%));
   left: 0;
   right: 0;
   border-bottom: 1px solid var(--border-subtle);
@@ -248,7 +263,7 @@
 }
 
 .connectorStraight::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
@@ -293,9 +308,11 @@
 }
 
 .entrantNameLink {
-  color: var(--text-primary);
+  color: inherit;
   text-decoration: none;
   transition: color var(--duration-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .entrantNameLink:hover {
@@ -314,7 +331,9 @@
   background: rgba(99, 102, 241, 0.08);
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .sourceBadge:hover {
@@ -332,10 +351,11 @@
   margin-left: auto;
   padding: 0.05rem 0.35rem;
   border-radius: 3px;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .destinationBadge:hover {
   background: rgba(99, 102, 241, 0.2);
 }
-

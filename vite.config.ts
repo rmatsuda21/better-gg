@@ -12,5 +12,12 @@ export default defineConfig({
   ],
   server: {
     port: 5175,
+    proxy: {
+      '/api/image-proxy': {
+        target: 'https://images.start.gg',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/image-proxy/, ''),
+      },
+    },
   },
 })

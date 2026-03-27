@@ -1,6 +1,7 @@
 export interface OriginSeedEntrant {
   id: string
   name: string
+  prefix: string | null
   seedNum: number | null
 }
 

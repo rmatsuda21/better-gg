@@ -19,6 +19,7 @@
     "fuse.js": "^7.1.0",
     "graphql": "^16.13.1",
     "graphql-request": "^7.4.0",
+    "html-to-image": "^1.11.13",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

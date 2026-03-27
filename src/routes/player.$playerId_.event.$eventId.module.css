@@ -34,6 +34,31 @@
   margin: 0;
 }
 
+/* Share button */
+
+.shareButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+  font-family: inherit;
+  align-self: flex-start;
+}
+
+.shareButton:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Collapsible phase group sections */
 
 .phaseGroupSection {

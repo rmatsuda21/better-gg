@@ -341,7 +341,28 @@ function PhaseBracketPage() {
       )}
 
       {!allPgsLoading && !hasPgs && meta.phaseGroupNodes.length === 0 && (
-        <ErrorMessage message="No bracket data available for this phase" />
+        meta.phaseState === 'CREATED' ? (
+          <div className={styles.notPublished}>
+            <p className={styles.notPublishedMessage}>
+              This phase has not been published yet.
+            </p>
+            <p className={styles.notPublishedHint}>
+              Bracket data will appear once the organizer publishes seeding or the event begins.
+            </p>
+            {event?.slug && (
+              <a
+                href={`https://start.gg/${event.slug}/brackets`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.notPublishedLink}
+              >
+                View on start.gg &rarr;
+              </a>
+            )}
+          </div>
+        ) : (
+          <ErrorMessage message="No bracket data available for this phase" />
+        )
       )}
 
       {modalInfo && (

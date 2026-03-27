@@ -51,7 +51,7 @@ export function computeWinRate(sets: SetNode[], playerId: string): WinRate {
     if (set.winnerId == null) continue
     const playerEntrant = set.slots?.find((slot) =>
       slot?.entrant?.participants?.some(
-        (p) => p?.player?.id === playerId,
+        (p) => p?.player?.id != null && String(p.player.id) === playerId,
       ),
     )
     if (!playerEntrant?.entrant?.id) continue
@@ -85,7 +85,7 @@ export function computeCharacterUsage(
   for (const set of sets) {
     const playerEntrant = set.slots?.find((slot) =>
       slot?.entrant?.participants?.some(
-        (p) => p?.player?.id === playerId,
+        (p) => p?.player?.id != null && String(p.player.id) === playerId,
       ),
     )
     if (!playerEntrant?.entrant?.id) continue

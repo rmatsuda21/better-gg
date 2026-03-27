@@ -47,6 +47,7 @@ interface SetDetailsProps {
   sets: SetNode[]
   userEntrantId: string
   characterMap: Map<number, string>
+  roundLabels?: Map<string, string>
   onSetClick?: (info: SetClickInfo) => void
 }
 
@@ -76,6 +77,7 @@ export function SetDetails({
   sets,
   userEntrantId,
   characterMap,
+  roundLabels,
   onSetClick,
 }: SetDetailsProps) {
   const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set())
@@ -198,7 +200,7 @@ export function SetDetails({
 
               <div className={styles.scoreCenter}>
                 <span className={styles.roundLabel}>
-                  {set.fullRoundText ?? 'Round'}
+                  {roundLabels?.get(setId) ?? set.fullRoundText ?? 'Round'}
                 </span>
                 {set.winnerId != null && (
                   <span className={styles.arrow}>

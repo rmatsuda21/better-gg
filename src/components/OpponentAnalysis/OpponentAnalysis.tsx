@@ -3,6 +3,7 @@ import type { PhaseGroupInfo } from '../../hooks/use-entrant-sets'
 import { useEntrantSets } from '../../hooks/use-entrant-sets'
 import { buildBracketData, buildProjectedResults, buildEntrantPlayerMap } from '../../lib/bracket-utils'
 import type { BracketEntrant } from '../../lib/bracket-utils'
+import { formatRoundLabel } from '../../lib/round-label-utils'
 import { computeHeadToHead } from '../../lib/stats-utils'
 import { OpponentCard } from '../OpponentCard/OpponentCard'
 import { BracketVisualization } from '../BracketVisualization/BracketVisualization'
@@ -98,6 +99,16 @@ export function OpponentAnalysis({
   // Flat rendering for ACTIVE/COMPLETED events
   const sets = data?.entrant?.paginatedSets?.nodes ?? []
 
+  // Build setId → bracketSize lookup from phaseGroups (if available)
+  const setBracketSizeMap = new Map<string, number>()
+  if (phaseGroups) {
+    for (const pg of phaseGroups) {
+      for (const s of pg.sets) {
+        if (s.id) setBracketSizeMap.set(String(s.id), pg.bracketSize)
+      }
+    }
+  }
+
   const opponents: OpponentInfo[] = []
   for (const set of sets) {
     if (!set) continue
@@ -114,13 +125,16 @@ export function OpponentAnalysis({
         ? set.winnerId === Number(entrantId)
         : undefined
 
+    const setId = String(set.id ?? '')
+    const bs = setBracketSizeMap.get(setId)
+
     opponents.push({
       setId: set.id ?? null,
       entrantId: opponentSlot.entrant.id!,
       name: opponentSlot.entrant.name ?? 'Unknown',
       playerId: opPlayerId,
       setResult: extractUserScore(set.displayScore, entrantId, set.slots),
-      roundText: set.fullRoundText ?? null,
+      roundText: set.fullRoundText ? formatRoundLabel(set.fullRoundText, bs) : null,
       won,
       round: set.round ?? 0,
       seedNum: opponentSlot.entrant.initialSeedNum ?? null,
@@ -277,7 +291,7 @@ function buildProjectedOpponents(
         name: opponent.name,
         playerId: opponent.id ? entrantPlayerMap.get(opponent.id) ?? null : null,
         setResult: null,
-        roundText: set.fullRoundText,
+        roundText: set.fullRoundText ? formatRoundLabel(set.fullRoundText, phaseGroup.bracketSize || undefined) : null,
         won: undefined,
         round: set.round,
         seedNum: opponent.seedNum,
@@ -347,7 +361,7 @@ function PhaseGroupSection({
         name,
         playerId: null,
         setResult: null,
-        roundText: set.fullRoundText ?? null,
+        roundText: set.fullRoundText ? formatRoundLabel(set.fullRoundText, phaseGroup.bracketSize || undefined) : null,
         won: undefined,
         round: set.round ?? 0,
         seedNum: null,
@@ -362,7 +376,7 @@ function PhaseGroupSection({
       name: opponentEntrant.name ?? 'Unknown',
       playerId: opponentEntrant.participants?.[0]?.player?.id ?? null,
       setResult: extractUserScore(set.displayScore, entrantId, set.slots),
-      roundText: set.fullRoundText ?? null,
+      roundText: set.fullRoundText ? formatRoundLabel(set.fullRoundText, phaseGroup.bracketSize || undefined) : null,
       won: set.winnerId != null ? set.winnerId === Number(entrantId) : undefined,
       round: set.round ?? 0,
       seedNum: opponentSlot?.seed?.seedNum ?? opponentEntrant.initialSeedNum ?? null,

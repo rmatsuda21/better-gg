@@ -16,6 +16,7 @@ export interface SetProgressionInfo {
 export interface BracketEntrant {
   id: string | null
   name: string
+  prefix: string | null
   seedNum: number | null
   isProjected: boolean
 }
@@ -108,7 +109,8 @@ function resolveEntrantInfo(
   if (!ent?.id) return null
   return {
     id: String(ent.id),
-    name: ent.name ?? 'Unknown',
+    name: ent.participants?.[0]?.gamerTag ?? ent.name ?? 'Unknown',
+    prefix: ent.participants?.[0]?.prefix ?? null,
     seedNum: slot?.seed?.seedNum ?? ent.initialSeedNum ?? null,
     isProjected: false,
   }

@@ -250,7 +250,7 @@ function BracketSection({
   // Grid columns: round columns + inter-round connectors (no FROM/TO phase columns)
   const parts: string[] = []
   for (let i = 0; i < rounds.length; i++) {
-    parts.push('minmax(200px, 1fr)')
+    parts.push('minmax(200px, max-content)')
     if (i < rounds.length - 1) parts.push('24px')
   }
   const colTemplate = parts.join(' ')
@@ -285,7 +285,7 @@ function BracketSection({
           const currentSetIds = roundSetIds[roundIdx]
 
           return (
-            <Fragment key={round.round}>
+            <Fragment key={roundIdx}>
               {/* Round label */}
               <div
                 className={styles.roundLabel}
@@ -377,6 +377,11 @@ function BracketSection({
                     if (feederPositions.length < 2) return null
                     const topStart = Math.min(...feederPositions.map(p => p.start))
                     const botEnd = Math.max(...feederPositions.map(p => p.end))
+                    const span = botEnd - topStart
+                    // Compute arm positions as percentages based on actual feeder centers
+                    const topCenter = ((feederPositions[0].start + feederPositions[0].end) / 2 - topStart) / span
+                    const botCenter = ((feederPositions[1].start + feederPositions[1].end) / 2 - topStart) / span
+                    const mid = (topCenter + botCenter) / 2
                     const rowStart = Math.round(topStart) + 2
                     const rowEnd = Math.max(Math.round(botEnd) + 2, rowStart + 1)
                     return (
@@ -386,7 +391,10 @@ function BracketSection({
                         style={{
                           gridColumn: col + 1,
                           gridRow: `${rowStart} / ${rowEnd}`,
-                        }}
+                          '--arm-top': `${topCenter * 100}%`,
+                          '--arm-mid': `${mid * 100}%`,
+                          '--arm-bottom': `${botCenter * 100}%`,
+                        } as React.CSSProperties}
                       />
                     )
                   }
@@ -594,16 +602,22 @@ function EntrantRow({
         {entrant.seedNum ?? '—'}
       </span>
       {playerId ? (
-        <Link
-          to="/player/$playerId"
-          params={{ playerId }}
-          search={{}}
-          className={`${nameClass} ${styles.entrantNameLink}`}
-        >
-          {entrant.name}
-        </Link>
+        <span className={nameClass}>
+          <Link
+            to="/player/$playerId"
+            params={{ playerId }}
+            search={{}}
+            className={styles.entrantNameLink}
+          >
+            {entrant.prefix && <span className={styles.entrantPrefix}>{entrant.prefix}</span>}
+            {entrant.name}
+          </Link>
+        </span>
       ) : (
-        <span className={nameClass}>{entrant.name}</span>
+        <span className={nameClass}>
+          {entrant.prefix && <span className={styles.entrantPrefix}>{entrant.prefix}</span>}
+          {entrant.name}
+        </span>
       )}
       {score != null && <span className={scoreClass}>{score}</span>}
       {destinationBadge && (

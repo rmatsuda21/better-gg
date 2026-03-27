@@ -121,7 +121,8 @@ async function resolveProjectionChain(
         groupDisplayId: n.phaseGroup?.displayIdentifier ?? null,
         entrant: n.entrant?.id ? {
           id: String(n.entrant.id),
-          name: n.entrant.name ?? 'Unknown',
+          name: n.entrant.participants?.[0]?.gamerTag ?? n.entrant.name ?? 'Unknown',
+          prefix: n.entrant.participants?.[0]?.prefix ?? null,
           seedNum: n.seedNum ?? n.entrant.initialSeedNum ?? null,
         } : null,
       }))
@@ -196,7 +197,8 @@ export function useCrossPhaseOverrides(
           placeholderName: node.placeholderName ?? null,
           entrant: node.entrant?.id ? {
             id: String(node.entrant.id),
-            name: node.entrant.name ?? 'Unknown',
+            name: node.entrant.participants?.[0]?.gamerTag ?? node.entrant.name ?? 'Unknown',
+            prefix: node.entrant.participants?.[0]?.prefix ?? null,
             seedNum: node.seedNum,
           } : null,
         })
@@ -224,6 +226,7 @@ export function useCrossPhaseOverrides(
             overrides.set(seedNum, {
               id: entrant.id,
               name: entrant.name,
+              prefix: entrant.prefix,
               seedNum: entrant.seedNum,
               isProjected: true,
             })
