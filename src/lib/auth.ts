@@ -87,6 +87,42 @@ export function getEffectiveToken(): string {
   return import.meta.env.VITE_START_GG_TOKEN ?? ''
 }
 
+let refreshPromise: Promise<boolean> | null = null
+
+export async function refreshAuthTokens(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise
+
+  const refresh = getRefreshToken()
+  if (!refresh) {
+    clearAuth()
+    return false
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh }),
+      })
+      if (!res.ok) {
+        clearAuth()
+        return false
+      }
+      const data = await res.json()
+      setAuthTokens(data.access_token, data.refresh_token, data.expires_in)
+      return true
+    } catch {
+      clearAuth()
+      return false
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
 export function subscribe(listener: Listener): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)

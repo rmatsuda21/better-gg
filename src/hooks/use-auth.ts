@@ -6,7 +6,7 @@ import {
   setAuthTokens,
   clearAuth,
   isTokenExpired,
-  getRefreshToken,
+  refreshAuthTokens,
 } from '../lib/auth'
 
 export function useAuth() {
@@ -43,21 +43,7 @@ export function useAuth() {
   }, [])
 
   const refreshTokens = useCallback(async () => {
-    const refresh = getRefreshToken()
-    if (!refresh) return false
-    try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refresh }),
-      })
-      if (!res.ok) return false
-      const data = await res.json()
-      setAuthTokens(data.access_token, data.refresh_token, data.expires_in)
-      return true
-    } catch {
-      return false
-    }
+    return refreshAuthTokens()
   }, [])
 
   return {

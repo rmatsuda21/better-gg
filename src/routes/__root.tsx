@@ -1,6 +1,7 @@
 import { createRootRoute, Link, Outlet, useMatches } from '@tanstack/react-router'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/use-auth'
+import { refreshAuthTokens } from '../lib/auth'
 import { useCurrentUser } from '../hooks/use-current-user'
 import { UserMenu } from '../components/UserMenu/UserMenu'
 import { LoginModal } from '../components/LoginModal/LoginModal'
@@ -15,7 +16,7 @@ export const Route = createRootRoute({
 function RootLayout() {
   const matches = useMatches()
   const isHome = matches[matches.length - 1]?.id === '/'
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isExpired, logout } = useAuth()
   const [showLogin, setShowLogin] = useState(false)
   const [showPalette, setShowPalette] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -23,6 +24,14 @@ function RootLayout() {
 
   // Fetch current user profile when authenticated
   useCurrentUser()
+
+  // Proactively refresh expired tokens on mount
+  useEffect(() => {
+    if (!isExpired) return
+    refreshAuthTokens().then((success) => {
+      if (!success) logout()
+    })
+  }, [isExpired, logout])
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
