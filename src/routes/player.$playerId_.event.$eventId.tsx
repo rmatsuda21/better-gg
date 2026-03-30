@@ -10,7 +10,7 @@ import type { SetClickInfo } from '../lib/bracket-utils'
 import { buildBracketData, buildEntrantPlayerMap } from '../lib/bracket-utils'
 import { computeEventRoundLabels } from '../lib/round-label-utils'
 import { buildCharacterMap } from '../lib/character-utils'
-import { computeWinRate, computeCharacterUsage } from '../lib/stats-utils'
+import { computeWinRate, computeCharacterUsage, computeUpsetFactor } from '../lib/stats-utils'
 import { formatDateRange } from '../lib/format'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
@@ -92,7 +92,7 @@ function PlayerEventPage() {
       percentage: c.percentage,
     }))
 
-    const resolveEntrant = (slot: { entrant?: { id?: string | null; name?: string | null } | null; seed?: { entrant?: { id?: string | null; name?: string | null } | null } | null } | null | undefined) =>
+    const resolveEntrant = (slot: { entrant?: { id?: string | null; name?: string | null; initialSeedNum?: number | null } | null; seed?: { entrant?: { id?: string | null; name?: string | null; initialSeedNum?: number | null } | null } | null } | null | undefined) =>
       slot?.entrant ?? slot?.seed?.entrant
 
     const setSummaries = sets.map((set) => {
@@ -121,12 +121,27 @@ function PlayerEventPage() {
       }
 
       const setId = String(set.id ?? '')
+
+      const userSlot = set.slots?.find((s) => {
+        const e = resolveEntrant(s)
+        return e?.id != null && String(e.id) === String(entrantId)
+      })
+      const userSeedNum = resolveEntrant(userSlot)?.initialSeedNum ?? null
+      const oppSeedNum = resolveEntrant(oppSlot)?.initialSeedNum ?? null
+      let upsetFactor: number | null = null
+      if (!isDQ && set.winnerId != null && userSeedNum != null && oppSeedNum != null) {
+        const winnerSeed = isWin ? userSeedNum : oppSeedNum
+        const loserSeed = isWin ? oppSeedNum : userSeedNum
+        upsetFactor = computeUpsetFactor(winnerSeed, loserSeed)
+      }
+
       return {
         opponentName: oppEntrant?.name ?? 'Unknown',
         isWin,
         isDQ,
         score,
         fullRoundText: roundLabels.get(setId) ?? set.fullRoundText ?? null,
+        upsetFactor,
       }
     })
 

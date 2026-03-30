@@ -78,9 +78,13 @@ async function fetchAllParticipants(
     }
   }
 
+  const seen = new Set<string>()
   const participants: TournamentParticipant[] = []
   for (const node of allNodes) {
     if (!node?.id || !node.gamerTag) continue
+    const id = String(node.id)
+    if (seen.has(id)) continue
+    seen.add(id)
     const entrants = (node.entrants ?? [])
       .filter((e) => e?.id && e.event?.id)
       .map((e) => ({

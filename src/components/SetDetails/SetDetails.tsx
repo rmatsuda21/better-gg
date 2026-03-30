@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { SetClickInfo } from '../../lib/bracket-utils'
 import { getCharacterStockIcon } from '../../lib/character-utils'
+import { computeUpsetFactor } from '../../lib/stats-utils'
 import styles from './SetDetails.module.css'
 
 interface EntrantData {
   id?: string | null
   name?: string | null
+  initialSeedNum?: number | null
   participants?: Array<{
     player?: { id?: string | null } | null
   } | null> | null
@@ -15,6 +17,7 @@ interface EntrantData {
 interface SetSlot {
   entrant?: EntrantData | null
   seed?: {
+    seedNum?: number | null
     entrant?: EntrantData | null
   } | null
 }
@@ -58,6 +61,10 @@ function resolveEntrant(slot: SetSlot | null | undefined) {
 function getPlayerId(entrant: EntrantData | null | undefined): string | null {
   const id = entrant?.participants?.[0]?.player?.id
   return id ?? null
+}
+
+function getSeedNum(slot: SetSlot | null | undefined): number | null {
+  return slot?.seed?.seedNum ?? resolveEntrant(slot)?.initialSeedNum ?? null
 }
 
 function parseScores(
@@ -138,6 +145,15 @@ export function SetDetails({
         const isExpanded = expandedSets.has(setId)
         const isClickable = hasGames || (onSetClick != null && set.winnerId != null)
 
+        const userSeedNum = resolveEntrant(userSlot)?.initialSeedNum ?? null
+        const oppSeedNum = resolveEntrant(oppSlot)?.initialSeedNum ?? null
+        let upsetFactor: number | null = null
+        if (set.winnerId != null && userSeedNum != null && oppSeedNum != null) {
+          const winnerSeed = userIsWinner ? userSeedNum : oppSeedNum
+          const loserSeed = userIsWinner ? oppSeedNum : userSeedNum
+          upsetFactor = computeUpsetFactor(winnerSeed, loserSeed)
+        }
+
         const handleClick = () => {
           if (onSetClick && set.winnerId != null) {
             const opp = resolveEntrant(oppSlot)
@@ -149,8 +165,8 @@ export function SetDetails({
               scores: [oppScore ?? null, userScore ?? null],
               isDQ: set.displayScore === 'DQ',
               entrants: [
-                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp), seedNum: null } : null,
-                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user), seedNum: null } : null,
+                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp), seedNum: getSeedNum(oppSlot) } : null,
+                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user), seedNum: getSeedNum(userSlot) } : null,
               ],
             })
           } else if (hasGames) {
@@ -205,6 +221,11 @@ export function SetDetails({
                 {set.winnerId != null && (
                   <span className={styles.arrow}>
                     {userIsWinner ? '▶' : '◀'}
+                  </span>
+                )}
+                {upsetFactor != null && (
+                  <span className={`${styles.upsetBadge} ${userIsWinner ? styles.upsetWin : styles.upsetLoss}`}>
+                    UF {upsetFactor}
                   </span>
                 )}
                 {hasGames && (

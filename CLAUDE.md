@@ -76,7 +76,7 @@ better-gg/
       auth.ts                  # Auth store (localStorage, useSyncExternalStore)
       graphql-client.ts        # graphql-request client singleton
       tournament-utils.ts      # categorizeTournaments (upcoming/current/past)
-      stats-utils.ts           # computeWinRate, computeCharacterUsage, computeHeadToHead
+      stats-utils.ts           # computeWinRate, computeCharacterUsage, computeHeadToHead, computeUpsetFactor
       character-utils.ts       # buildCharacterMap (numeric ID -> name)
       bracket-utils.ts         # buildBracketData, buildProjectedResults, computeProjectedStandings, computePhaseNav
       round-label-utils.ts     # formatRoundLabel (bracket viz), computeEventRoundLabels (player set list "Top N")
@@ -246,6 +246,7 @@ For production, `/api/auth/token` and `/api/auth/refresh` need serverless deploy
 5. Projection: `buildProjectedResults` fills empty slots assuming higher seed wins. For CREATED events, bye-inclusive sets are lazy-fetched only when projected toggle is on. Cross-phase overrides (`useCrossPhaseOverrides`) resolve seed assignments for empty phases receiving progressions (3-strategy fallback: progressionSeedId → placeholder mapping → recursive projection chain).
 6. Player event page: Collapsible phase groups when multiple exist, per-group bracket visualization with seed badges. Clicking a set in the bracket or set results list opens a `SetDetailModal` with game-level data (characters, stocks). No projection support on this route.
 7. Round labels: Two formatting systems — **bracket visualization** uses raw API `fullRoundText` verbatim (e.g., "Winners Round 1", "Winners Semi-Final"). **Player set list** uses `computeEventRoundLabels()` which produces compact "Top N" labels (e.g., "W. T256", "WSF", "GF") based on event-level `numEntrants`. The set list approach collects all winners-side sets across phases, sorts by phase order + round, and assigns labels sequentially: K-th set gets `N = nextPow2(numEntrants) / 2^K`. Named finals (WSF, WF, GF, True Final, LF, LSF, LQF) are abbreviated; everything else (including WQF) computes "W. T{N}".
+8. Upset factor: Computed in `SetDetails` component using `computeUpsetFactor(winnerSeed, loserSeed)` from `stats-utils.ts`. Uses `deRoundsFromWinning()` — the number of DE bracket rounds a seed must win, based on standard double-elimination bracket topology. UF = `deRoundsFromWinning(winnerSeed) - deRoundsFromWinning(loserSeed)`, shown only when positive (lower seed wins). **Seeds must be event-level** (`entrant.initialSeedNum`), NOT phase-group-level (`slot.seed.seedNum`). In multi-phase events (pools → bracket), PG seeds reflect bracket re-seeding and differ from the original event seed. The `getSeedNum()` helper in SetDetails (which prefers `slot.seed.seedNum`) is only used for seed badge display in `SetClickInfo`, not for UF.
 
 ### Virtualization
 

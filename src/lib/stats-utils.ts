@@ -143,3 +143,19 @@ export function computeHeadToHead(
 
   return { wins, losses }
 }
+
+export function deRoundsFromWinning(seed: number): number {
+  if (seed <= 1) return 0
+  if (seed <= 4) return seed - 1
+  const k = Math.ceil(Math.log2(seed)) - 2
+  return seed <= 3 * Math.pow(2, k) ? 2 * k + 2 : 2 * k + 3
+}
+
+export function computeUpsetFactor(
+  winnerSeed: number,
+  loserSeed: number,
+): number | null {
+  if (winnerSeed <= loserSeed) return null
+  const uf = deRoundsFromWinning(winnerSeed) - deRoundsFromWinning(loserSeed)
+  return uf > 0 ? uf : null
+}

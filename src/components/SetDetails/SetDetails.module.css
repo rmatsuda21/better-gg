@@ -152,6 +152,26 @@ a.playerName:hover {
   line-height: 1;
 }
 
+.upsetBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.upsetWin {
+  background: var(--accent-secondary-glow);
+  color: var(--accent-secondary);
+}
+
+.upsetLoss {
+  background: var(--error-glow);
+  color: var(--error);
+}
+
 /* --- Game Rows --- */
 
 .games {

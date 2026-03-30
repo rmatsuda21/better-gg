@@ -9,6 +9,7 @@ export interface SetSummary {
   isDQ: boolean
   score: string // e.g. "3-1"
   fullRoundText: string | null
+  upsetFactor: number | null
 }
 
 export interface CharacterEntry {
@@ -130,9 +131,16 @@ export const ResultGraphic = forwardRef<HTMLDivElement, ResultGraphicProps>(
                     : set.score.split('-')
                   return (
                     <div key={i} className={styles.setCard}>
-                      {set.fullRoundText && (
-                        <div className={styles.roundLabel}>
-                          {set.fullRoundText}
+                      {(set.fullRoundText || set.upsetFactor != null) && (
+                        <div className={styles.setCardHeader}>
+                          {set.fullRoundText && (
+                            <div className={styles.roundLabel}>{set.fullRoundText}</div>
+                          )}
+                          {set.upsetFactor != null && (
+                            <span className={`${styles.upsetBadge} ${set.isWin ? styles.upsetWin : styles.upsetLoss}`}>
+                              UF {set.upsetFactor}
+                            </span>
+                          )}
                         </div>
                       )}
                       <div className={styles.setRow}>
