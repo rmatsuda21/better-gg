@@ -129,6 +129,7 @@ function nextPowerOf2(n: number): number {
 export function computeEventRoundLabels(
   phaseGroups: Array<{
     phaseOrder: number | null
+    bracketType?: string | null
     bracketSize: number
     sets: Array<{ id?: string | null; round?: number | null; fullRoundText?: string | null; completedAt?: number | null }>
     allSets: Array<{ round?: number | null }>
@@ -147,6 +148,7 @@ export function computeEventRoundLabels(
     phaseOrder: number
     fullRoundText: string
     completedAt: number
+    bracketType: string | null
   }> = []
 
   for (const pg of phaseGroups) {
@@ -158,12 +160,23 @@ export function computeEventRoundLabels(
         phaseOrder: pg.phaseOrder ?? 0,
         fullRoundText: set.fullRoundText ?? '',
         completedAt: set.completedAt ?? 0,
+        bracketType: pg.bracketType ?? null,
       })
     }
   }
 
+  // Label pool-format sets (Swiss / Round Robin) with flat labels
   // Label losers / named finals first (these don't depend on order)
   for (const set of allUserSets) {
+    if (set.bracketType === 'SWISS') {
+      labels.set(set.id, 'Swiss')
+      continue
+    }
+    if (set.bracketType === 'ROUND_ROBIN') {
+      labels.set(set.id, 'RR')
+      continue
+    }
+
     const abbrev = EVENT_ABBREVIATIONS[set.fullRoundText]
     if (abbrev) {
       labels.set(set.id, abbrev)

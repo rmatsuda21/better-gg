@@ -16,10 +16,12 @@ import {
   buildBracketData,
   buildProjectedResults,
   buildEntrantPlayerMap,
+  isPoolBracketType,
 } from '../lib/bracket-utils'
 import type { BracketEntrant, PhaseNavInfo, SetClickInfo, SetProgressionInfo } from '../lib/bracket-utils'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
+import { PoolVisualization } from '../components/PoolVisualization/PoolVisualization'
 import { BracketSearch } from '../components/BracketSearch/BracketSearch'
 import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
@@ -97,7 +99,8 @@ function PhaseBracketPage() {
   }, [pgSetQueries])
 
   const receivesProgressions = meta?.phaseState === 'CREATED' && (meta?.originPhaseIds?.length ?? 0) > 0
-  const showProjectionToggle = meta?.phaseState !== 'COMPLETED'
+  const isPoolFormat = isPoolBracketType(meta?.bracketType ?? null)
+  const showProjectionToggle = meta?.phaseState !== 'COMPLETED' && !isPoolFormat
 
   // Projection toggle state (URL-driven)
   const hasOverrides = !hasAnyEntrants && receivesProgressions
@@ -311,6 +314,7 @@ function PhaseBracketPage() {
           <div className={styles.phaseGroupSection}>
             <PhaseGroupBracket
               pgData={loadedPgs[0]}
+              bracketType={meta.bracketType}
               showProjected={projected}
               phaseState={meta.phaseState}
               receivesProgressions={receivesProgressions}
@@ -326,6 +330,7 @@ function PhaseBracketPage() {
         ) : (
           <CollapsiblePools
             pgDataList={loadedPgs}
+            bracketType={meta.bracketType}
             showProjected={projected}
             phaseState={meta.phaseState}
             receivesProgressions={receivesProgressions}
@@ -382,6 +387,7 @@ function PhaseBracketPage() {
 
 interface PhaseGroupBracketProps {
   pgData: PhaseGroupSetResult
+  bracketType: string | null
   showProjected: boolean
   phaseState: string | null
   receivesProgressions: boolean
@@ -396,6 +402,7 @@ interface PhaseGroupBracketProps {
 
 function PhaseGroupBracket({
   pgData,
+  bracketType,
   showProjected,
   phaseState,
   receivesProgressions,
@@ -407,33 +414,49 @@ function PhaseGroupBracket({
   progressionMap,
   onSetClick,
 }: PhaseGroupBracketProps) {
+  const isPool = isPoolBracketType(bracketType)
+
   // Actual bracket data
   const bracketData = useMemo(() => {
-    const suppress = !showProjected && receivesProgressions
+    const suppress = !isPool && !showProjected && receivesProgressions
     return buildBracketData(pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, suppress)
-  }, [pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, showProjected, receivesProgressions])
+  }, [pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, showProjected, receivesProgressions, isPool])
 
   // Entrant -> player ID map
   const entrantPlayerMap = useMemo(() => buildEntrantPlayerMap(pgData.pgInfo), [pgData.pgInfo])
 
-  // Lazy: bye-inclusive sets (only for CREATED projection)
+  // Lazy: bye-inclusive sets (only for CREATED projection, skip for pool formats)
   const { data: byeSets } = useQuery({
     queryKey: ['bracketByeSets', pgData.pgId],
     queryFn: () => fetchPhaseGroupSetsWithByes(pgData.pgId, 35),
-    enabled: showProjected && phaseState === 'CREATED',
+    enabled: !isPool && showProjected && phaseState === 'CREATED',
     staleTime: 5 * 60 * 1000,
   })
 
-  // Lazy: projection computation
+  // Lazy: projection computation (skip for pool formats)
   const projectedResults = useMemo(() => {
-    if (!showProjected) return null
+    if (isPool || !showProjected) return null
     if (phaseState === 'CREATED' && byeSets) {
       const projPgInfo: PhaseGroupInfo = { ...pgData.pgInfo, allSets: byeSets as PhaseGroupInfo['allSets'], sets: byeSets as PhaseGroupInfo['sets'] }
       const projBracket = buildBracketData(projPgInfo, userEntrantId, seedOverrides, seedIdToSeedNum)
       return buildProjectedResults(projBracket)
     }
     return buildProjectedResults(bracketData)
-  }, [showProjected, bracketData, byeSets, pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, phaseState])
+  }, [isPool, showProjected, bracketData, byeSets, pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, phaseState])
+
+  if (isPool) {
+    return (
+      <PoolVisualization
+        bracketData={bracketData}
+        bracketType={bracketType!}
+        userEntrantId={userEntrantId}
+        entrantPlayerMap={entrantPlayerMap}
+        eventId={eventId}
+        phaseNav={phaseNav}
+        onSetClick={onSetClick}
+      />
+    )
+  }
 
   return (
     <BracketVisualization
@@ -469,6 +492,7 @@ function findUserPool(
 
 function CollapsiblePools({
   pgDataList,
+  bracketType,
   showProjected,
   phaseState,
   receivesProgressions,
@@ -481,6 +505,7 @@ function CollapsiblePools({
   onSetClick,
 }: {
   pgDataList: PhaseGroupSetResult[]
+  bracketType: string | null
   showProjected: boolean
   phaseState: string | null
   receivesProgressions: boolean
@@ -543,6 +568,7 @@ function CollapsiblePools({
             {isOpen && (
               <PhaseGroupBracket
                 pgData={pgData}
+                bracketType={bracketType}
                 showProjected={showProjected}
                 phaseState={phaseState}
                 receivesProgressions={receivesProgressions}

@@ -7,13 +7,14 @@ import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { useCharacters } from '../hooks/use-characters'
 import { useSetDetails } from '../hooks/use-set-details'
 import type { SetClickInfo } from '../lib/bracket-utils'
-import { buildBracketData, buildEntrantPlayerMap } from '../lib/bracket-utils'
+import { buildBracketData, buildEntrantPlayerMap, isPoolBracketType } from '../lib/bracket-utils'
 import { computeEventRoundLabels } from '../lib/round-label-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { computeWinRate, computeCharacterUsage, computeUpsetFactor } from '../lib/stats-utils'
 import { formatDateRange } from '../lib/format'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
+import { PoolVisualization } from '../components/PoolVisualization/PoolVisualization'
 import { SetDetails } from '../components/SetDetails/SetDetails'
 import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
@@ -308,6 +309,19 @@ function PlayerBracket({
     () => buildEntrantPlayerMap(phaseGroup),
     [phaseGroup],
   )
+
+  if (isPoolBracketType(phaseGroup.bracketType)) {
+    return (
+      <PoolVisualization
+        bracketData={bracketData}
+        bracketType={phaseGroup.bracketType!}
+        userEntrantId={userEntrantId}
+        entrantPlayerMap={entrantPlayerMap}
+        eventId={eventId}
+        onSetClick={onSetClick}
+      />
+    )
+  }
 
   return (
     <BracketVisualization

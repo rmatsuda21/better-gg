@@ -313,6 +313,7 @@ export async function fetchPhaseGroupSetData(
     displayIdentifier,
     phaseName,
     phaseOrder,
+    bracketType: null,
     userSeedNum: null,
     bracketSize: computeBracketSizeFromSets(allPgSets),
     sets: allPgSets,

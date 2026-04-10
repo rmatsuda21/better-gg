@@ -82,6 +82,7 @@ const entrantSeedsQuery = graphql(`
             id
             name
             phaseOrder
+            bracketType
           }
         }
       }
@@ -148,6 +149,7 @@ export interface PhaseGroupInfo {
   displayIdentifier: string | null
   phaseName: string | null
   phaseOrder: number | null
+  bracketType: string | null
   userSeedNum: number | null
   bracketSize: number
   sets: Array<NonNullable<PhaseGroupSetNode>>
@@ -252,6 +254,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
               displayIdentifier: pg.displayIdentifier ?? null,
               phaseName: pg.phase?.name ?? null,
               phaseOrder: pg.phase?.phaseOrder ?? null,
+              bracketType: pg.phase?.bracketType ?? null,
               userSeedNum: seed.seedNum ?? null,
               bracketSize: computeBracketSizeFromSets(allPgSets),
               sets: pgSets,
@@ -348,6 +351,7 @@ export function useEntrantSets(entrantId: string | undefined, eventState?: strin
             displayIdentifier: pg.displayIdentifier ?? null,
             phaseName: pg.phase?.name ?? null,
             phaseOrder: pg.phase?.phaseOrder ?? null,
+            bracketType: pg.phase?.bracketType ?? null,
             userSeedNum: seed.seedNum ?? null,
             bracketSize: computeBracketSizeFromSets(allPgSets),
             sets: pgSets,

@@ -525,6 +525,65 @@ export function computeProjectedStandings(
   return standings
 }
 
+export interface PoolStanding {
+  entrant: BracketEntrant
+  wins: number
+  losses: number
+  gameWins: number
+  gameLosses: number
+}
+
+export function isPoolBracketType(bracketType: string | null): boolean {
+  return bracketType === 'ROUND_ROBIN' || bracketType === 'SWISS'
+}
+
+export function computePoolStandings(data: BracketData): PoolStanding[] {
+  const statsMap = new Map<string, PoolStanding>()
+
+  for (const round of data.winnersRounds) {
+    for (const set of round.sets) {
+      const [e0, e1] = set.entrants
+      if (!e0?.id || !e1?.id) continue
+
+      // Ensure both entrants exist in the map
+      for (const e of [e0, e1]) {
+        if (e.id && !statsMap.has(e.id)) {
+          statsMap.set(e.id, { entrant: e, wins: 0, losses: 0, gameWins: 0, gameLosses: 0 })
+        }
+      }
+
+      if (set.winnerId) {
+        const winnerId = set.winnerId
+        const loserId = winnerId === e0.id ? e1.id : e0.id
+        statsMap.get(winnerId)!.wins++
+        statsMap.get(loserId)!.losses++
+      }
+
+      // Parse game scores from the set scores tuple
+      const [s0, s1] = set.scores
+      const g0 = s0 != null ? parseInt(s0, 10) : NaN
+      const g1 = s1 != null ? parseInt(s1, 10) : NaN
+      if (!isNaN(g0) && !isNaN(g1)) {
+        statsMap.get(e0.id)!.gameWins += g0
+        statsMap.get(e0.id)!.gameLosses += g1
+        statsMap.get(e1.id)!.gameWins += g1
+        statsMap.get(e1.id)!.gameLosses += g0
+      }
+    }
+  }
+
+  return [...statsMap.values()].sort((a, b) => {
+    // Wins desc
+    if (b.wins !== a.wins) return b.wins - a.wins
+    // Game differential desc
+    const aDiff = a.gameWins - a.gameLosses
+    const bDiff = b.gameWins - b.gameLosses
+    if (bDiff !== aDiff) return bDiff - aDiff
+    // Seed asc
+    return (a.entrant.seedNum ?? Infinity) - (b.entrant.seedNum ?? Infinity)
+  })
+}
+
 export interface PhaseNavInfo {
   prevPhase: { id: string; name: string } | null
   nextPhase: { id: string; name: string } | null
