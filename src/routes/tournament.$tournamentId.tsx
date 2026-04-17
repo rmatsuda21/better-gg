@@ -353,15 +353,19 @@ function EventCard({
         </div>
       )}
 
-      <button
-        className={styles.standingsToggle}
-        onClick={() => setShowStandings(!showStandings)}
-      >
-        <span className={`${styles.toggleArrow} ${showStandings ? styles.open : ''}`}>
-          &#9654;
-        </span>
-        {showStandings ? 'Hide standings' : 'Show standings'}
-      </button>
+      {event.state !== 'CREATED' && (
+        <button
+          className={styles.standingsToggle}
+          onClick={() => setShowStandings(!showStandings)}
+        >
+          <span className={`${styles.toggleArrow} ${showStandings ? styles.open : ''}`}>
+            &#9654;
+          </span>
+          {showStandings
+            ? event.state === 'ACTIVE' ? 'Hide current standings' : 'Hide standings'
+            : event.state === 'ACTIVE' ? 'Show current standings' : 'Show standings'}
+        </button>
+      )}
 
       {showStandings && (
         <div className={styles.standingsSection}>
