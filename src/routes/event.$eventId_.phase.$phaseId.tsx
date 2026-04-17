@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { useEventDetails } from '../hooks/use-event-details'
 import { useBracketMeta } from '../hooks/use-bracket-meta'
@@ -231,14 +231,6 @@ function PhaseBracketPage() {
 
   return (
     <div className={styles.container}>
-      <Link
-        to="/event/$eventId"
-        params={{ eventId }}
-        className={styles.backLink}
-      >
-        &larr; Back to event
-      </Link>
-
       {event && <EventHeader event={event} />}
 
       <div className={styles.phaseHeader}>

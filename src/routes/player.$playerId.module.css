@@ -12,20 +12,6 @@
   justify-content: space-between;
 }
 
-.backLink {
-  font-size: 0.9rem;
-  color: var(--accent);
-  text-decoration: none;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  transition: color var(--duration-fast), background-color var(--duration-fast);
-}
-
-.backLink:hover {
-  color: var(--accent-hover);
-  background: var(--accent-subtle);
-}
-
 /* Skeleton loading state */
 .skeletonCard {
   background: var(--bg-card);

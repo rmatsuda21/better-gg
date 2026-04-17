@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useOpponentStats } from '../hooks/use-opponent-stats'
 import { usePlayerProfile } from '../hooks/use-player-profile'
 import { usePlayerRecentEvents } from '../hooks/use-player-recent-events'
@@ -88,7 +88,6 @@ function buildPlacementsFromEvents(
 
 function PlayerPage() {
   const { playerId } = Route.useParams()
-  const router = useRouter()
   const { online } = Route.useSearch()
   const navigate = useNavigate({ from: '/player/$playerId' })
   const onlineFilter: OnlineFilter = online ?? 'all'
@@ -205,9 +204,6 @@ function PlayerPage() {
   return (
     <div className={styles.container}>
       <div className={styles.topRow}>
-        <button className={styles.backLink} onClick={() => router.history.back()}>
-          &larr; Back
-        </button>
         <FilterToggle value={onlineFilter} onChange={setOnlineFilter} />
       </div>
 

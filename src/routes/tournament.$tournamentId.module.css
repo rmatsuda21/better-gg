@@ -6,21 +6,6 @@
   animation: fadeIn 0.3s var(--ease-out-expo);
 }
 
-.backLink {
-  font-size: 0.9rem;
-  color: var(--accent);
-  text-decoration: none;
-  align-self: flex-start;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  transition: color var(--duration-fast), background-color var(--duration-fast);
-}
-
-.backLink:hover {
-  color: var(--accent-hover);
-  background: var(--accent-subtle);
-}
-
 /* Tournament Header */
 .header {
   display: flex;

@@ -73,10 +73,6 @@ function TournamentPage() {
 
   return (
     <div className={styles.container}>
-      <Link to="/" className={styles.backLink}>
-        &larr; Home
-      </Link>
-
       <div className={styles.header}>
         {profileImage ? (
           <img
