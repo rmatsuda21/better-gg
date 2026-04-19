@@ -94,6 +94,12 @@
   letter-spacing: 0.1em;
 }
 
+.noData {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
 .upcomingList {
   display: flex;
   flex-direction: column;

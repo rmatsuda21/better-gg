@@ -1,5 +1,9 @@
 interface SetNode {
   winnerId?: number | null
+  event?: {
+    id?: string | null
+    videogame?: { id?: string | null } | null
+  } | null
   slots?: Array<{
     entrant?: {
       id?: string | null
@@ -149,6 +153,58 @@ export function deRoundsFromWinning(seed: number): number {
   if (seed <= 4) return seed - 1
   const k = Math.ceil(Math.log2(seed)) - 2
   return seed <= 3 * Math.pow(2, k) ? 2 * k + 2 : 2 * k + 3
+}
+
+export function computePerEventCharacters(
+  sets: SetNode[],
+  playerId: string,
+  videogameId?: string,
+): Map<string, number[]> {
+  const eventCharCounts = new Map<string, Map<number, number>>()
+
+  for (const set of sets) {
+    if (
+      videogameId &&
+      set.event?.videogame?.id != null &&
+      String(set.event.videogame.id) !== videogameId
+    )
+      continue
+
+    const eventId = set.event?.id
+    if (!eventId) continue
+
+    const playerEntrant = set.slots?.find((slot) =>
+      slot?.entrant?.participants?.some(
+        (p) => p?.player?.id != null && String(p.player.id) === playerId,
+      ),
+    )
+    if (!playerEntrant?.entrant?.id) continue
+
+    for (const game of set.games ?? []) {
+      for (const sel of game?.selections ?? []) {
+        if (
+          sel?.selectionType === 'CHARACTER' &&
+          sel.selectionValue != null &&
+          sel.entrant?.id === playerEntrant.entrant.id
+        ) {
+          if (!eventCharCounts.has(eventId)) {
+            eventCharCounts.set(eventId, new Map())
+          }
+          const counts = eventCharCounts.get(eventId)!
+          counts.set(sel.selectionValue, (counts.get(sel.selectionValue) ?? 0) + 1)
+        }
+      }
+    }
+  }
+
+  const result = new Map<string, number[]>()
+  for (const [eventId, counts] of eventCharCounts) {
+    const sorted = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => id)
+    result.set(eventId, sorted)
+  }
+  return result
 }
 
 export function computeUpsetFactor(

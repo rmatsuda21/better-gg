@@ -37,6 +37,18 @@
   color: #d97706;
 }
 
+.characters {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.characterIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
 .eventInfo {
   display: flex;
   flex-direction: column;

@@ -1,14 +1,15 @@
 import { useEffect, useMemo } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useOpponentStats } from '../hooks/use-opponent-stats'
 import { usePlayerProfile } from '../hooks/use-player-profile'
 import { usePlayerRecentEvents } from '../hooks/use-player-recent-events'
 import { usePlayerUpcomingEvents } from '../hooks/use-player-upcoming-events'
+import { usePlayerSets } from '../hooks/use-player-sets'
 import { useCharacters } from '../hooks/use-characters'
 import { buildCharacterMap } from '../lib/character-utils'
 import {
   computeWinRate,
   computeCharacterUsage,
+  computePerEventCharacters,
 } from '../lib/stats-utils'
 import { formatWinRate } from '../lib/format'
 import { PlayerProfileHeader } from '../components/PlayerProfileHeader/PlayerProfileHeader'
@@ -58,6 +59,7 @@ function buildPlacementsFromEvents(
   }>,
   playerId: string,
   onlineFilter: OnlineFilter = 'all',
+  perEventChars?: Map<string, number[]>,
 ): PlacementEntry[] {
   const entries: PlacementEntry[] = []
 
@@ -78,6 +80,7 @@ function buildPlacementsFromEvents(
           numEntrants: event.numEntrants,
           eventId: event.id ?? null,
           playerId,
+          characterIds: event.id ? perEventChars?.get(event.id) : undefined,
         })
       }
     }
@@ -107,12 +110,8 @@ function PlayerPage() {
     refetch: refetchProfile,
   } = usePlayerProfile(playerId, ULTIMATE_VIDEOGAME_ID)
 
-  // Phase 2: Stats (win rate, characters) — parallel with profile
-  const { data: statsData, isLoading: statsLoading } = useOpponentStats(
-    playerId,
-    true,
-    ULTIMATE_VIDEOGAME_ID,
-  )
+  // Phase 2: Sets (win rate, characters) — parallel with profile
+  const setsQuery = usePlayerSets(playerId)
   const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
 
   // Phase 3: Events — depends on userId from profile
@@ -125,7 +124,7 @@ function PlayerPage() {
     ULTIMATE_VIDEOGAME_ID,
   )
 
-  // Auto-fetch next pages
+  // Auto-fetch next pages for events and sets
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = eventsQuery
   useEffect(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -133,26 +132,48 @@ function PlayerPage() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Compute stats from opponent stats data
-  const player = statsData?.player
+  const { hasNextPage: setsHasNext, isFetchingNextPage: setsFetchingNext, fetchNextPage: fetchNextSets } = setsQuery
+  useEffect(() => {
+    if (setsHasNext && !setsFetchingNext) {
+      fetchNextSets()
+    }
+  }, [setsHasNext, setsFetchingNext, fetchNextSets])
+
+  // Compute stats from player sets data
   const characterMap = buildCharacterMap(charData?.videogame?.characters)
-  const sets = player?.sets?.nodes ?? []
-  const validSets = sets
-    .filter((s): s is NonNullable<typeof s> => s != null)
-    .filter((s) => String(s.event?.videogame?.id) === ULTIMATE_VIDEOGAME_ID)
-  const winRate = player ? computeWinRate(validSets, player.id!) : null
-  const charUsage = player
-    ? computeCharacterUsage(validSets, player.id!).filter(
+  const allSets = useMemo(() => {
+    if (!setsQuery.data?.pages) return []
+    return setsQuery.data.pages.flatMap(
+      (page) => (page?.player?.sets?.nodes ?? []).filter(
+        (s): s is NonNullable<typeof s> => s != null,
+      ),
+    )
+  }, [setsQuery.data?.pages])
+
+  const validSets = useMemo(
+    () => allSets.filter((s) => String(s.event?.videogame?.id) === ULTIMATE_VIDEOGAME_ID),
+    [allSets],
+  )
+
+  const setsLoaded = setsQuery.data?.pages != null && setsQuery.data.pages.length > 0
+  const winRate = setsLoaded ? computeWinRate(validSets, playerId) : null
+  const charUsage = setsLoaded
+    ? computeCharacterUsage(validSets, playerId).filter(
         (c) => characterMap.size === 0 || characterMap.has(c.characterId),
       )
     : []
+
+  const perEventChars = useMemo(
+    () => setsLoaded ? computePerEventCharacters(allSets, playerId, ULTIMATE_VIDEOGAME_ID) : new Map<string, number[]>(),
+    [allSets, playerId, setsLoaded],
+  )
 
   // Build placements from infinite query pages
   const pages = eventsQuery.data?.pages
   const placements = useMemo(() => {
     if (!pages) return []
-    return buildPlacementsFromEvents(pages, playerId, onlineFilter)
-  }, [pages, playerId, onlineFilter])
+    return buildPlacementsFromEvents(pages, playerId, onlineFilter, perEventChars)
+  }, [pages, playerId, onlineFilter, perEventChars])
 
   // Compute avg placement from events data
   const avgPlacement = useMemo(() => {
@@ -216,17 +237,19 @@ function PlayerPage() {
         eventCount={placements.length}
       />
 
-      {statsLoading ? (
+      {setsQuery.isLoading ? (
         <div className={styles.sectionCard}>
           <Skeleton width="100%" height={80} borderRadius={8} />
         </div>
       ) : (
-        charUsage.length > 0 && (
-          <div className={`${styles.sectionCard} ${styles.sectionCardAnimated}`}>
-            <h3 className={styles.sectionTitle}>Characters</h3>
+        <div className={`${styles.sectionCard} ${styles.sectionCardAnimated}`}>
+          <h3 className={styles.sectionTitle}>Characters</h3>
+          {charUsage.length > 0 ? (
             <CharacterBar usage={charUsage} characterMap={characterMap} />
-          </div>
-        )
+          ) : (
+            <p className={styles.noData}>No character data available</p>
+          )}
+        </div>
       )}
 
       {upcomingLoading ? (

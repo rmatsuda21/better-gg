@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatPlacement } from '../../lib/format'
+import { getCharacterStockIcon } from '../../lib/character-utils'
 import styles from './PlacementList.module.css'
 
 export interface PlacementEntry {
@@ -10,6 +11,7 @@ export interface PlacementEntry {
   numEntrants?: number | null
   eventId?: string | null
   playerId?: string | null
+  characterIds?: number[]
 }
 
 interface PlacementListProps {
@@ -41,6 +43,18 @@ export function PlacementList({ placements, isLoadingMore }: PlacementListProps)
             style={isNew ? { animationDelay: `${(i - animateOffset) * 40}ms` } : undefined}
           >
             <span className={`${styles.placement} ${p.placement === 1 ? styles.placementGold : p.placement === 2 ? styles.placementSilver : p.placement === 3 ? styles.placementBronze : ''}`}>{formatPlacement(p.placement)}</span>
+            {p.characterIds && p.characterIds.length > 0 && (
+              <span className={styles.characters}>
+                {p.characterIds.slice(0, 3).map((id) => (
+                  <img
+                    key={id}
+                    src={getCharacterStockIcon(id)}
+                    alt=""
+                    className={styles.characterIcon}
+                  />
+                ))}
+              </span>
+            )}
             <div className={styles.eventInfo}>
               <span className={styles.eventName}>{p.eventName}</span>
               {p.eventId && p.playerId ? (
