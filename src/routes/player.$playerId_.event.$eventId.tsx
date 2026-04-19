@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEventDetails } from '../hooks/use-event-details'
 import { usePlayerEntrant } from '../hooks/use-player-entrant'
@@ -7,7 +7,7 @@ import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { useCharacters } from '../hooks/use-characters'
 import { useSetDetails } from '../hooks/use-set-details'
 import type { SetClickInfo } from '../lib/bracket-utils'
-import { buildBracketData, buildEntrantPlayerMap, isPoolBracketType } from '../lib/bracket-utils'
+import { buildBracketData, buildProjectedResults, buildEntrantPlayerMap, isPoolBracketType } from '../lib/bracket-utils'
 import { computeEventRoundLabels } from '../lib/round-label-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { computeWinRate, computeCharacterUsage, computeUpsetFactor } from '../lib/stats-utils'
@@ -30,14 +30,22 @@ const LazyShareResultModal = lazy(() =>
 const ULTIMATE_VIDEOGAME_ID = '1386'
 
 export const Route = createFileRoute('/player/$playerId_/event/$eventId')({
-  validateSearch: (search: Record<string, unknown>): { expanded?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { expanded?: string; projected?: boolean } => ({
     expanded: typeof search.expanded === 'string' && search.expanded ? search.expanded : undefined,
+    projected:
+      search.projected === true || search.projected === 'true'
+        ? true
+        : search.projected === false || search.projected === 'false'
+          ? false
+          : undefined,
   }),
   component: PlayerEventPage,
 })
 
 function PlayerEventPage() {
   const { playerId, eventId } = Route.useParams()
+  const { projected: urlProjected } = Route.useSearch()
+  const navigate = useNavigate({ from: '/player/$playerId/event/$eventId' })
   const { data: eventData, isLoading: eventLoading, isError, error, refetch } = useEventDetails(eventId)
   const { data: entrantData, isLoading: entrantLoading } = usePlayerEntrant(playerId, eventId)
   const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
@@ -54,6 +62,15 @@ function PlayerEventPage() {
 
   const handleSetClick = (info: SetClickInfo) => setModalInfo(info)
 
+  // Projection toggle (URL-driven, matching phase bracket route pattern)
+  const projected = urlProjected ?? false
+  const setProjected = useCallback((value: boolean) => {
+    navigate({
+      search: (prev) => ({ ...prev, projected: value || undefined }),
+      replace: true,
+    })
+  }, [navigate])
+
   const event = eventData?.event ?? null
 
   const sets = useMemo(
@@ -65,6 +82,8 @@ function PlayerEventPage() {
 
   const phaseGroups = setsData?.phaseGroups ?? []
   const showBracket = entrantData && phaseGroups.length > 0
+  const hasNonPoolBracket = phaseGroups.some(pg => !isPoolBracketType(pg.bracketType))
+  const showProjectionToggle = eventState !== 'COMPLETED' && hasNonPoolBracket && showBracket
 
   // Compute event-level round labels (Top N using event numEntrants + phase offsets)
   const roundLabels = useMemo(() => {
@@ -217,17 +236,58 @@ function PlayerEventPage() {
 
       {setsLoading && entrantData ? (
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Bracket</h3>
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Bracket</h3>
+          </div>
           <Skeleton width="100%" height={300} borderRadius={8} />
         </div>
       ) : showBracket && (
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Bracket</h3>
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Bracket</h3>
+            {phaseGroups.length === 1 && (
+              <div className={styles.sectionBadges}>
+                {phaseGroups[0].bracketType && (
+                  <span className={styles.bracketType}>{phaseGroups[0].bracketType}</span>
+                )}
+                {eventState && (
+                  <span
+                    className={`${styles.phaseState} ${
+                      eventState === 'COMPLETED'
+                        ? styles.completed
+                        : eventState === 'ACTIVE'
+                          ? styles.active
+                          : ''
+                    }`}
+                  >
+                    {eventState}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          {showProjectionToggle && (
+            <div className={styles.toggleRow}>
+              <button
+                className={`${styles.toggleBtn} ${!projected ? styles.toggleBtnActive : ''}`}
+                onClick={() => setProjected(false)}
+              >
+                Actual
+              </button>
+              <button
+                className={`${styles.toggleBtn} ${projected ? styles.toggleBtnActive : ''}`}
+                onClick={() => setProjected(true)}
+              >
+                Projected
+              </button>
+            </div>
+          )}
           {phaseGroups.length === 1 ? (
             <PlayerBracket
               phaseGroup={phaseGroups[0]}
               userEntrantId={entrantId}
               eventId={eventId}
+              showProjected={projected}
               onSetClick={handleSetClick}
             />
           ) : (
@@ -235,6 +295,8 @@ function PlayerEventPage() {
               phaseGroups={phaseGroups}
               userEntrantId={entrantId}
               eventId={eventId}
+              eventState={eventState}
+              showProjected={projected}
               onSetClick={handleSetClick}
             />
           )}
@@ -294,13 +356,16 @@ function PlayerBracket({
   phaseGroup,
   userEntrantId,
   eventId,
+  showProjected,
   onSetClick,
 }: {
   phaseGroup: PhaseGroupInfo
   userEntrantId?: string
   eventId: string
+  showProjected: boolean
   onSetClick?: (info: SetClickInfo) => void
 }) {
+  const isPool = isPoolBracketType(phaseGroup.bracketType)
   const bracketData = useMemo(
     () => buildBracketData(phaseGroup, userEntrantId),
     [phaseGroup, userEntrantId],
@@ -309,8 +374,12 @@ function PlayerBracket({
     () => buildEntrantPlayerMap(phaseGroup),
     [phaseGroup],
   )
+  const projectedResults = useMemo(() => {
+    if (isPool || !showProjected) return null
+    return buildProjectedResults(bracketData)
+  }, [isPool, showProjected, bracketData])
 
-  if (isPoolBracketType(phaseGroup.bracketType)) {
+  if (isPool) {
     return (
       <PoolVisualization
         bracketData={bracketData}
@@ -326,6 +395,7 @@ function PlayerBracket({
   return (
     <BracketVisualization
       bracketData={bracketData}
+      projectedResults={projectedResults}
       userEntrantId={userEntrantId}
       entrantPlayerMap={entrantPlayerMap}
       eventId={eventId}
@@ -338,11 +408,15 @@ function CollapsiblePhaseGroups({
   phaseGroups,
   userEntrantId,
   eventId,
+  eventState,
+  showProjected,
   onSetClick,
 }: {
   phaseGroups: PhaseGroupInfo[]
   userEntrantId?: string
   eventId: string
+  eventState?: string | null
+  showProjected: boolean
   onSetClick?: (info: SetClickInfo) => void
 }) {
   const sorted = [...phaseGroups].sort(
@@ -387,6 +461,22 @@ function CollapsiblePhaseGroups({
             >
               <span className={styles.phaseGroupArrow}>{isOpen ? '▼' : '▶'}</span>
               <h3 className={styles.phaseGroupLabel}>{label}</h3>
+              {pg.bracketType && (
+                <span className={styles.bracketType}>{pg.bracketType}</span>
+              )}
+              {eventState && (
+                <span
+                  className={`${styles.phaseState} ${
+                    eventState === 'COMPLETED'
+                      ? styles.completed
+                      : eventState === 'ACTIVE'
+                        ? styles.active
+                        : ''
+                  }`}
+                >
+                  {eventState}
+                </span>
+              )}
               {pg.userSeedNum != null && (
                 <span className={styles.seedBadge}>Seed {pg.userSeedNum}</span>
               )}
@@ -396,6 +486,7 @@ function CollapsiblePhaseGroups({
                 phaseGroup={pg}
                 userEntrantId={userEntrantId}
                 eventId={eventId}
+                showProjected={showProjected}
                 onSetClick={onSetClick}
               />
             )}

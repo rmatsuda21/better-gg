@@ -134,8 +134,6 @@ better-gg/
       TournamentCard/          # Reused on homepage + /tournaments page (variant: compact|grid)
       TournamentSearch/        # Autocomplete with country filter + "See all results" link (inline mode for CommandPalette)
       EventHeader/
-      OpponentAnalysis/
-      OpponentCard/
       BracketVisualization/    # Pure CSS Grid bracket tree (receives pre-computed bracketData + projectedResults)
       BracketSearch/           # Entrant search within bracket (autocomplete)
       SetDetails/              # Set results with expandable game rows (accepts roundLabels for event-level "Top N")

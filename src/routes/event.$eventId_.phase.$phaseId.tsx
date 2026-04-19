@@ -18,6 +18,7 @@ import {
   buildEntrantPlayerMap,
   isPoolBracketType,
 } from '../lib/bracket-utils'
+import { formatRoundLabel } from '../lib/round-label-utils'
 import type { BracketEntrant, PhaseNavInfo, SetClickInfo, SetProgressionInfo } from '../lib/bracket-utils'
 import { EventHeader } from '../components/EventHeader/EventHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
@@ -231,7 +232,7 @@ function PhaseBracketPage() {
 
   return (
     <div className={styles.container}>
-      {event && <EventHeader event={event} />}
+      {event && <EventHeader event={event} eventId={eventId} />}
 
       <div className={styles.phaseHeader}>
         <h2 className={styles.phaseTitle}>{meta.phaseName}</h2>
@@ -368,6 +369,7 @@ function PhaseBracketPage() {
           onClose={() => setModalInfo(null)}
           preview={{ ...modalInfo }}
           userEntrantId={urlEntrantId}
+          roundLabel={modalInfo.fullRoundText ? formatRoundLabel(modalInfo.fullRoundText) : undefined}
           games={setDetailData?.set?.games}
           gamesLoading={!setDetailData}
           characterMap={characterMap}

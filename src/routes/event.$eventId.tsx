@@ -62,21 +62,11 @@ function EventPage() {
       ) : event.phases.every(p => p?.state === 'CREATED') ? (
         <div className={styles.notPublished}>
           <p className={styles.notPublishedMessage}>
-            Brackets have been created but are not published yet.
+            This event hasn&apos;t started yet.
           </p>
           <p className={styles.notPublishedHint}>
-            Check back closer to the event start time, or view the event on start.gg for updates.
+            View projected brackets below based on current seeding.
           </p>
-          {event.slug && (
-            <a
-              href={`https://start.gg/${event.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.notPublishedLink}
-            >
-              View on start.gg &rarr;
-            </a>
-          )}
         </div>
       ) : null}
 
