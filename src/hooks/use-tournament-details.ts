@@ -16,6 +16,10 @@ const tournamentDetailsQuery = graphql(`
       countryCode
       isOnline
       venueName
+      venueAddress
+      lat
+      lng
+      mapsPlaceId
       images(type: "profile") {
         id
         url

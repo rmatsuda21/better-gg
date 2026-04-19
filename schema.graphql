@@ -128,6 +128,10 @@ type Tournament {
   countryCode: String
   isOnline: Boolean
   venueName: String
+  venueAddress: String
+  lat: Float
+  lng: Float
+  mapsPlaceId: String
   images(type: String): [Image]
   events(limit: Int, filter: EventFilter): [Event]
   participants(query: ParticipantPaginationQuery): ParticipantConnection

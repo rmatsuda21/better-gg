@@ -71,6 +71,16 @@ function TournamentPage() {
         .filter(Boolean)
         .join(', ')
 
+  const mapsUrl = !tournament.isOnline
+    ? tournament.venueAddress
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tournament.venueAddress)}`
+      : tournament.lat != null && tournament.lng != null
+        ? `https://www.google.com/maps/search/?api=1&query=${tournament.lat},${tournament.lng}`
+        : location
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
+          : null
+    : null
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -96,7 +106,7 @@ function TournamentPage() {
             ) : (
               location && <span>{location}</span>
             )}
-            {tournament.venueName && <span>{tournament.venueName}</span>}
+
             {tournament.numAttendees != null && (
               <span>{tournament.numAttendees} attendees</span>
             )}
@@ -109,6 +119,16 @@ function TournamentPage() {
               rel="noopener noreferrer"
             >
               View on start.gg &rarr;
+            </a>
+          )}
+          {mapsUrl && (
+            <a
+              className={styles.externalLink}
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View on Google Maps &rarr;
             </a>
           )}
         </div>
