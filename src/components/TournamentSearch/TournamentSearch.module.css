@@ -134,6 +134,32 @@
   color: var(--success);
 }
 
+.urlAction {
+  border-left-color: var(--accent);
+  background-color: var(--accent-subtle);
+}
+
+.urlActionIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.urlSlug {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .emptyMessage {
   padding: 1rem;
   text-align: center;

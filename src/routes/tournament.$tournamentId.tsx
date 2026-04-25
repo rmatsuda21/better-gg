@@ -34,10 +34,11 @@ function TournamentPage() {
   const navigate = useNavigate({ from: '/tournament/$tournamentId' })
   const { data, isLoading, isError, error, refetch } =
     useTournamentDetails(tournamentId)
+  const resolvedId = data?.tournament?.id ? String(data.tournament.id) : ''
   const {
     data: participants,
     isLoading: participantsLoading,
-  } = useTournamentParticipants(tournamentId)
+  } = useTournamentParticipants(resolvedId)
 
   if (isLoading) {
     return (

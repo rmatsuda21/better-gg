@@ -69,7 +69,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   function handleTournamentSelect(tournament: TournamentResult) {
     if (!tournament.id) return
     onClose()
-    navigate({ to: '/tournament/$tournamentId', params: { tournamentId: String(tournament.id) } })
+    const slug = tournament.slug?.split('/').pop()
+    navigate({ to: '/tournament/$tournamentId', params: { tournamentId: slug ?? String(tournament.id) } })
   }
 
   return createPortal(
@@ -109,7 +110,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             {tab === 'players' ? (
               <PlayerSearch onSelect={handlePlayerSelect} onSearch={handlePlayerSearch} inline autoFocus />
             ) : (
-              <TournamentSearch onSelect={handleTournamentSelect} inline autoFocus />
+              <TournamentSearch onSelect={handleTournamentSelect} onNavigate={onClose} inline autoFocus />
             )}
           </Suspense>
         </div>

@@ -54,7 +54,8 @@ function HomePage() {
 
   function handleTournamentSelect(tournament: TournamentResult) {
     if (!tournament.id) return
-    navigate({ to: '/tournament/$tournamentId', params: { tournamentId: String(tournament.id) } })
+    const slug = tournament.slug?.split('/').pop()
+    navigate({ to: '/tournament/$tournamentId', params: { tournamentId: slug ?? String(tournament.id) } })
   }
 
   return (

@@ -3,8 +3,8 @@ import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 
 const tournamentDetailsQuery = graphql(`
-  query TournamentDetails($tournamentId: ID!) {
-    tournament(id: $tournamentId) {
+  query TournamentDetails($tournamentId: ID, $slug: String) {
+    tournament(id: $tournamentId, slug: $slug) {
       id
       name
       slug
@@ -50,12 +50,16 @@ const tournamentDetailsQuery = graphql(`
   }
 `)
 
-export function useTournamentDetails(tournamentId: string) {
+export function useTournamentDetails(identifier: string) {
+  const isSlug = !/^\d+$/.test(identifier)
   return useQuery({
-    queryKey: ['tournamentDetails', tournamentId],
+    queryKey: ['tournamentDetails', identifier],
     queryFn: () =>
-      graphqlClient.request(tournamentDetailsQuery, { tournamentId }),
-    enabled: !!tournamentId,
+      graphqlClient.request(tournamentDetailsQuery, {
+        tournamentId: isSlug ? undefined : identifier,
+        slug: isSlug ? `tournament/${identifier}` : undefined,
+      }),
+    enabled: !!identifier,
     staleTime: 5 * 60 * 1000,
   })
 }
