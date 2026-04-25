@@ -20,7 +20,7 @@ const bracketMetaQuery = graphql(`
           phaseOrder
         }
       }
-      phaseGroups {
+      phaseGroups(query: { page: 1, perPage: 100 }) {
         nodes {
           id
           displayIdentifier

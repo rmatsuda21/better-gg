@@ -320,7 +320,7 @@ type Phase {
   groupCount: Int
   numSeeds: Int
   event: Event
-  phaseGroups: PhaseGroupConnection
+  phaseGroups(query: SeedPaginationQuery): PhaseGroupConnection
   progressingInData: [ProgressionData]
   seeds(query: SeedPaginationQuery): SeedConnection
 }
