@@ -78,6 +78,9 @@
   cursor: pointer;
   font-family: inherit;
   transition: background-color var(--duration-fast), border-color var(--duration-fast);
+  position: sticky;
+  top: 3.5rem;
+  z-index: 20;
 }
 
 .phaseGroupToggle:hover {

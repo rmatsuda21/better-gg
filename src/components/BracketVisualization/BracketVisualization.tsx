@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useRef } from 'react'
 import { Link } from '@tanstack/react-router'
 import type {
   BracketData,
@@ -10,6 +10,7 @@ import type {
   SetClickInfo,
   SetProgressionInfo,
 } from '../../lib/bracket-utils'
+import { useDragScroll } from '../../hooks/use-drag-scroll'
 import styles from './BracketVisualization.module.css'
 
 interface BracketVisualizationProps {
@@ -243,6 +244,9 @@ function BracketSection({
   progressionMap?: Map<string, SetProgressionInfo>
   onSetClick?: (info: SetClickInfo) => void
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useDragScroll(scrollRef)
+
   if (rounds.length === 0) return null
 
   const { positions, totalLeaves } = computeTreePositions(rounds)
@@ -270,7 +274,7 @@ function BracketSection({
     : null
 
   return (
-    <div className={styles.scrollContainer}>
+    <div ref={scrollRef} className={styles.scrollContainer}>
       <div
         className={styles.bracket}
         style={{
