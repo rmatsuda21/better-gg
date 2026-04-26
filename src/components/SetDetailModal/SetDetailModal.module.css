@@ -114,6 +114,41 @@ a.bannerName:hover {
   color: var(--accent);
 }
 
+.bannerNameTeam {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.teamMemberLink {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--duration-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.teamMemberLink:hover {
+  color: var(--accent);
+}
+
+.teamMemberText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.teamPrefix {
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-right: 0.2rem;
+}
+
 .bannerScores {
   display: flex;
   flex-direction: column;

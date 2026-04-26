@@ -16,6 +16,7 @@ import {
   buildBracketData,
   buildProjectedResults,
   buildEntrantPlayerMap,
+  buildEntrantParticipantsMap,
   isPoolBracketType,
 } from '../lib/bracket-utils'
 import { formatRoundLabel } from '../lib/round-label-utils'
@@ -438,6 +439,12 @@ function PhaseGroupBracket({
   // Entrant -> player ID map
   const entrantPlayerMap = useMemo(() => buildEntrantPlayerMap(pgData.pgInfo, isTeamEvent), [pgData.pgInfo, isTeamEvent])
 
+  // Entrant -> participants map (for team events, provides player links in modals)
+  const entrantParticipantsMap = useMemo(
+    () => isTeamEvent ? buildEntrantParticipantsMap(pgData.pgInfo) : undefined,
+    [pgData.pgInfo, isTeamEvent],
+  )
+
   // Lazy: bye-inclusive sets for projection (needed for both CREATED and ACTIVE
   // phases because the regular query omits hidden bye rounds, causing losers
   // bracket prereqs to fail resolution)
@@ -467,6 +474,7 @@ function PhaseGroupBracket({
         bracketType={bracketType!}
         userEntrantId={userEntrantId}
         entrantPlayerMap={entrantPlayerMap}
+        entrantParticipantsMap={entrantParticipantsMap}
         eventId={eventId}
         phaseNav={phaseNav}
         onSetClick={onSetClick}
@@ -480,6 +488,7 @@ function PhaseGroupBracket({
       projectedResults={projectedResults}
       userEntrantId={userEntrantId}
       entrantPlayerMap={entrantPlayerMap}
+      entrantParticipantsMap={entrantParticipantsMap}
       eventId={eventId}
       phaseNav={phaseNav}
       progressionMap={progressionMap}

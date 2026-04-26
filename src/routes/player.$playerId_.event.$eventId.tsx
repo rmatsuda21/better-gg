@@ -7,7 +7,7 @@ import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { useCharacters } from '../hooks/use-characters'
 import { useSetDetails } from '../hooks/use-set-details'
 import type { SetClickInfo } from '../lib/bracket-utils'
-import { buildBracketData, buildProjectedResults, buildEntrantPlayerMap, isPoolBracketType } from '../lib/bracket-utils'
+import { buildBracketData, buildProjectedResults, buildEntrantPlayerMap, buildEntrantParticipantsMap, isPoolBracketType } from '../lib/bracket-utils'
 import { computeEventRoundLabels } from '../lib/round-label-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { computeWinRate, computeCharacterUsage, computeUpsetFactor } from '../lib/stats-utils'
@@ -390,6 +390,10 @@ function PlayerBracket({
     () => buildEntrantPlayerMap(phaseGroup, isTeamEvent),
     [phaseGroup, isTeamEvent],
   )
+  const entrantParticipantsMap = useMemo(
+    () => isTeamEvent ? buildEntrantParticipantsMap(phaseGroup) : undefined,
+    [phaseGroup, isTeamEvent],
+  )
   const projectedResults = useMemo(() => {
     if (isPool || !showProjected) return null
     return buildProjectedResults(bracketData)
@@ -402,6 +406,7 @@ function PlayerBracket({
         bracketType={phaseGroup.bracketType!}
         userEntrantId={userEntrantId}
         entrantPlayerMap={entrantPlayerMap}
+        entrantParticipantsMap={entrantParticipantsMap}
         eventId={eventId}
         onSetClick={onSetClick}
       />
@@ -414,6 +419,7 @@ function PlayerBracket({
       projectedResults={projectedResults}
       userEntrantId={userEntrantId}
       entrantPlayerMap={entrantPlayerMap}
+      entrantParticipantsMap={entrantParticipantsMap}
       eventId={eventId}
       onSetClick={onSetClick}
     />

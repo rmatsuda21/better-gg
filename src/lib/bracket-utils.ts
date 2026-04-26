@@ -27,11 +27,18 @@ export interface SlotPrereq {
   prereqType: string | null // "set" or "bye"
 }
 
+export interface SetClickParticipant {
+  gamerTag: string
+  prefix: string | null
+  playerId: string | null
+}
+
 export interface SetClickEntrant {
   id: string | null
   name: string
   playerId: string | null
   seedNum: number | null
+  participants?: SetClickParticipant[]
 }
 
 export interface SetClickInfo {
@@ -353,6 +360,27 @@ export function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo, isTeamEvent?: 
       if (entrant?.id) {
         const playerId = entrant.participants?.[0]?.player?.id
         if (playerId) map.set(String(entrant.id), String(playerId))
+      }
+    }
+  }
+  return map
+}
+
+export function buildEntrantParticipantsMap(phaseGroup: PhaseGroupInfo): Map<string, SetClickParticipant[]> {
+  const map = new Map<string, SetClickParticipant[]>()
+  for (const set of phaseGroup.allSets) {
+    for (const slot of set.slots ?? []) {
+      const entrant = slot?.entrant ?? slot?.seed?.entrant
+      if (!entrant?.id || map.has(String(entrant.id))) continue
+      const participants: SetClickParticipant[] = (entrant.participants ?? [])
+        .filter((p): p is NonNullable<typeof p> => p != null && !!p.gamerTag)
+        .map(p => ({
+          gamerTag: p.gamerTag!,
+          prefix: p.prefix ?? null,
+          playerId: p.player?.id ? String(p.player.id) : null,
+        }))
+      if (participants.length > 0) {
+        map.set(String(entrant.id), participants)
       }
     }
   }

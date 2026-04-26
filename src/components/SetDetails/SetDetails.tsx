@@ -10,6 +10,8 @@ interface EntrantData {
   name?: string | null
   initialSeedNum?: number | null
   participants?: Array<{
+    gamerTag?: string | null
+    prefix?: string | null
     player?: { id?: string | null } | null
   } | null> | null
 }
@@ -63,6 +65,18 @@ function getPlayerId(entrant: EntrantData | null | undefined, isTeam?: boolean):
   if (isTeam) return null
   const id = entrant?.participants?.[0]?.player?.id
   return id ?? null
+}
+
+function getParticipants(entrant: EntrantData | null | undefined, isTeam?: boolean) {
+  if (!isTeam || !entrant?.participants) return undefined
+  const result = entrant.participants
+    .filter((p): p is NonNullable<typeof p> => p != null && !!p.gamerTag)
+    .map(p => ({
+      gamerTag: p.gamerTag!,
+      prefix: p.prefix ?? null,
+      playerId: p.player?.id ? String(p.player.id) : null,
+    }))
+  return result.length > 0 ? result : undefined
 }
 
 function getSeedNum(slot: SetSlot | null | undefined): number | null {
@@ -168,8 +182,8 @@ export function SetDetails({
               scores: [oppScore ?? null, userScore ?? null],
               isDQ: set.displayScore === 'DQ',
               entrants: [
-                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp, isTeamEvent), seedNum: getSeedNum(oppSlot) } : null,
-                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user, isTeamEvent), seedNum: getSeedNum(userSlot) } : null,
+                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp, isTeamEvent), seedNum: getSeedNum(oppSlot), participants: getParticipants(opp, isTeamEvent) } : null,
+                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user, isTeamEvent), seedNum: getSeedNum(userSlot), participants: getParticipants(user, isTeamEvent) } : null,
               ],
             })
           } else if (hasGames) {

@@ -8,6 +8,7 @@ import type {
   ProjectedSet,
   PhaseNavInfo,
   SetClickInfo,
+  SetClickParticipant,
   SetProgressionInfo,
 } from '../../lib/bracket-utils'
 import { useDragScroll } from '../../hooks/use-drag-scroll'
@@ -18,6 +19,7 @@ interface BracketVisualizationProps {
   projectedResults?: Map<string, ProjectedSet> | null
   userEntrantId?: string
   entrantPlayerMap: Map<string, string>
+  entrantParticipantsMap?: Map<string, SetClickParticipant[]>
   eventId?: string
   phaseNav?: PhaseNavInfo
   progressionMap?: Map<string, SetProgressionInfo>
@@ -29,6 +31,7 @@ export function BracketVisualization({
   projectedResults,
   userEntrantId,
   entrantPlayerMap,
+  entrantParticipantsMap,
   eventId,
   phaseNav,
   progressionMap,
@@ -46,6 +49,7 @@ export function BracketVisualization({
             userEntrantId={userEntrantId}
             projectedResults={projectedResults ?? null}
             entrantPlayerMap={entrantPlayerMap}
+            entrantParticipantsMap={entrantParticipantsMap}
             eventId={eventId}
             prevPhase={phaseNav?.prevPhase ?? null}
             nextPhase={phaseNav?.nextPhase ?? null}
@@ -63,6 +67,7 @@ export function BracketVisualization({
             userEntrantId={userEntrantId}
             projectedResults={projectedResults ?? null}
             entrantPlayerMap={entrantPlayerMap}
+            entrantParticipantsMap={entrantParticipantsMap}
             eventId={eventId}
             prevPhase={phaseNav?.prevPhase ?? null}
             nextPhase={phaseNav?.nextPhase ?? null}
@@ -228,6 +233,7 @@ function BracketSection({
   userEntrantId,
   projectedResults,
   entrantPlayerMap,
+  entrantParticipantsMap,
   eventId,
   prevPhase,
   nextPhase,
@@ -238,6 +244,7 @@ function BracketSection({
   userEntrantId?: string
   projectedResults: Map<string, ProjectedSet> | null
   entrantPlayerMap: Map<string, string>
+  entrantParticipantsMap?: Map<string, SetClickParticipant[]>
   eventId?: string
   prevPhase?: { id: string; name: string } | null
   nextPhase?: { id: string; name: string } | null
@@ -337,6 +344,7 @@ function BracketSection({
                       userEntrantId={userEntrantId}
                       projectedResults={projectedResults}
                       entrantPlayerMap={entrantPlayerMap}
+                      entrantParticipantsMap={entrantParticipantsMap}
                       progressionInfo={progressionMap?.get(set.id)}
                       eventId={eventId}
                       sourcePhase={sourcePhase}
@@ -432,6 +440,7 @@ function SetCard({
   userEntrantId,
   projectedResults,
   entrantPlayerMap,
+  entrantParticipantsMap,
   progressionInfo,
   eventId,
   sourcePhase,
@@ -442,6 +451,7 @@ function SetCard({
   userEntrantId?: string
   projectedResults: Map<string, ProjectedSet> | null
   entrantPlayerMap: Map<string, string>
+  entrantParticipantsMap?: Map<string, SetClickParticipant[]>
   progressionInfo?: SetProgressionInfo
   eventId?: string
   sourcePhase?: { id: string; name: string; eventId: string }
@@ -492,8 +502,8 @@ function SetCard({
       scores: [score0, score1],
       isDQ: set.isDQ,
       entrants: [
-        e0 ? { id: e0.id, name: e0.name, playerId: e0.id ? entrantPlayerMap.get(e0.id) ?? null : null, seedNum: e0.seedNum } : null,
-        e1 ? { id: e1.id, name: e1.name, playerId: e1.id ? entrantPlayerMap.get(e1.id) ?? null : null, seedNum: e1.seedNum } : null,
+        e0 ? { id: e0.id, name: e0.name, playerId: e0.id ? entrantPlayerMap.get(e0.id) ?? null : null, seedNum: e0.seedNum, participants: e0.id ? entrantParticipantsMap?.get(e0.id) : undefined } : null,
+        e1 ? { id: e1.id, name: e1.name, playerId: e1.id ? entrantPlayerMap.get(e1.id) ?? null : null, seedNum: e1.seedNum, participants: e1.id ? entrantParticipantsMap?.get(e1.id) : undefined } : null,
       ],
     })
   }

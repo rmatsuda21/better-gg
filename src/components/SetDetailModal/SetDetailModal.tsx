@@ -6,10 +6,17 @@ import { formatRoundLabel } from '../../lib/round-label-utils'
 import { Skeleton } from '../Skeleton/Skeleton'
 import styles from './SetDetailModal.module.css'
 
+interface ModalParticipant {
+  gamerTag: string
+  prefix: string | null
+  playerId: string | null
+}
+
 interface ModalEntrant {
   id: string | null
   name: string
   playerId: string | null
+  participants?: ModalParticipant[]
 }
 
 interface GameSelection {
@@ -156,18 +163,7 @@ export function SetDetailModal({
         {/* Score Banner */}
         <div className={styles.scoreBanner}>
           <div className={styles.bannerPlayer}>
-            {leftEntrant?.playerId ? (
-              <Link
-                to="/player/$playerId"
-                params={{ playerId: leftEntrant.playerId }}
-                className={styles.bannerName}
-                onClick={onClose}
-              >
-                {leftEntrant.name}
-              </Link>
-            ) : (
-              <span className={styles.bannerName}>{leftEntrant?.name ?? 'TBD'}</span>
-            )}
+            <EntrantName entrant={leftEntrant} onClose={onClose} />
           </div>
 
           <div className={styles.bannerScores}>
@@ -199,20 +195,7 @@ export function SetDetailModal({
           </div>
 
           <div className={styles.bannerPlayer}>
-            {rightEntrant?.playerId ? (
-              <Link
-                to="/player/$playerId"
-                params={{ playerId: rightEntrant.playerId }}
-                className={`${styles.bannerName} ${hasUser ? styles.bannerNameUser : ''}`}
-                onClick={onClose}
-              >
-                {rightEntrant.name}
-              </Link>
-            ) : (
-              <span className={`${styles.bannerName} ${hasUser ? styles.bannerNameUser : ''}`}>
-                {rightEntrant?.name ?? 'TBD'}
-              </span>
-            )}
+            <EntrantName entrant={rightEntrant} isUser={hasUser} onClose={onClose} />
           </div>
         </div>
 
@@ -297,4 +280,63 @@ export function SetDetailModal({
     </div>,
     document.body,
   )
+}
+
+function EntrantName({
+  entrant,
+  isUser,
+  onClose,
+}: {
+  entrant: ModalEntrant | null
+  isUser?: boolean
+  onClose: () => void
+}) {
+  const nameClass = `${styles.bannerName} ${isUser ? styles.bannerNameUser : ''}`
+
+  if (!entrant) {
+    return <span className={nameClass}>TBD</span>
+  }
+
+  // Team event: stack each participant on its own line
+  if (entrant.participants && entrant.participants.length > 1) {
+    return (
+      <span className={`${nameClass} ${styles.bannerNameTeam}`}>
+        {entrant.participants.map((p, i) => (
+          p.playerId ? (
+            <Link
+              key={p.playerId}
+              to="/player/$playerId"
+              params={{ playerId: p.playerId }}
+              className={styles.teamMemberLink}
+              onClick={onClose}
+            >
+              {p.prefix && <span className={styles.teamPrefix}>{p.prefix}</span>}
+              {p.gamerTag}
+            </Link>
+          ) : (
+            <span key={i} className={styles.teamMemberText}>
+              {p.prefix && <span className={styles.teamPrefix}>{p.prefix}</span>}
+              {p.gamerTag}
+            </span>
+          )
+        ))}
+      </span>
+    )
+  }
+
+  // Singles: link the whole name
+  if (entrant.playerId) {
+    return (
+      <Link
+        to="/player/$playerId"
+        params={{ playerId: entrant.playerId }}
+        className={nameClass}
+        onClick={onClose}
+      >
+        {entrant.name}
+      </Link>
+    )
+  }
+
+  return <span className={nameClass}>{entrant.name}</span>
 }

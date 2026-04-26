@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import type { BracketData, BracketSet, BracketEntrant, SetClickInfo, PhaseNavInfo } from '../../lib/bracket-utils'
+import type { BracketData, BracketSet, BracketEntrant, SetClickInfo, SetClickParticipant, PhaseNavInfo } from '../../lib/bracket-utils'
 import { computePoolStandings } from '../../lib/bracket-utils'
 import { DataTable, DataTableHeader, DataTableRow } from '../DataTable/DataTable'
 import styles from './PoolVisualization.module.css'
@@ -10,6 +10,7 @@ interface PoolVisualizationProps {
   bracketType: string
   userEntrantId?: string
   entrantPlayerMap: Map<string, string>
+  entrantParticipantsMap?: Map<string, SetClickParticipant[]>
   eventId?: string
   phaseNav?: PhaseNavInfo
   onSetClick?: (info: SetClickInfo) => void
@@ -20,6 +21,7 @@ export function PoolVisualization({
   bracketType,
   userEntrantId,
   entrantPlayerMap,
+  entrantParticipantsMap,
   onSetClick,
 }: PoolVisualizationProps) {
   const standings = useMemo(
@@ -51,6 +53,7 @@ export function PoolVisualization({
                 set={set}
                 userEntrantId={userEntrantId}
                 entrantPlayerMap={entrantPlayerMap}
+                entrantParticipantsMap={entrantParticipantsMap}
                 onSetClick={onSetClick}
               />
             ))}
@@ -127,11 +130,13 @@ function MatchCard({
   set,
   userEntrantId,
   entrantPlayerMap,
+  entrantParticipantsMap,
   onSetClick,
 }: {
   set: BracketSet
   userEntrantId?: string
   entrantPlayerMap: Map<string, string>
+  entrantParticipantsMap?: Map<string, SetClickParticipant[]>
   onSetClick?: (info: SetClickInfo) => void
 }) {
   const [e0, e1] = set.entrants
@@ -169,8 +174,8 @@ function MatchCard({
       scores: [score0, score1],
       isDQ: set.isDQ,
       entrants: [
-        e0 ? { id: e0.id, name: e0.name, playerId: e0.id ? entrantPlayerMap.get(e0.id) ?? null : null, seedNum: e0.seedNum } : null,
-        e1 ? { id: e1.id, name: e1.name, playerId: e1.id ? entrantPlayerMap.get(e1.id) ?? null : null, seedNum: e1.seedNum } : null,
+        e0 ? { id: e0.id, name: e0.name, playerId: e0.id ? entrantPlayerMap.get(e0.id) ?? null : null, seedNum: e0.seedNum, participants: e0.id ? entrantParticipantsMap?.get(e0.id) : undefined } : null,
+        e1 ? { id: e1.id, name: e1.name, playerId: e1.id ? entrantPlayerMap.get(e1.id) ?? null : null, seedNum: e1.seedNum, participants: e1.id ? entrantParticipantsMap?.get(e1.id) : undefined } : null,
       ],
     })
   }
