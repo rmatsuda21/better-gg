@@ -7,9 +7,8 @@ import { countryCodeToFlag } from '../../lib/country-utils'
 import { Skeleton } from '../Skeleton/Skeleton'
 import type { PlayerRecord } from '../../lib/player-search-types'
 import { FilterSelect } from '../FilterSelect/FilterSelect'
+import { ULTIMATE_VIDEOGAME_ID } from '../../lib/smash-games'
 import styles from './PlayerSearch.module.css'
-
-const ULTIMATE_VIDEOGAME_ID = '1386'
 
 interface PlayerSearchProps {
   onSelect: (player: PlayerRecord) => void

@@ -2,13 +2,12 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
+import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
 import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
 
-const ULTIMATE_VIDEOGAME_ID = '1386'
-
 const tournamentListQuery = graphql(`
-  query TournamentList($page: Int!, $perPage: Int!, $sortBy: String, $filter: TournamentPageFilter) {
+  query TournamentList($page: Int!, $perPage: Int!, $sortBy: String, $filter: TournamentPageFilter, $smashGameIds: [ID]) {
     tournaments(query: {
       page: $page, perPage: $perPage, sortBy: $sortBy,
       filter: $filter
@@ -19,7 +18,7 @@ const tournamentListQuery = graphql(`
         city addrState countryCode isOnline venueName
         images(type: "profile") { id url }
         bannerImages: images(type: "banner") { id url }
-        events(limit: 5, filter: { videogameId: [1386] }) { id name numEntrants }
+        events(limit: 5, filter: { videogameId: $smashGameIds }) { id name numEntrants }
       }
     }
   }
@@ -73,7 +72,7 @@ export function useTournamentList(options: TournamentListOptions) {
     queryKey,
     queryFn: ({ pageParam, signal }) => {
       const filter: TournamentPageFilter = {
-        videogameIds: [ULTIMATE_VIDEOGAME_ID],
+        videogameIds: ALL_SMASH_VIDEOGAME_IDS,
       }
 
       if (debouncedName) filter.name = apiTerm
@@ -87,7 +86,7 @@ export function useTournamentList(options: TournamentListOptions) {
 
       return graphqlClient.request({
         document: tournamentListQuery,
-        variables: { page: pageParam, perPage: effectivePerPage, sortBy, filter },
+        variables: { page: pageParam, perPage: effectivePerPage, sortBy, filter, smashGameIds: ALL_SMASH_VIDEOGAME_IDS },
         signal,
       })
     },

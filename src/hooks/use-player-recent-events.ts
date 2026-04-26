@@ -49,17 +49,17 @@ const playerRecentEventsQuery = graphql(`
 export function usePlayerRecentEvents(
   playerId: string | undefined,
   userId: string | undefined,
-  videogameId?: string,
+  videogameIds?: string[],
 ) {
   return useInfiniteQuery({
-    queryKey: ['playerRecentEvents', playerId, userId, videogameId],
+    queryKey: ['playerRecentEvents', playerId, userId, videogameIds],
     queryFn: ({ pageParam }) =>
       graphqlClient.request(playerRecentEventsQuery, {
         playerId: playerId!,
         userId: userId!,
         page: pageParam,
         perPage: 15,
-        videogameId: videogameId ? [videogameId] : null,
+        videogameId: videogameIds ?? null,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {

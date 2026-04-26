@@ -21,9 +21,8 @@ import type { OnlineFilter } from '../components/FilterToggle/FilterToggle'
 import { TournamentCard } from '../components/TournamentCard/TournamentCard'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
+import { ULTIMATE_VIDEOGAME_ID, ALL_SMASH_VIDEOGAME_IDS, isSmashGame } from '../lib/smash-games'
 import styles from './player.$playerId.module.css'
-
-const ULTIMATE_VIDEOGAME_ID = '1386'
 
 export const Route = createFileRoute('/player/$playerId')({
   validateSearch: (search: Record<string, unknown>): { online?: 'online' | 'offline' } => ({
@@ -121,7 +120,7 @@ function PlayerPage() {
   const eventsQuery = usePlayerRecentEvents(
     playerId,
     userId,
-    ULTIMATE_VIDEOGAME_ID,
+    ALL_SMASH_VIDEOGAME_IDS,
   )
 
   // Auto-fetch next pages for events and sets
@@ -151,7 +150,7 @@ function PlayerPage() {
   }, [setsQuery.data?.pages])
 
   const validSets = useMemo(
-    () => allSets.filter((s) => String(s.event?.videogame?.id) === ULTIMATE_VIDEOGAME_ID),
+    () => allSets.filter((s) => isSmashGame(s.event?.videogame?.id)),
     [allSets],
   )
 
@@ -164,8 +163,8 @@ function PlayerPage() {
     : []
 
   const perEventChars = useMemo(
-    () => setsLoaded ? computePerEventCharacters(allSets, playerId, ULTIMATE_VIDEOGAME_ID) : new Map<string, number[]>(),
-    [allSets, playerId, setsLoaded],
+    () => setsLoaded ? computePerEventCharacters(validSets, playerId) : new Map<string, number[]>(),
+    [validSets, playerId, setsLoaded],
   )
 
   // Build placements from infinite query pages

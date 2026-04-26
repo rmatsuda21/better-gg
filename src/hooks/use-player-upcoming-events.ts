@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
 
 const playerUpcomingEventsQuery = graphql(`
-  query PlayerUpcomingEvents($playerId: ID!, $perPage: Int!) {
+  query PlayerUpcomingEvents($playerId: ID!, $perPage: Int!, $videogameId: [ID]) {
     player(id: $playerId) {
       user {
         tournaments(
           query: {
             page: 1
             perPage: $perPage
-            filter: { upcoming: true }
+            filter: { upcoming: true, videogameId: $videogameId }
           }
         ) {
           nodes {
@@ -28,7 +29,7 @@ const playerUpcomingEventsQuery = graphql(`
             images(type: "profile") {
               url
             }
-            events {
+            events(filter: { videogameId: $videogameId }) {
               id
               name
               numEntrants
@@ -50,6 +51,7 @@ export function usePlayerUpcomingEvents(
       graphqlClient.request(playerUpcomingEventsQuery, {
         playerId: playerId!,
         perPage: 8,
+        videogameId: ALL_SMASH_VIDEOGAME_IDS,
       }),
     enabled: !!playerId && !!userId,
     staleTime: 5 * 60 * 1000,

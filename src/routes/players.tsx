@@ -11,9 +11,8 @@ import type { PlayerRecord } from '../lib/player-search-types'
 import { FilterSelect } from '../components/FilterSelect/FilterSelect'
 import { DataTable, DataTableHeader } from '../components/DataTable/DataTable'
 import { dataTableStyles } from '../components/DataTable/dataTableStyles'
+import { ULTIMATE_VIDEOGAME_ID } from '../lib/smash-games'
 import styles from './players.module.css'
-
-const ULTIMATE_VIDEOGAME_ID = '1386'
 const ROW_HEIGHT = 44
 
 interface PlayersSearch {

@@ -2,10 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
+import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
 import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
-
-const ULTIMATE_VIDEOGAME_ID = '1386'
 
 const tournamentSearchQuery = graphql(`
   query TournamentSearch($perPage: Int!, $filter: TournamentPageFilter) {
@@ -39,7 +38,7 @@ export function useTournamentSearch(query: string, options?: TournamentSearchOpt
     queryFn: ({ signal }) => {
       const filter: TournamentPageFilter = {
         name: apiTerm,
-        videogameIds: [ULTIMATE_VIDEOGAME_ID],
+        videogameIds: ALL_SMASH_VIDEOGAME_IDS,
       }
       if (countryCode) filter.countryCode = countryCode
       return graphqlClient.request({

@@ -19,6 +19,7 @@ import { SetDetails } from '../components/SetDetails/SetDetails'
 import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
+import { ULTIMATE_VIDEOGAME_ID } from '../lib/smash-games'
 import styles from './player.$playerId_.event.$eventId.module.css'
 
 const LazyShareResultModal = lazy(() =>
@@ -26,8 +27,6 @@ const LazyShareResultModal = lazy(() =>
     default: m.ShareResultModal,
   })),
 )
-
-const ULTIMATE_VIDEOGAME_ID = '1386'
 
 export const Route = createFileRoute('/player/$playerId_/event/$eventId')({
   validateSearch: (search: Record<string, unknown>): { expanded?: string; projected?: boolean } => ({
