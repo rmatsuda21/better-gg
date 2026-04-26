@@ -127,9 +127,12 @@ async function resolveProjectionChain(
         } : null,
       }))
 
-    const directMap = mapSeedsByProgressionId(destSeeds, originSeedsRaw)
-    if (directMap.size > 0) return directMap
-    return mapSeedsByPlaceholder(destSeeds, originSeedsRaw)
+    // Merge both strategies: placeholder provides baseline, progressionSeedId overrides
+    const result = mapSeedsByPlaceholder(destSeeds, originSeedsRaw)
+    for (const [k, v] of mapSeedsByProgressionId(destSeeds, originSeedsRaw)) {
+      result.set(k, v)
+    }
+    return result.size > 0 ? result : null
   }
 
   // Origin phase ALSO has no entrants — recurse deeper
@@ -160,9 +163,11 @@ async function resolveProjectionChain(
       }
     })
 
-  const directMap = mapSeedsByProgressionId(destSeeds, resolvedOriginSeeds)
-  if (directMap.size > 0) return directMap
-  return mapSeedsByPlaceholder(destSeeds, resolvedOriginSeeds)
+  const result = mapSeedsByPlaceholder(destSeeds, resolvedOriginSeeds)
+  for (const [k, v] of mapSeedsByProgressionId(destSeeds, resolvedOriginSeeds)) {
+    result.set(k, v)
+  }
+  return result.size > 0 ? result : null
 }
 
 /**
@@ -227,7 +232,7 @@ export function useCrossPhaseOverrides(
               id: entrant.id,
               name: entrant.name,
               prefix: entrant.prefix,
-              seedNum: entrant.seedNum,
+              seedNum,
               isProjected: true,
             })
           }
@@ -235,7 +240,7 @@ export function useCrossPhaseOverrides(
       }
 
       // Strategy 2: progressionMap-based fallback (for ACTIVE/COMPLETED origins)
-      if (overrides.size === 0 && effectiveOriginIds.length > 0) {
+      if (overrides.size < destinationSeeds.length && effectiveOriginIds.length > 0) {
         // Fetch all PGs for the origin phase to get progressionMap
         const originPhaseId = effectiveOriginIds[0]
         const originSeedNodes = await fetchPhaseSeeds(originPhaseId)
@@ -259,21 +264,21 @@ export function useCrossPhaseOverrides(
           const projected = buildProjectedResults(bracket)
 
           for (const [setId, progInfo] of pgResult.progressionMap) {
-            if (progInfo.loserPhase?.id === phaseId && progInfo.loserSeedNum != null) {
+            if (progInfo.loserPhase?.id === phaseId && progInfo.loserSeedNum != null && !overrides.has(progInfo.loserSeedNum)) {
               const projSet = projected.get(setId)
               if (projSet) {
                 const loser = getLoserFromProjected(projSet)
                 if (loser) {
-                  overrides.set(progInfo.loserSeedNum, { ...loser, isProjected: true })
+                  overrides.set(progInfo.loserSeedNum, { ...loser, seedNum: progInfo.loserSeedNum, isProjected: true })
                 }
               }
             }
-            if (progInfo.winnerPhase?.id === phaseId && progInfo.winnerSeedNum != null) {
+            if (progInfo.winnerPhase?.id === phaseId && progInfo.winnerSeedNum != null && !overrides.has(progInfo.winnerSeedNum)) {
               const projSet = projected.get(setId)
               if (projSet) {
                 const winner = getWinnerFromProjected(projSet)
                 if (winner) {
-                  overrides.set(progInfo.winnerSeedNum, { ...winner, isProjected: true })
+                  overrides.set(progInfo.winnerSeedNum, { ...winner, seedNum: progInfo.winnerSeedNum, isProjected: true })
                 }
               }
             }

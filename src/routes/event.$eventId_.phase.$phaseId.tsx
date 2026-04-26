@@ -419,24 +419,27 @@ function PhaseGroupBracket({
   // Entrant -> player ID map
   const entrantPlayerMap = useMemo(() => buildEntrantPlayerMap(pgData.pgInfo), [pgData.pgInfo])
 
-  // Lazy: bye-inclusive sets (only for CREATED projection, skip for pool formats)
+  // Lazy: bye-inclusive sets for projection (needed for both CREATED and ACTIVE
+  // phases because the regular query omits hidden bye rounds, causing losers
+  // bracket prereqs to fail resolution)
+  const needsByeSets = !isPool && showProjected && phaseState !== 'COMPLETED'
   const { data: byeSets } = useQuery({
-    queryKey: ['bracketByeSets', pgData.pgId],
+    queryKey: ['bracketByeSets', pgData.pgId, phaseState],
     queryFn: () => fetchPhaseGroupSetsWithByes(pgData.pgId, 35),
-    enabled: !isPool && showProjected && phaseState === 'CREATED',
+    enabled: needsByeSets,
     staleTime: 5 * 60 * 1000,
   })
 
   // Lazy: projection computation (skip for pool formats)
   const projectedResults = useMemo(() => {
     if (isPool || !showProjected) return null
-    if (phaseState === 'CREATED' && byeSets) {
+    if (byeSets) {
       const projPgInfo: PhaseGroupInfo = { ...pgData.pgInfo, allSets: byeSets as PhaseGroupInfo['allSets'], sets: byeSets as PhaseGroupInfo['sets'] }
       const projBracket = buildBracketData(projPgInfo, userEntrantId, seedOverrides, seedIdToSeedNum)
       return buildProjectedResults(projBracket)
     }
     return buildProjectedResults(bracketData)
-  }, [isPool, showProjected, bracketData, byeSets, pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, phaseState])
+  }, [isPool, showProjected, bracketData, byeSets, pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum])
 
   if (isPool) {
     return (
