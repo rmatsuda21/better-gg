@@ -19,7 +19,7 @@ import type { TournamentDetailsQuery } from '../gql/graphql'
 import styles from './tournament.$tournamentId.module.css'
 
 export const Route = createFileRoute('/tournament/$tournamentId')({
-  validateSearch: (search: Record<string, unknown>): { event?: string; tab?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { event?: string; tab?: Tab } => ({
     event: typeof search.event === 'string' && search.event ? search.event : undefined,
     tab: search.tab === TAB.PLAYERS ? TAB.PLAYERS : undefined,
   }),
