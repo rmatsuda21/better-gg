@@ -80,7 +80,7 @@ function getParticipants(entrant: EntrantData | null | undefined, isTeam?: boole
 }
 
 function getSeedNum(slot: SetSlot | null | undefined): number | null {
-  return slot?.seed?.seedNum ?? resolveEntrant(slot)?.initialSeedNum ?? null
+  return resolveEntrant(slot)?.initialSeedNum ?? slot?.seed?.seedNum ?? null
 }
 
 function parseScores(

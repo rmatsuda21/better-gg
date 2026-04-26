@@ -135,7 +135,7 @@ function resolveEntrantInfo(
     id: String(ent.id),
     name: display.name,
     prefix: display.prefix,
-    seedNum: slot?.seed?.seedNum ?? ent.initialSeedNum ?? null,
+    seedNum: ent.initialSeedNum ?? slot?.seed?.seedNum ?? null,
     isProjected: false,
   }
 }
@@ -402,7 +402,7 @@ export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[], isTeamEven
         seen.set(id, {
           entrantId: id,
           name: display.name,
-          seedNum: slot?.seed?.seedNum ?? entrant.initialSeedNum ?? null,
+          seedNum: entrant.initialSeedNum ?? slot?.seed?.seedNum ?? null,
           prefix: display.prefix,
           phaseGroupId: pg.phaseGroupId,
           poolLabel: pg.displayIdentifier,
