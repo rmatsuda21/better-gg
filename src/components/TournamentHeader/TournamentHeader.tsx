@@ -16,7 +16,9 @@ interface TournamentData {
   countryCode?: string | null
   isOnline?: boolean | null
   numAttendees?: number | null
+  venueName?: string | null
   venueAddress?: string | null
+  mapsPlaceId?: string | null
   lat?: number | null
   lng?: number | null
   images?: Array<{ url?: string | null } | null> | null
@@ -49,13 +51,17 @@ export function TournamentHeader({ tournament, event }: TournamentHeaderProps) {
 
   const mapsUrl =
     !tournament.isOnline && !event
-      ? tournament.venueAddress
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tournament.venueAddress)}`
-        : tournament.lat != null && tournament.lng != null
-          ? `https://www.google.com/maps/search/?api=1&query=${tournament.lat},${tournament.lng}`
-          : location
-            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
-            : null
+      ? tournament.mapsPlaceId
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tournament.venueName || tournament.venueAddress || '')}&query_place_id=${encodeURIComponent(tournament.mapsPlaceId)}`
+        : tournament.venueName && tournament.venueAddress
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${tournament.venueName}, ${tournament.venueAddress}`)}`
+          : tournament.venueAddress
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tournament.venueAddress)}`
+            : tournament.lat != null && tournament.lng != null
+              ? `https://www.google.com/maps/search/?api=1&query=${tournament.lat},${tournament.lng}`
+              : location
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
+                : null
       : null
 
   const isOnline = event ? event.isOnline : tournament.isOnline
