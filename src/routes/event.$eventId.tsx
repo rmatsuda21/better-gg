@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEventDetails } from '../hooks/use-event-details'
-import { EventHeader } from '../components/EventHeader/EventHeader'
+import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
 import styles from './event.$eventId.module.css'
@@ -38,7 +38,17 @@ function EventPage() {
 
   return (
     <div className={styles.container}>
-      <EventHeader event={event} />
+      {event.tournament && (
+        <TournamentHeader
+          tournament={event.tournament}
+          event={{
+            name: event.name,
+            videogameName: event.videogame?.name,
+            numEntrants: event.numEntrants,
+            isOnline: event.isOnline,
+          }}
+        />
+      )}
 
       {(!event.phases || event.phases.length === 0) ? (
         <div className={styles.notPublished}>

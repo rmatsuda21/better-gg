@@ -20,7 +20,7 @@ import {
 } from '../lib/bracket-utils'
 import { formatRoundLabel } from '../lib/round-label-utils'
 import type { BracketEntrant, PhaseNavInfo, SetClickInfo, SetProgressionInfo } from '../lib/bracket-utils'
-import { EventHeader } from '../components/EventHeader/EventHeader'
+import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
 import { PoolVisualization } from '../components/PoolVisualization/PoolVisualization'
 import { BracketSearch } from '../components/BracketSearch/BracketSearch'
@@ -232,7 +232,18 @@ function PhaseBracketPage() {
 
   return (
     <div className={styles.container}>
-      {event && <EventHeader event={event} eventId={eventId} />}
+      {event?.tournament && (
+        <TournamentHeader
+          tournament={event.tournament}
+          event={{
+            id: eventId,
+            name: event.name,
+            videogameName: event.videogame?.name,
+            numEntrants: event.numEntrants,
+            isOnline: event.isOnline,
+          }}
+        />
+      )}
 
       <div className={styles.phaseHeader}>
         <h2 className={styles.phaseTitle}>{meta.phaseName}</h2>

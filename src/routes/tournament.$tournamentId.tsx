@@ -13,7 +13,8 @@ import {
 } from '../components/ParticipantList/ParticipantList'
 import type { EventInfo, ParticipantViewMode } from '../components/ParticipantList/ParticipantList'
 import type { EventStanding } from '../hooks/use-event-standings'
-import { formatDateRange, formatPlacement } from '../lib/format'
+import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
+import { formatPlacement } from '../lib/format'
 import type { TournamentDetailsQuery } from '../gql/graphql'
 import styles from './tournament.$tournamentId.module.css'
 
@@ -43,7 +44,7 @@ function TournamentPage() {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <Skeleton width="100%" height={120} borderRadius={8} />
+        <Skeleton width="100%" height={200} borderRadius={10} />
         <Skeleton width="100%" height={200} borderRadius={8} />
       </div>
     )
@@ -65,75 +66,9 @@ function TournamentPage() {
     return <ErrorMessage message="Tournament not found" />
   }
 
-  const profileImage = tournament.images?.[0]?.url
-  const location = tournament.isOnline
-    ? null
-    : [tournament.city, tournament.addrState, tournament.countryCode]
-        .filter(Boolean)
-        .join(', ')
-
-  const mapsUrl = !tournament.isOnline
-    ? tournament.venueAddress
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tournament.venueAddress)}`
-      : tournament.lat != null && tournament.lng != null
-        ? `https://www.google.com/maps/search/?api=1&query=${tournament.lat},${tournament.lng}`
-        : location
-          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
-          : null
-    : null
-
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        {profileImage ? (
-          <img
-            className={styles.headerImage}
-            src={profileImage}
-            alt={tournament.name ?? ''}
-          />
-        ) : (
-          <div className={styles.headerImagePlaceholder}>?</div>
-        )}
-        <div className={styles.headerInfo}>
-          <h1 className={styles.tournamentName}>{tournament.name}</h1>
-          <div className={styles.headerMeta}>
-            {tournament.startAt && tournament.endAt && (
-              <span>
-                {formatDateRange(tournament.startAt, tournament.endAt)}
-              </span>
-            )}
-            {tournament.isOnline ? (
-              <span className={styles.onlineBadge}>Online</span>
-            ) : (
-              location && <span>{location}</span>
-            )}
-
-            {tournament.numAttendees != null && (
-              <span>{tournament.numAttendees} attendees</span>
-            )}
-          </div>
-          {tournament.slug && (
-            <a
-              className={styles.externalLink}
-              href={`https://www.start.gg/${tournament.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View on start.gg &rarr;
-            </a>
-          )}
-          {mapsUrl && (
-            <a
-              className={styles.externalLink}
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View on Google Maps &rarr;
-            </a>
-          )}
-        </div>
-      </div>
+      <TournamentHeader tournament={tournament} />
 
       <PlayersSection
         tournament={tournament}

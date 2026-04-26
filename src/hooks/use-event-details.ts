@@ -25,7 +25,12 @@ const eventDetailsQuery = graphql(`
         city
         addrState
         countryCode
+        isOnline
         images(type: "profile") {
+          id
+          url
+        }
+        bannerImages: images(type: "banner") {
           id
           url
         }

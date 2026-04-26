@@ -25,6 +25,10 @@ const tournamentDetailsQuery = graphql(`
         id
         url
       }
+      bannerImages: images(type: "banner") {
+        id
+        url
+      }
       events(filter: { videogameId: $smashGameIds }) {
         id
         name

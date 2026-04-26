@@ -12,7 +12,7 @@ import { computeEventRoundLabels } from '../lib/round-label-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { computeWinRate, computeCharacterUsage, computeUpsetFactor } from '../lib/stats-utils'
 import { formatDateRange } from '../lib/format'
-import { EventHeader } from '../components/EventHeader/EventHeader'
+import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
 import { PoolVisualization } from '../components/PoolVisualization/PoolVisualization'
 import { SetDetails } from '../components/SetDetails/SetDetails'
@@ -206,7 +206,18 @@ function PlayerEventPage() {
 
   return (
     <div className={styles.container}>
-      <EventHeader event={event} eventId={eventId} />
+      {event.tournament && (
+        <TournamentHeader
+          tournament={event.tournament}
+          event={{
+            id: eventId,
+            name: event.name,
+            videogameName: event.videogame?.name,
+            numEntrants: event.numEntrants,
+            isOnline: event.isOnline,
+          }}
+        />
+      )}
 
       {/* Share Result button */}
       {shareData && !setsLoading && (

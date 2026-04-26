@@ -1,0 +1,297 @@
+/* Tournament Header */
+.header {
+  --px: 0px;
+  --py: 0px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  background-color: rgba(18, 18, 26, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+  border-top: 2px solid var(--accent);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  position: relative;
+  animation: fadeInUp 0.4s var(--ease-out-expo);
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+  transition: opacity 0.35s var(--ease-out-expo);
+}
+
+.header:hover::after {
+  opacity: 1;
+}
+
+.header:hover {
+  box-shadow: var(--shadow-elevated), 0 0 20px var(--accent-glow);
+}
+
+/* Banner image wrapper */
+.banner {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 1;
+  flex-shrink: 0;
+}
+
+.banner::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70%;
+  background: linear-gradient(to top, rgba(10, 10, 15, 0.88) 0%, rgba(10, 10, 15, 0.4) 50%, transparent 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.bannerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: var(--bg-elevated);
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+.header:hover .bannerImage {
+  transform: scale(1.06) translate(var(--px), var(--py));
+}
+
+.bannerPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-surface));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 3rem;
+  font-weight: 700;
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* Tournament icon overlaid on banner */
+.iconOverlay {
+  position: absolute;
+  bottom: 0.4rem;
+  right: 0.6rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  z-index: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+.header:hover .iconOverlay {
+  transform: translate(calc(var(--px) * -0.5), calc(var(--py) * -0.5));
+}
+
+/* Overlay text container */
+.overlayText {
+  position: absolute;
+  bottom: 0.4rem;
+  left: 0.6rem;
+  right: 3.5rem;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+.header:hover .overlayText {
+  transform: translate(calc(var(--px) * -0.5), calc(var(--py) * -0.5));
+}
+
+/* When in event mode, no large icon overlay — text can use full width */
+.overlayTextFull {
+  right: 0.6rem;
+}
+
+/* Tournament name label (small, when event is shown) */
+.tournamentLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  transition: color var(--duration-fast);
+  line-height: 1.3;
+  max-width: 100%;
+}
+
+.tournamentLabel:hover {
+  color: var(--accent-hover);
+}
+
+.labelText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Small icon inline with tournament label */
+.labelIcon {
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 3px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* Main title on banner (tournament name or event name) */
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  margin: 0;
+  word-break: break-word;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  transition: color var(--duration-fast);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.header:hover .title {
+  color: var(--accent-hover);
+}
+
+/* Event name as a link */
+.eventLink {
+  text-decoration: none;
+  color: inherit;
+}
+
+.eventLink:hover .title {
+  color: var(--accent-hover);
+}
+
+/* Body below banner */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
+}
+
+/* Meta line with dot separators */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.meta > span + span::before {
+  content: '\00B7';
+  margin-right: 0.4rem;
+  opacity: 0.5;
+}
+
+.onlineBadge {
+  color: var(--success);
+  font-weight: 500;
+}
+
+/* External links as pills */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.linkPill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background-color: var(--accent-subtle);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background-color var(--duration-fast), color var(--duration-fast), transform var(--duration-fast);
+}
+
+.linkPill:hover {
+  background-color: rgba(99, 102, 241, 0.2);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (min-width: 641px) {
+  .overlayText {
+    left: 1rem;
+    right: 5.5rem;
+    bottom: 0.6rem;
+  }
+
+  .overlayTextFull {
+    right: 1rem;
+  }
+
+  .tournamentLabel {
+    font-size: 0.75rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    display: block;
+  }
+
+  .iconOverlay {
+    width: 56px;
+    height: 56px;
+    bottom: 0.6rem;
+    right: 1rem;
+    border-radius: 10px;
+  }
+
+  .body {
+    padding: 0.6rem 1rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .meta {
+    font-size: 0.85rem;
+    gap: 0.15rem 0.4rem;
+  }
+}

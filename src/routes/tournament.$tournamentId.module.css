@@ -6,87 +6,6 @@
   animation: fadeIn 0.3s var(--ease-out-expo);
 }
 
-/* Tournament Header */
-.header {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  background-color: rgba(18, 18, 26, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-subtle);
-  border-top: 2px solid;
-  border-image: var(--gradient-accent) 1;
-  animation: fadeInUp 0.4s var(--ease-out-expo);
-}
-
-.headerImage {
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background-color: var(--bg-elevated);
-}
-
-.headerImagePlaceholder {
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  background-color: var(--bg-elevated);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  font-size: 2rem;
-}
-
-.headerInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.tournamentName {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--text-heading);
-  word-break: break-word;
-}
-
-.headerMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.onlineBadge {
-  color: var(--success);
-  font-weight: 500;
-}
-
-.externalLink {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: color var(--duration-fast);
-  margin-top: 0.25rem;
-}
-
-.externalLink:hover {
-  color: var(--accent);
-}
-
 /* Players Section */
 .playerSection {
   display: flex;
@@ -482,14 +401,6 @@
 
 /* Responsive */
 @media (min-width: 641px) {
-  .header {
-    gap: 1.25rem;
-  }
-
-  .tournamentName {
-    font-size: 1.5rem;
-  }
-
   .standingsColumns {
     grid-template-columns: 4rem 3.5rem 1fr;
   }
