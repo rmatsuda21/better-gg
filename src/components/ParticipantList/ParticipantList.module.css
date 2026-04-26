@@ -148,7 +148,16 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   text-align: center;
-  padding: 1.5rem;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px dashed var(--border-subtle);
+  background: var(--bg-elevated);
 }
 
 /* Mobile */
@@ -162,7 +171,13 @@
   }
 
   .scrollContainer {
-    height: 300px;
+    height: calc(100dvh - 20rem);
+    min-height: 200px;
+  }
+
+  .noResults {
+    height: calc(100dvh - 20rem);
+    min-height: 200px;
   }
 }
 

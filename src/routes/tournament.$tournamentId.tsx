@@ -19,11 +19,19 @@ import type { TournamentDetailsQuery } from '../gql/graphql'
 import styles from './tournament.$tournamentId.module.css'
 
 export const Route = createFileRoute('/tournament/$tournamentId')({
-  validateSearch: (search: Record<string, unknown>): { event?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { event?: string; tab?: string } => ({
     event: typeof search.event === 'string' && search.event ? search.event : undefined,
+    tab: search.tab === TAB.PLAYERS ? TAB.PLAYERS : undefined,
   }),
   component: TournamentPage,
 })
+
+const TAB = {
+  EVENTS: 'events',
+  PLAYERS: 'players',
+} as const
+
+type Tab = (typeof TAB)[keyof typeof TAB]
 
 type EventData = NonNullable<
   NonNullable<TournamentDetailsQuery['tournament']>['events']
@@ -31,7 +39,8 @@ type EventData = NonNullable<
 
 function TournamentPage() {
   const { tournamentId } = Route.useParams()
-  const { event: selectedEventId } = Route.useSearch()
+  const { event: selectedEventId, tab } = Route.useSearch()
+  const activeTab: Tab = tab ?? TAB.EVENTS
   const navigate = useNavigate({ from: '/tournament/$tournamentId' })
   const { data, isLoading, isError, error, refetch } =
     useTournamentDetails(tournamentId)
@@ -39,7 +48,7 @@ function TournamentPage() {
   const {
     data: participants,
     isLoading: participantsLoading,
-  } = useTournamentParticipants(resolvedId)
+  } = useTournamentParticipants(activeTab === TAB.PLAYERS ? resolvedId : '')
 
   if (isLoading) {
     return (
@@ -70,22 +79,39 @@ function TournamentPage() {
     <div className={styles.container}>
       <TournamentHeader tournament={tournament} />
 
-      <PlayersSection
-        tournament={tournament}
-        participants={participants ?? []}
-        isLoading={participantsLoading}
-        selectedEventId={selectedEventId ?? ''}
-        onSelectEvent={(eventId) => {
-          navigate({
-            search: (prev) => ({ ...prev, event: eventId || undefined }),
-            replace: true,
-          })
-        }}
-      />
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tabBarTab} ${activeTab === TAB.EVENTS ? styles.tabBarTabActive : ''}`}
+          onClick={() => navigate({ search: (prev) => ({ ...prev, tab: undefined }), replace: true, resetScroll: false })}
+        >
+          Events
+        </button>
+        <button
+          className={`${styles.tabBarTab} ${activeTab === TAB.PLAYERS ? styles.tabBarTabActive : ''}`}
+          onClick={() => navigate({ search: (prev) => ({ ...prev, tab: TAB.PLAYERS }), replace: true, resetScroll: false })}
+        >
+          Players
+        </button>
+      </div>
 
-      {tournament.events && tournament.events.length > 0 && (
+      {activeTab === TAB.PLAYERS && (
+        <PlayersSection
+          tournament={tournament}
+          participants={participants ?? []}
+          isLoading={participantsLoading}
+          selectedEventId={selectedEventId ?? ''}
+          onSelectEvent={(eventId) => {
+            navigate({
+              search: (prev) => ({ ...prev, event: eventId || undefined }),
+              replace: true,
+              resetScroll: false,
+            })
+          }}
+        />
+      )}
+
+      {activeTab === TAB.EVENTS && tournament.events && tournament.events.length > 0 && (
         <div className={styles.eventsSection}>
-          <h3 className={styles.sectionTitle}>Events</h3>
           {tournament.events.map(
             (event, i) =>
               event && (
@@ -170,7 +196,7 @@ function PlayersSection({
     <div className={styles.playerSection}>
       <div className={styles.playerSectionHeader}>
         <h3 className={styles.sectionTitle}>{sectionTitle}</h3>
-        {!isLoading && displayCount > 0 && (
+        {!isLoading && (
           <span className={styles.countBadge}>
             {displayCount.toLocaleString()}
           </span>
