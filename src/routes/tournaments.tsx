@@ -88,6 +88,7 @@ function TournamentsPage() {
   const {
     tournaments,
     total,
+    isClientFiltered,
     isLoading,
     isFetching,
     isFetchingNextPage,
@@ -141,7 +142,7 @@ function TournamentsPage() {
     <div className={styles.container}>
       <div className={styles.pageHeader}>
         <h1 className={styles.title}>Tournaments</h1>
-        {!isLoading && total > 0 && (
+        {!isLoading && total > 0 && !isClientFiltered && (
           <span className={styles.countBadge}>
             {total.toLocaleString()}
           </span>
@@ -227,7 +228,7 @@ function TournamentsPage() {
       ) : (
         <>
           <div className={styles.resultsSummary}>
-            {total.toLocaleString()} tournament{total !== 1 ? 's' : ''}
+            {total.toLocaleString()}{isClientFiltered && hasNextPage ? '+' : ''} tournament{total !== 1 ? 's' : ''}
             {isFetching && !isFetchingNextPage && ' ...'}
           </div>
           <div className={styles.cardGrid}>

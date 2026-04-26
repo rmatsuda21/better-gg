@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
+import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
 
 const ULTIMATE_VIDEOGAME_ID = '1386'
@@ -30,17 +31,20 @@ export function useTournamentSearch(query: string, options?: TournamentSearchOpt
   const debouncedQuery = useDebouncedValue(query.trim(), 300)
   const countryCode = options?.countryCode
 
+  const apiTerm = debouncedQuery ? extractApiSearchTerm(debouncedQuery) : ''
+  const isMultiWord = debouncedQuery.includes(' ')
+
   const { data, isLoading } = useQuery({
     queryKey: ['tournamentSearch', debouncedQuery, countryCode],
     queryFn: ({ signal }) => {
       const filter: TournamentPageFilter = {
-        name: debouncedQuery,
+        name: apiTerm,
         videogameIds: [ULTIMATE_VIDEOGAME_ID],
       }
       if (countryCode) filter.countryCode = countryCode
       return graphqlClient.request({
         document: tournamentSearchQuery,
-        variables: { perPage: 8, filter },
+        variables: { perPage: isMultiWord ? 30 : 8, filter },
         signal,
       })
     },
@@ -48,8 +52,13 @@ export function useTournamentSearch(query: string, options?: TournamentSearchOpt
     staleTime: 5 * 60 * 1000,
   })
 
+  const rawNodes = data?.tournaments?.nodes ?? []
+  const filtered = isMultiWord
+    ? rawNodes.filter((t) => t != null && matchesAllQueryWords(t.name ?? '', debouncedQuery))
+    : rawNodes
+
   return {
-    results: data?.tournaments?.nodes ?? [],
+    results: filtered.slice(0, 8),
     isLoading: isLoading && debouncedQuery.length >= 3,
   }
 }

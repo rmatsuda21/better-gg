@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
+import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
 
 const ULTIMATE_VIDEOGAME_ID = '1386'
@@ -50,6 +51,9 @@ export function useTournamentList(options: TournamentListOptions) {
   } = options
 
   const debouncedName = useDebouncedValue(name?.trim() ?? '', 300)
+  const apiTerm = debouncedName ? extractApiSearchTerm(debouncedName) : ''
+  const isMultiWord = debouncedName.includes(' ')
+  const effectivePerPage = isMultiWord ? Math.max(perPage, 60) : perPage
 
   const queryKey = [
     'tournamentList', debouncedName, countryCode, addrState,
@@ -72,7 +76,7 @@ export function useTournamentList(options: TournamentListOptions) {
         videogameIds: [ULTIMATE_VIDEOGAME_ID],
       }
 
-      if (debouncedName) filter.name = debouncedName
+      if (debouncedName) filter.name = apiTerm
       if (countryCode) filter.countryCode = countryCode
       if (addrState) filter.addrState = addrState
       if (online === 'online') filter.hasOnlineEvents = true
@@ -83,7 +87,7 @@ export function useTournamentList(options: TournamentListOptions) {
 
       return graphqlClient.request({
         document: tournamentListQuery,
-        variables: { page: pageParam, perPage, sortBy, filter },
+        variables: { page: pageParam, perPage: effectivePerPage, sortBy, filter },
         signal,
       })
     },
@@ -98,16 +102,23 @@ export function useTournamentList(options: TournamentListOptions) {
   })
 
   const allNodes = data?.pages.flatMap((p) => p?.tournaments?.nodes ?? []) ?? []
-  // Client-side offline filter (API only has hasOnlineEvents for online)
-  const tournaments = online === 'offline'
-    ? allNodes.filter((t) => t && !t.isOnline)
+  // Client-side multi-word filter (API name filter does broad OR matching)
+  let tournaments = isMultiWord && debouncedName
+    ? allNodes.filter((t) => t && matchesAllQueryWords(t.name ?? '', debouncedName))
     : allNodes
+  // Client-side offline filter (API only has hasOnlineEvents for online)
+  if (online === 'offline') {
+    tournaments = tournaments.filter((t) => t && !t.isOnline)
+  }
 
-  const total = data?.pages[0]?.tournaments?.pageInfo?.total ?? 0
+  const isClientFiltered = isMultiWord && !!debouncedName
+  const apiTotal = data?.pages[0]?.tournaments?.pageInfo?.total ?? 0
+  const total = isClientFiltered ? tournaments.length : apiTotal
 
   return {
     tournaments,
     total,
+    isClientFiltered,
     isLoading,
     isFetching,
     isFetchingNextPage,

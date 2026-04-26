@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatDateRange } from '../../lib/format'
+import { getTournamentLiveness } from '../../lib/tournament-utils'
 import styles from './TournamentCard.module.css'
 
 export interface TournamentCardData {
@@ -98,6 +99,8 @@ export function TournamentCard({
         .filter(Boolean)
         .join(', ')
 
+  const liveness = getTournamentLiveness(tournament.startAt, tournament.endAt)
+
   const accentClass =
     status === 'current'
       ? styles.accentCurrent
@@ -105,13 +108,15 @@ export function TournamentCard({
         ? styles.accentUpcoming
         : styles.accentPast
 
+  const livenessClass = liveness?.kind === 'live' ? styles.cardLive : liveness?.kind === 'soon' ? styles.cardSoon : ''
+
   if (variant === 'grid') {
     const initial = (tournament.name ?? '?')[0].toUpperCase()
     const gridBanner = bannerImage ?? profileImage
 
     return (
       <div
-        className={`${styles.cardGrid} ${accentClass} ${className ?? ''}`}
+        className={`${styles.cardGrid} ${accentClass} ${livenessClass} ${className ?? ''}`}
         style={style}
       >
         <Link
@@ -134,6 +139,11 @@ export function TournamentCard({
               src={profileImage}
               alt=""
             />
+          )}
+          {liveness && (
+            <span className={`${styles.livenessBadge} ${liveness.kind === 'live' ? styles.livenessBadgeLive : styles.livenessBadgeSoon}`}>
+              {liveness.label}
+            </span>
           )}
           <span className={styles.nameOverlay}>
             {tournament.name}
@@ -162,7 +172,7 @@ export function TournamentCard({
   // Compact variant (default) — original horizontal layout
   return (
     <div
-      className={`${styles.card} ${accentClass} ${className ?? ''}`}
+      className={`${styles.card} ${accentClass} ${livenessClass} ${className ?? ''}`}
       style={style}
     >
       {profileImage ? (
@@ -175,13 +185,20 @@ export function TournamentCard({
         <div className={styles.imagePlaceholder}>?</div>
       )}
       <div className={styles.info}>
-        <Link
-          to="/tournament/$tournamentId"
-          params={{ tournamentId: String(tournament.id) }}
-          className={styles.name}
-        >
-          {tournament.name}
-        </Link>
+        <div className={styles.nameRow}>
+          <Link
+            to="/tournament/$tournamentId"
+            params={{ tournamentId: String(tournament.id) }}
+            className={styles.name}
+          >
+            {tournament.name}
+          </Link>
+          {liveness && (
+            <span className={`${styles.livenessPill} ${liveness.kind === 'live' ? styles.livenessPillLive : styles.livenessPillSoon}`}>
+              {liveness.label}
+            </span>
+          )}
+        </div>
         <div className={styles.meta}>
           {tournament.startAt && tournament.endAt && (
             <span>{formatDateRange(tournament.startAt, tournament.endAt)}</span>
