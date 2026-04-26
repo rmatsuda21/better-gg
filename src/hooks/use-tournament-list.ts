@@ -1,10 +1,13 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
 import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
 import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
+
+const THREE_YEARS_CUTOFF_S = Math.floor(Date.now() / 1000) + 3 * 365.25 * 24 * 60 * 60
 
 const tournamentListQuery = graphql(`
   query TournamentList($page: Int!, $perPage: Int!, $sortBy: String, $filter: TournamentPageFilter, $smashGameIds: [ID]) {
@@ -100,15 +103,22 @@ export function useTournamentList(options: TournamentListOptions) {
     staleTime: 2 * 60 * 1000,
   })
 
-  const allNodes = data?.pages.flatMap((p) => p?.tournaments?.nodes ?? []) ?? []
-  // Client-side multi-word filter (API name filter does broad OR matching)
-  let tournaments = isMultiWord && debouncedName
-    ? allNodes.filter((t) => t && matchesAllQueryWords(t.name ?? '', debouncedName))
-    : allNodes
-  // Client-side offline filter (API only has hasOnlineEvents for online)
-  if (online === 'offline') {
-    tournaments = tournaments.filter((t) => t && !t.isOnline)
-  }
+  const tournaments = useMemo(() => {
+    const allNodes = data?.pages.flatMap((p) => p?.tournaments?.nodes ?? []) ?? []
+
+    let filtered = isMultiWord && debouncedName
+      ? allNodes.filter((t) => t && matchesAllQueryWords(t.name ?? '', debouncedName))
+      : allNodes
+
+    if (online === 'offline') {
+      filtered = filtered.filter((t) => t && !t.isOnline)
+    }
+
+    filtered = filtered.filter(
+      (t) => !t?.startAt || t.startAt < THREE_YEARS_CUTOFF_S,
+    )
+    return filtered
+  }, [data?.pages, isMultiWord, debouncedName, online])
 
   const isClientFiltered = isMultiWord && !!debouncedName
   const apiTotal = data?.pages[0]?.tournaments?.pageInfo?.total ?? 0
