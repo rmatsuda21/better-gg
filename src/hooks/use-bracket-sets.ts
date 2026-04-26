@@ -25,11 +25,13 @@ const bracketSetsActiveQuery = graphql(`
           completedAt
           winnerProgressionSeed {
             seedNum
-            phase { id name }
+            phase { id name groupCount }
+            phaseGroup { id displayIdentifier }
           }
           loserProgressionSeed {
             seedNum
-            phase { id name }
+            phase { id name groupCount }
+            phaseGroup { id displayIdentifier }
           }
           slots {
             id
@@ -80,11 +82,13 @@ const bracketSetsCreatedQuery = graphql(`
           completedAt
           winnerProgressionSeed {
             seedNum
-            phase { id name }
+            phase { id name groupCount }
+            phaseGroup { id displayIdentifier }
           }
           loserProgressionSeed {
             seedNum
-            phase { id name }
+            phase { id name groupCount }
+            phaseGroup { id displayIdentifier }
           }
           slots {
             id
@@ -148,11 +152,13 @@ const bracketSetsCreatedWithByesQuery = graphql(`
           completedAt
           winnerProgressionSeed {
             seedNum
-            phase { id name }
+            phase { id name groupCount }
+            phaseGroup { id displayIdentifier }
           }
           loserProgressionSeed {
             seedNum
-            phase { id name }
+            phase { id name groupCount }
+            phaseGroup { id displayIdentifier }
           }
           slots {
             id
@@ -297,10 +303,12 @@ export async function fetchPhaseGroupSetData(
       const lps = activeNode.loserProgressionSeed
       if (wps?.phase || lps?.phase) {
         progressionMap.set(String(node.id), {
-          winnerPhase: wps?.phase?.id ? { id: String(wps.phase.id), name: wps.phase.name ?? '' } : null,
-          loserPhase: lps?.phase?.id ? { id: String(lps.phase.id), name: lps.phase.name ?? '' } : null,
+          winnerPhase: wps?.phase?.id ? { id: String(wps.phase.id), name: wps.phase.name ?? '', groupCount: wps.phase.groupCount ?? null } : null,
+          loserPhase: lps?.phase?.id ? { id: String(lps.phase.id), name: lps.phase.name ?? '', groupCount: lps.phase.groupCount ?? null } : null,
           winnerSeedNum: wps?.seedNum ?? null,
           loserSeedNum: lps?.seedNum ?? null,
+          winnerPhaseGroup: wps?.phaseGroup?.id ? { id: String(wps.phaseGroup.id), displayIdentifier: wps.phaseGroup.displayIdentifier ?? null } : null,
+          loserPhaseGroup: lps?.phaseGroup?.id ? { id: String(lps.phaseGroup.id), displayIdentifier: lps.phaseGroup.displayIdentifier ?? null } : null,
         })
       }
     }

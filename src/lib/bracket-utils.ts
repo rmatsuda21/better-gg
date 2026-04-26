@@ -4,13 +4,16 @@ export interface SiblingPhaseInfo {
   id: string
   name: string
   phaseOrder: number
+  groupCount: number | null
 }
 
 export interface SetProgressionInfo {
-  winnerPhase: { id: string; name: string } | null
-  loserPhase: { id: string; name: string } | null
-  loserSeedNum: number | null
+  winnerPhase: { id: string; name: string; groupCount: number | null } | null
+  loserPhase: { id: string; name: string; groupCount: number | null } | null
   winnerSeedNum: number | null
+  loserSeedNum: number | null
+  winnerPhaseGroup: { id: string; displayIdentifier: string | null } | null
+  loserPhaseGroup: { id: string; displayIdentifier: string | null } | null
 }
 
 export interface BracketEntrant {
@@ -633,8 +636,8 @@ export function computePoolStandings(data: BracketData): PoolStanding[] {
 }
 
 export interface PhaseNavInfo {
-  prevPhase: { id: string; name: string } | null
-  nextPhase: { id: string; name: string } | null
+  prevPhase: { id: string; name: string; groupCount: number | null } | null
+  nextPhase: { id: string; name: string; groupCount: number | null } | null
 }
 
 export function computePhaseNav(
@@ -643,10 +646,10 @@ export function computePhaseNav(
   originPhaseIds?: string[],
 ): PhaseNavInfo {
   // Use originPhaseIds for prevPhase when available
-  let prevPhase: { id: string; name: string } | null = null
+  let prevPhase: PhaseNavInfo['prevPhase'] = null
   if (originPhaseIds && originPhaseIds.length > 0) {
     const origin = siblingPhases.find(p => originPhaseIds.includes(p.id))
-    if (origin) prevPhase = { id: origin.id, name: origin.name }
+    if (origin) prevPhase = { id: origin.id, name: origin.name, groupCount: origin.groupCount }
   }
 
   if (currentPhaseOrder == null || siblingPhases.length <= 1) {
@@ -660,12 +663,12 @@ export function computePhaseNav(
   // Fall back to phaseOrder-based prev if originPhaseIds didn't resolve
   if (!prevPhase) {
     const prev = idx > 0 ? sorted[idx - 1] : null
-    prevPhase = prev ? { id: prev.id, name: prev.name } : null
+    prevPhase = prev ? { id: prev.id, name: prev.name, groupCount: prev.groupCount } : null
   }
 
   const next = idx < sorted.length - 1 ? sorted[idx + 1] : null
   return {
     prevPhase,
-    nextPhase: next ? { id: next.id, name: next.name } : null,
+    nextPhase: next ? { id: next.id, name: next.name, groupCount: next.groupCount } : null,
   }
 }

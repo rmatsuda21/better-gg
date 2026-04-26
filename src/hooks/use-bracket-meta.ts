@@ -19,6 +19,7 @@ const bracketMetaQuery = graphql(`
           id
           name
           phaseOrder
+          groupCount
         }
       }
       phaseGroups(query: { page: 1, perPage: 100 }) {
@@ -79,7 +80,7 @@ export function useBracketMeta(phaseId: string) {
 
       const siblingPhases: SiblingPhaseInfo[] = (phase.event?.phases ?? [])
         .filter((p): p is NonNullable<typeof p> => p != null && p.id != null && p.name != null && p.phaseOrder != null)
-        .map(p => ({ id: String(p.id!), name: p.name!, phaseOrder: p.phaseOrder! }))
+        .map(p => ({ id: String(p.id!), name: p.name!, phaseOrder: p.phaseOrder!, groupCount: p.groupCount ?? null }))
 
       const phaseGroupNodes = (phase.phaseGroups?.nodes ?? [])
         .filter((pg): pg is NonNullable<typeof pg> => pg != null && pg.id != null)

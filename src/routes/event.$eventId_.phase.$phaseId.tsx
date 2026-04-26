@@ -6,6 +6,8 @@ import { useBracketMeta } from '../hooks/use-bracket-meta'
 import { fetchPhaseGroupSetData, fetchPhaseGroupSetsWithByes } from '../hooks/use-bracket-sets'
 import type { PhaseGroupSetResult } from '../hooks/use-bracket-sets'
 import { useCrossPhaseOverrides } from '../hooks/use-cross-phase-overrides'
+import { useOriginPhaseMap } from '../hooks/use-origin-phase-map'
+import type { OriginPhaseGroupInfo } from '../hooks/use-origin-phase-map'
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
 import { useSetDetails } from '../hooks/use-set-details'
 import { useCharacters } from '../hooks/use-characters'
@@ -152,6 +154,11 @@ function PhaseBracketPage() {
     if (!meta) return { prevPhase: null, nextPhase: null }
     return computePhaseNav(meta.siblingPhases, meta.currentPhaseOrder, meta.originPhaseIds)
   }, [meta])
+
+  // Origin phase entrant → phaseGroup mapping (for source nav nodes showing pool names)
+  const originPhaseId = phaseNav.prevPhase?.id ?? null
+  const originHasMultiplePGs = (phaseNav.prevPhase?.groupCount ?? 0) > 1
+  const { data: originPhaseMap } = useOriginPhaseMap(originPhaseId, originHasMultiplePGs)
 
   const effectiveEventId = meta?.eventId ?? eventId
 
@@ -333,6 +340,7 @@ function PhaseBracketPage() {
               eventId={effectiveEventId}
               phaseNav={phaseNav}
               progressionMap={progressionMap}
+              originPhaseMap={originPhaseMap}
               onSetClick={setModalInfo}
               isTeamEvent={isTeamEvent}
             />
@@ -350,6 +358,7 @@ function PhaseBracketPage() {
             eventId={effectiveEventId}
             phaseNav={phaseNav}
             progressionMap={progressionMap}
+            originPhaseMap={originPhaseMap}
             onSetClick={setModalInfo}
             isTeamEvent={isTeamEvent}
           />
@@ -409,6 +418,7 @@ interface PhaseGroupBracketProps {
   eventId: string
   phaseNav: PhaseNavInfo
   progressionMap: Map<string, SetProgressionInfo>
+  originPhaseMap?: Map<string, OriginPhaseGroupInfo>
   onSetClick: (info: SetClickInfo) => void
   isTeamEvent?: boolean
 }
@@ -425,6 +435,7 @@ function PhaseGroupBracket({
   eventId,
   phaseNav,
   progressionMap,
+  originPhaseMap,
   onSetClick,
   isTeamEvent,
 }: PhaseGroupBracketProps) {
@@ -492,6 +503,7 @@ function PhaseGroupBracket({
       eventId={eventId}
       phaseNav={phaseNav}
       progressionMap={progressionMap}
+      originPhaseMap={originPhaseMap}
       onSetClick={onSetClick}
     />
   )
@@ -527,6 +539,7 @@ function CollapsiblePools({
   eventId,
   phaseNav,
   progressionMap,
+  originPhaseMap,
   onSetClick,
   isTeamEvent,
 }: {
@@ -541,6 +554,7 @@ function CollapsiblePools({
   eventId: string
   phaseNav: PhaseNavInfo
   progressionMap: Map<string, SetProgressionInfo>
+  originPhaseMap?: Map<string, OriginPhaseGroupInfo>
   onSetClick: (info: SetClickInfo) => void
   isTeamEvent?: boolean
 }) {
@@ -605,6 +619,7 @@ function CollapsiblePools({
                 eventId={eventId}
                 phaseNav={phaseNav}
                 progressionMap={progressionMap}
+                originPhaseMap={originPhaseMap}
                 onSetClick={onSetClick}
                 isTeamEvent={isTeamEvent}
               />

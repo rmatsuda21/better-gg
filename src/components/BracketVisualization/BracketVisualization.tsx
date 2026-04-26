@@ -11,6 +11,7 @@ import type {
   SetClickParticipant,
   SetProgressionInfo,
 } from '../../lib/bracket-utils'
+import type { OriginPhaseGroupInfo } from '../../hooks/use-origin-phase-map'
 import { useDragScroll } from '../../hooks/use-drag-scroll'
 import styles from './BracketVisualization.module.css'
 
@@ -23,6 +24,7 @@ interface BracketVisualizationProps {
   eventId?: string
   phaseNav?: PhaseNavInfo
   progressionMap?: Map<string, SetProgressionInfo>
+  originPhaseMap?: Map<string, OriginPhaseGroupInfo>
   onSetClick?: (info: SetClickInfo) => void
 }
 
@@ -35,6 +37,7 @@ export function BracketVisualization({
   eventId,
   phaseNav,
   progressionMap,
+  originPhaseMap,
   onSetClick,
 }: BracketVisualizationProps) {
   return (
@@ -52,8 +55,9 @@ export function BracketVisualization({
             entrantParticipantsMap={entrantParticipantsMap}
             eventId={eventId}
             prevPhase={phaseNav?.prevPhase ?? null}
-            nextPhase={phaseNav?.nextPhase ?? null}
             progressionMap={progressionMap}
+            originPhaseMap={originPhaseMap}
+            hasLosersBracket={bracketData.losersRounds.length > 0}
             onSetClick={onSetClick}
           />
         </>
@@ -70,8 +74,8 @@ export function BracketVisualization({
             entrantParticipantsMap={entrantParticipantsMap}
             eventId={eventId}
             prevPhase={phaseNav?.prevPhase ?? null}
-            nextPhase={phaseNav?.nextPhase ?? null}
             progressionMap={progressionMap}
+            originPhaseMap={originPhaseMap}
             onSetClick={onSetClick}
           />
         </>
@@ -236,8 +240,9 @@ function BracketSection({
   entrantParticipantsMap,
   eventId,
   prevPhase,
-  nextPhase,
   progressionMap,
+  originPhaseMap,
+  hasLosersBracket,
   onSetClick,
 }: {
   rounds: BracketRound[]
@@ -246,9 +251,10 @@ function BracketSection({
   entrantPlayerMap: Map<string, string>
   entrantParticipantsMap?: Map<string, SetClickParticipant[]>
   eventId?: string
-  prevPhase?: { id: string; name: string } | null
-  nextPhase?: { id: string; name: string } | null
+  prevPhase?: { id: string; name: string; groupCount: number | null } | null
   progressionMap?: Map<string, SetProgressionInfo>
+  originPhaseMap?: Map<string, OriginPhaseGroupInfo>
+  hasLosersBracket?: boolean
   onSetClick?: (info: SetClickInfo) => void
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -258,11 +264,25 @@ function BracketSection({
 
   const { positions, totalLeaves } = computeTreePositions(rounds)
 
-  // Grid columns: round columns + inter-round connectors (no FROM/TO phase columns)
+  // Determine whether source/dest nav columns are needed
+  const hasSourceNodes = prevPhase != null && eventId != null
+  const lastRoundSets = rounds[rounds.length - 1]?.sets ?? []
+  const hasDestNodes = eventId != null && progressionMap != null && lastRoundSets.some(s => progressionMap.has(s.id))
+  const colOffset = hasSourceNodes ? 2 : 0
+
+  // Grid columns: optional source col + connector, round columns + inter-round connectors, optional connector + dest col
   const parts: string[] = []
+  if (hasSourceNodes) {
+    parts.push('max-content') // source nodes
+    parts.push('24px')        // source connector
+  }
   for (let i = 0; i < rounds.length; i++) {
     parts.push('minmax(200px, max-content)')
     if (i < rounds.length - 1) parts.push('24px')
+  }
+  if (hasDestNodes) {
+    parts.push('24px')        // dest connector
+    parts.push('max-content') // dest nodes
   }
   const colTemplate = parts.join(' ')
 
@@ -271,14 +291,10 @@ function BracketSection({
     r => new Set(r.sets.map(s => s.id)),
   )
 
-  // Compute per-set winner phase for last-round sets
-  const lastRoundSets = rounds[rounds.length - 1]?.sets ?? []
-  const perSetWinnerPhases = progressionMap && eventId
-    ? new Map(lastRoundSets.map(set => {
-        const prog = progressionMap.get(set.id)
-        return [set.id, prog?.winnerPhase ?? null] as const
-      }))
-    : null
+  // Dest column index
+  const totalRoundCols = rounds.length * 2 - 1 // round cols + connector cols
+  const destConnectorCol = colOffset + totalRoundCols + 1
+  const destNodeCol = destConnectorCol + 1
 
   return (
     <div ref={scrollRef} className={styles.scrollContainer}>
@@ -289,8 +305,63 @@ function BracketSection({
           gridTemplateRows: `auto repeat(${totalLeaves}, 1fr)`,
         }}
       >
-        {rounds.map((round, roundIdx) => {
-          const col = roundIdx * 2 + 1
+        {/* Source nav column header + nodes */}
+      {hasSourceNodes && (
+        <>
+          <div
+            className={styles.headerSpacer}
+            style={{ gridColumn: 1, gridRow: 1 }}
+          />
+          <div
+            className={styles.headerSpacer}
+            style={{ gridColumn: 2, gridRow: 1 }}
+          />
+          {rounds[0].sets.map(set => {
+            const pos = positions.get(set.id)
+            if (!pos) return null
+            const rowStart = Math.round(pos.start) + 2
+            const rowEnd = Math.max(Math.round(pos.end) + 2, rowStart + 1)
+
+            const proj = projectedResults?.get(set.id)
+            const e0 = proj ? proj.entrants[0] : set.entrants[0]
+            const e1 = proj ? proj.entrants[1] : set.entrants[1]
+
+            return (
+              <Fragment key={`src-${set.id}`}>
+                <div
+                  className={styles.navNodeWrapper}
+                  style={{ gridColumn: 1, gridRow: `${rowStart} / ${rowEnd}` }}
+                >
+                  {[e0, e1].map((entrant, idx) => {
+                    if (!entrant?.id) return null
+                    const originPG = originPhaseMap?.get(entrant.id)
+                    const label = originPG?.displayIdentifier && prevPhase!.groupCount != null && prevPhase!.groupCount > 1
+                      ? `${prevPhase!.name} - ${originPG.displayIdentifier}`
+                      : prevPhase!.name
+                    return (
+                      <NavigationNode
+                        key={entrant.id ?? idx}
+                        label={label}
+                        phaseId={prevPhase!.id}
+                        eventId={eventId!}
+                        entrantId={entrant.id}
+                        direction="source"
+                      />
+                    )
+                  })}
+                </div>
+                <div
+                  className={styles.connectorStraight}
+                  style={{ gridColumn: 2, gridRow: `${rowStart} / ${rowEnd}` }}
+                />
+              </Fragment>
+            )
+          })}
+        </>
+      )}
+
+      {rounds.map((round, roundIdx) => {
+          const col = roundIdx * 2 + 1 + colOffset
           const isLast = roundIdx === rounds.length - 1
           const nextRound = !isLast ? rounds[roundIdx + 1] : null
           const currentSetIds = roundSetIds[roundIdx]
@@ -312,19 +383,6 @@ function BracketSection({
                 const rowStart = Math.round(pos.start) + 2
                 const rowEnd = Math.max(Math.round(pos.end) + 2, rowStart + 1)
 
-                // Source phase badge for first-round sets
-                const sourcePhase = roundIdx === 0 && prevPhase && eventId
-                  ? { id: prevPhase.id, name: prevPhase.name, eventId }
-                  : undefined
-
-                // Winner destination badge for last-round sets
-                const winnerPhase = isLast
-                  ? (perSetWinnerPhases?.get(set.id) ?? (!progressionMap && nextPhase ? nextPhase : null))
-                  : null
-                const winnerDest = winnerPhase && eventId
-                  ? { phase: winnerPhase, eventId }
-                  : undefined
-
                 return (
                   <div
                     key={set.id}
@@ -345,10 +403,6 @@ function BracketSection({
                       projectedResults={projectedResults}
                       entrantPlayerMap={entrantPlayerMap}
                       entrantParticipantsMap={entrantParticipantsMap}
-                      progressionInfo={progressionMap?.get(set.id)}
-                      eventId={eventId}
-                      sourcePhase={sourcePhase}
-                      winnerDest={winnerDest}
                       onSetClick={onSetClick}
                     />
                   </div>
@@ -430,6 +484,85 @@ function BracketSection({
             </Fragment>
           )
         })}
+
+      {/* Destination nav column header + nodes */}
+      {hasDestNodes && (
+        <>
+          <div
+            className={styles.headerSpacer}
+            style={{ gridColumn: destConnectorCol, gridRow: 1 }}
+          />
+          <div
+            className={styles.headerSpacer}
+            style={{ gridColumn: destNodeCol, gridRow: 1 }}
+          />
+          {lastRoundSets.map(set => {
+            const prog = progressionMap!.get(set.id)
+            if (!prog) return null
+            const pos = positions.get(set.id)
+            if (!pos) return null
+            const rowStart = Math.round(pos.start) + 2
+            const rowEnd = Math.max(Math.round(pos.end) + 2, rowStart + 1)
+
+            const proj = projectedResults?.get(set.id)
+            const e0 = proj ? proj.entrants[0] : set.entrants[0]
+            const e1 = proj ? proj.entrants[1] : set.entrants[1]
+            const winnerId = proj ? proj.winnerId : set.winnerId
+
+            // Determine which entrant (e0 top, e1 bottom) is winner/loser
+            const isE0Winner = winnerId != null && e0?.id === winnerId
+            const isE1Winner = winnerId != null && e1?.id === winnerId
+
+            // Build per-entrant destination: top = e0's dest, bottom = e1's dest
+            const e0Dest = isE0Winner && prog.winnerPhase
+              ? { phase: prog.winnerPhase, pg: prog.winnerPhaseGroup, entrantId: e0?.id }
+              : (!isE0Winner && e0?.id && prog.loserPhase)
+                ? { phase: prog.loserPhase, pg: prog.loserPhaseGroup, entrantId: e0.id }
+                : null
+            const e1Dest = isE1Winner && prog.winnerPhase
+              ? { phase: prog.winnerPhase, pg: prog.winnerPhaseGroup, entrantId: e1?.id }
+              : (!isE1Winner && e1?.id && prog.loserPhase)
+                ? { phase: prog.loserPhase, pg: prog.loserPhaseGroup, entrantId: e1.id }
+                : null
+
+            return (
+              <Fragment key={`dest-${set.id}`}>
+                <div
+                  className={styles.connectorStraight}
+                  style={{ gridColumn: destConnectorCol, gridRow: `${rowStart} / ${rowEnd}` }}
+                />
+                <div
+                  className={styles.navNodeWrapper}
+                  style={{ gridColumn: destNodeCol, gridRow: `${rowStart} / ${rowEnd}` }}
+                >
+                  {e0Dest ? (
+                    <NavigationNode
+                      label={formatProgressionLabel(e0Dest.phase, e0Dest.pg)}
+                      phaseId={e0Dest.phase.id}
+                      eventId={eventId!}
+                      entrantId={e0Dest.entrantId ?? userEntrantId}
+                      direction="dest"
+                    />
+                  ) : (
+                    <span className={styles.navNodeEliminated}>{hasLosersBracket ? 'To Losers' : 'Eliminated'}</span>
+                  )}
+                  {e1Dest ? (
+                    <NavigationNode
+                      label={formatProgressionLabel(e1Dest.phase, e1Dest.pg)}
+                      phaseId={e1Dest.phase.id}
+                      eventId={eventId!}
+                      entrantId={e1Dest.entrantId ?? userEntrantId}
+                      direction="dest"
+                    />
+                  ) : (
+                    <span className={styles.navNodeEliminated}>{hasLosersBracket ? 'To Losers' : 'Eliminated'}</span>
+                  )}
+                </div>
+              </Fragment>
+            )
+          })}
+        </>
+      )}
       </div>
     </div>
   )
@@ -441,10 +574,6 @@ function SetCard({
   projectedResults,
   entrantPlayerMap,
   entrantParticipantsMap,
-  progressionInfo,
-  eventId,
-  sourcePhase,
-  winnerDest,
   onSetClick,
 }: {
   set: BracketSet
@@ -452,10 +581,6 @@ function SetCard({
   projectedResults: Map<string, ProjectedSet> | null
   entrantPlayerMap: Map<string, string>
   entrantParticipantsMap?: Map<string, SetClickParticipant[]>
-  progressionInfo?: SetProgressionInfo
-  eventId?: string
-  sourcePhase?: { id: string; name: string; eventId: string }
-  winnerDest?: { phase: { id: string; name: string }; eventId: string }
   onSetClick?: (info: SetClickInfo) => void
 }) {
   const proj = projectedResults?.get(set.id)
@@ -487,11 +612,6 @@ function SetCard({
     isUserSet && styles.setCardUser,
     isClickable && styles.setCardClickable,
   ].filter(Boolean).join(' ')
-
-  // Determine destination badge for the losing entrant
-  const loserDest = progressionInfo?.loserPhase && eventId
-    ? { phase: progressionInfo.loserPhase, eventId }
-    : undefined
 
   const handleClick = () => {
     if (!onSetClick) return
@@ -526,16 +646,6 @@ function SetCard({
         },
       } : {})}
     >
-      {sourcePhase && (
-        <Link
-          to="/event/$eventId/phase/$phaseId"
-          params={{ eventId: sourcePhase.eventId, phaseId: sourcePhase.id }}
-          search={userEntrantId ? { entrantId: userEntrantId } : {}}
-          className={styles.sourceBadge}
-        >
-          &larr; {sourcePhase.name}
-        </Link>
-      )}
       <EntrantRow
         entrant={e0}
         isWinner={isE0Winner}
@@ -543,7 +653,6 @@ function SetCard({
         isUser={userEntrantId != null && e0?.id === userEntrantId}
         playerId={e0?.id ? entrantPlayerMap.get(e0.id) : undefined}
         score={score0}
-        destinationBadge={isE0Loser ? loserDest : (isE0Winner ? winnerDest : undefined)}
       />
       <EntrantRow
         entrant={e1}
@@ -552,7 +661,6 @@ function SetCard({
         isUser={userEntrantId != null && e1?.id === userEntrantId}
         playerId={e1?.id ? entrantPlayerMap.get(e1.id) : undefined}
         score={score1}
-        destinationBadge={isE1Loser ? loserDest : (isE1Winner ? winnerDest : undefined)}
       />
     </div>
   )
@@ -565,7 +673,6 @@ function EntrantRow({
   isUser,
   playerId,
   score,
-  destinationBadge,
 }: {
   entrant: BracketEntrant | null
   isWinner: boolean
@@ -573,7 +680,6 @@ function EntrantRow({
   isUser: boolean
   playerId?: string
   score: string | null
-  destinationBadge?: { phase: { id: string; name: string }; eventId: string }
 }) {
   const rowClass = [
     styles.entrantRow,
@@ -634,16 +740,43 @@ function EntrantRow({
         </span>
       )}
       {score != null && <span className={scoreClass}>{score}</span>}
-      {destinationBadge && (
-        <Link
-          to="/event/$eventId/phase/$phaseId"
-          params={{ eventId: destinationBadge.eventId, phaseId: destinationBadge.phase.id }}
-          search={entrant.id ? { entrantId: String(entrant.id) } : {}}
-          className={styles.destinationBadge}
-        >
-          &rarr; {destinationBadge.phase.name}
-        </Link>
-      )}
     </div>
+  )
+}
+
+function formatProgressionLabel(
+  phase: { name: string; groupCount: number | null },
+  phaseGroup: { id: string; displayIdentifier: string | null } | null | undefined,
+): string {
+  if (phase.groupCount != null && phase.groupCount > 1 && phaseGroup?.displayIdentifier) {
+    return `${phase.name} - ${phaseGroup.displayIdentifier}`
+  }
+  return phase.name
+}
+
+function NavigationNode({
+  label,
+  phaseId,
+  eventId,
+  entrantId,
+  direction,
+}: {
+  label: string
+  phaseId: string
+  eventId: string
+  entrantId?: string | null
+  direction: 'source' | 'dest'
+}) {
+  return (
+    <Link
+      to="/event/$eventId/phase/$phaseId"
+      params={{ eventId, phaseId }}
+      search={entrantId ? { entrantId } : {}}
+      className={`${styles.navNode} ${direction === 'source' ? styles.navNodeSource : styles.navNodeDest}`}
+    >
+      {direction === 'source' && <span className={styles.navNodeArrow}>&larr;</span>}
+      <span className={styles.navNodeLabel}>{label}</span>
+      {direction === 'dest' && <span className={styles.navNodeArrow}>&rarr;</span>}
+    </Link>
   )
 }
