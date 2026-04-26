@@ -97,6 +97,18 @@
   gap: 0.5rem;
 }
 
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
 .title {
   font-size: 1.6rem;
   font-weight: 700;

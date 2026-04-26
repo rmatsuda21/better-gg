@@ -68,9 +68,13 @@ function RootLayout() {
       <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
         <div className={styles.headerLeft}>
           {isHome ? (
-            <h1 className={styles.title}>better.gg</h1>
+            <div className={styles.titleGroup}>
+              <img src="/logo.svg" alt="" className={styles.logo} />
+              <h1 className={styles.title}>better.gg</h1>
+            </div>
           ) : (
-            <Link to="/" className={styles.titleLink}>
+            <Link to="/" className={`${styles.titleLink} ${styles.titleGroup}`}>
+              <img src="/logo.svg" alt="" className={styles.logo} />
               <h1 className={styles.title}>better.gg</h1>
             </Link>
           )}
