@@ -111,6 +111,8 @@ function PhaseBracketPage() {
     navigate({ search: (prev) => ({ ...prev, projected: searchValue }), replace: true })
   }, [navigate, hasOverrides])
 
+  const isTeamEvent = meta?.isTeamEvent ?? false
+
   // Cross-phase overrides (lazy — only when Projected toggled + empty phase)
   const { data: crossPhaseData, isLoading: crossPhaseLoading } = useCrossPhaseOverrides(
     phaseId,
@@ -118,6 +120,7 @@ function PhaseBracketPage() {
     meta?.phaseName ?? null,
     meta?.currentPhaseOrder ?? null,
     projected && !hasAnyEntrants && (meta?.originPhaseIds?.length ?? 0) > 0,
+    isTeamEvent,
   )
 
   const seedOverrides = crossPhaseData?.seedOverrides?.size
@@ -128,9 +131,10 @@ function PhaseBracketPage() {
   // Aggregate entrants for search (from loaded PGs)
   const allEntrants = useMemo(
     () => extractBracketEntrants(
-      pgSetQueries.filter(q => q.data).map(q => q.data!.pgInfo)
+      pgSetQueries.filter(q => q.data).map(q => q.data!.pgInfo),
+      isTeamEvent,
     ),
-    [pgSetQueries],
+    [pgSetQueries, isTeamEvent],
   )
 
   // Aggregate progressionMap across PGs
@@ -329,6 +333,7 @@ function PhaseBracketPage() {
               phaseNav={phaseNav}
               progressionMap={progressionMap}
               onSetClick={setModalInfo}
+              isTeamEvent={isTeamEvent}
             />
           </div>
         ) : (
@@ -345,6 +350,7 @@ function PhaseBracketPage() {
             phaseNav={phaseNav}
             progressionMap={progressionMap}
             onSetClick={setModalInfo}
+            isTeamEvent={isTeamEvent}
           />
         )
       )}
@@ -403,6 +409,7 @@ interface PhaseGroupBracketProps {
   phaseNav: PhaseNavInfo
   progressionMap: Map<string, SetProgressionInfo>
   onSetClick: (info: SetClickInfo) => void
+  isTeamEvent?: boolean
 }
 
 function PhaseGroupBracket({
@@ -418,17 +425,18 @@ function PhaseGroupBracket({
   phaseNav,
   progressionMap,
   onSetClick,
+  isTeamEvent,
 }: PhaseGroupBracketProps) {
   const isPool = isPoolBracketType(bracketType)
 
   // Actual bracket data
   const bracketData = useMemo(() => {
     const suppress = !isPool && !showProjected && receivesProgressions
-    return buildBracketData(pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, suppress)
-  }, [pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, showProjected, receivesProgressions, isPool])
+    return buildBracketData(pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, suppress, isTeamEvent)
+  }, [pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, showProjected, receivesProgressions, isPool, isTeamEvent])
 
   // Entrant -> player ID map
-  const entrantPlayerMap = useMemo(() => buildEntrantPlayerMap(pgData.pgInfo), [pgData.pgInfo])
+  const entrantPlayerMap = useMemo(() => buildEntrantPlayerMap(pgData.pgInfo, isTeamEvent), [pgData.pgInfo, isTeamEvent])
 
   // Lazy: bye-inclusive sets for projection (needed for both CREATED and ACTIVE
   // phases because the regular query omits hidden bye rounds, causing losers
@@ -446,11 +454,11 @@ function PhaseGroupBracket({
     if (isPool || !showProjected) return null
     if (byeSets) {
       const projPgInfo: PhaseGroupInfo = { ...pgData.pgInfo, allSets: byeSets as PhaseGroupInfo['allSets'], sets: byeSets as PhaseGroupInfo['sets'] }
-      const projBracket = buildBracketData(projPgInfo, userEntrantId, seedOverrides, seedIdToSeedNum)
+      const projBracket = buildBracketData(projPgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, undefined, isTeamEvent)
       return buildProjectedResults(projBracket)
     }
     return buildProjectedResults(bracketData)
-  }, [isPool, showProjected, bracketData, byeSets, pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum])
+  }, [isPool, showProjected, bracketData, byeSets, pgData.pgInfo, userEntrantId, seedOverrides, seedIdToSeedNum, isTeamEvent])
 
   if (isPool) {
     return (
@@ -511,6 +519,7 @@ function CollapsiblePools({
   phaseNav,
   progressionMap,
   onSetClick,
+  isTeamEvent,
 }: {
   pgDataList: PhaseGroupSetResult[]
   bracketType: string | null
@@ -524,6 +533,7 @@ function CollapsiblePools({
   phaseNav: PhaseNavInfo
   progressionMap: Map<string, SetProgressionInfo>
   onSetClick: (info: SetClickInfo) => void
+  isTeamEvent?: boolean
 }) {
   const userPoolId = useMemo(
     () => findUserPool(pgDataList, userEntrantId),
@@ -587,6 +597,7 @@ function CollapsiblePools({
                 phaseNav={phaseNav}
                 progressionMap={progressionMap}
                 onSetClick={onSetClick}
+                isTeamEvent={isTeamEvent}
               />
             )}
           </div>

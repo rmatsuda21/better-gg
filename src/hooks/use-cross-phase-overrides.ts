@@ -4,7 +4,7 @@ import { graphqlClient } from '../lib/graphql-client'
 import { mapSeedsByPlaceholder, mapSeedsByProgressionId } from '../lib/projection-utils'
 import type { OriginSeedEntrant } from '../lib/projection-utils'
 import type { BracketEntrant } from '../lib/bracket-utils'
-import { buildBracketData, buildProjectedResults, getWinnerFromProjected, getLoserFromProjected } from '../lib/bracket-utils'
+import { buildBracketData, buildProjectedResults, getWinnerFromProjected, getLoserFromProjected, resolveEntrantDisplay } from '../lib/bracket-utils'
 import { fetchPhaseGroupSetData } from './use-bracket-sets'
 
 // Fetch phase seeds with progression data for cross-phase projection
@@ -105,6 +105,7 @@ async function resolveProjectionChain(
   destSeeds: DestinationSeed[],
   originPhaseId: string,
   maxDepth = 5,
+  isTeamEvent?: boolean,
 ): Promise<Map<number, OriginSeedEntrant> | null> {
   if (maxDepth <= 0) return null
 
@@ -114,18 +115,21 @@ async function resolveProjectionChain(
   if (hasEntrants) {
     const originSeedsRaw = originSeedNodes
       .filter((n): n is NonNullable<typeof n> => n?.id != null && n?.seedNum != null)
-      .map(n => ({
-        id: n.id!,
-        seedNum: n.seedNum!,
-        progressionSeedId: n.progressionSeedId ?? null,
-        groupDisplayId: n.phaseGroup?.displayIdentifier ?? null,
-        entrant: n.entrant?.id ? {
-          id: String(n.entrant.id),
-          name: n.entrant.participants?.[0]?.gamerTag ?? n.entrant.name ?? 'Unknown',
-          prefix: n.entrant.participants?.[0]?.prefix ?? null,
-          seedNum: n.seedNum ?? n.entrant.initialSeedNum ?? null,
-        } : null,
-      }))
+      .map(n => {
+        const display = n.entrant?.id ? resolveEntrantDisplay(n.entrant, !!isTeamEvent) : null
+        return {
+          id: n.id!,
+          seedNum: n.seedNum!,
+          progressionSeedId: n.progressionSeedId ?? null,
+          groupDisplayId: n.phaseGroup?.displayIdentifier ?? null,
+          entrant: display ? {
+            id: String(n.entrant!.id),
+            name: display.name,
+            prefix: display.prefix,
+            seedNum: n.seedNum ?? n.entrant!.initialSeedNum ?? null,
+          } : null,
+        }
+      })
 
     // Merge both strategies: placeholder provides baseline, progressionSeedId overrides
     const result = mapSeedsByPlaceholder(destSeeds, originSeedsRaw)
@@ -148,7 +152,7 @@ async function resolveProjectionChain(
       entrant: null,
     }))
 
-  const deeperOverrides = await resolveProjectionChain(intermediateDest, deeperOriginId, maxDepth - 1)
+  const deeperOverrides = await resolveProjectionChain(intermediateDest, deeperOriginId, maxDepth - 1, isTeamEvent)
   if (!deeperOverrides || deeperOverrides.size === 0) return null
 
   const resolvedOriginSeeds = originSeedNodes
@@ -180,6 +184,7 @@ export function useCrossPhaseOverrides(
   phaseName: string | null,
   phaseOrder: number | null,
   enabled: boolean,
+  isTeamEvent?: boolean,
 ) {
   return useQuery({
     queryKey: ['crossPhaseOverrides', phaseId, originPhaseIds],
@@ -196,14 +201,15 @@ export function useCrossPhaseOverrides(
         if (node.id != null) {
           seedIdToSeedNum.set(String(node.id), node.seedNum)
         }
+        const entDisplay = node.entrant?.id ? resolveEntrantDisplay(node.entrant, !!isTeamEvent) : null
         destinationSeeds.push({
           seedNum: node.seedNum,
           progressionSeedId: node.progressionSeedId ?? null,
           placeholderName: node.placeholderName ?? null,
-          entrant: node.entrant?.id ? {
-            id: String(node.entrant.id),
-            name: node.entrant.participants?.[0]?.gamerTag ?? node.entrant.name ?? 'Unknown',
-            prefix: node.entrant.participants?.[0]?.prefix ?? null,
+          entrant: entDisplay ? {
+            id: String(node.entrant!.id),
+            name: entDisplay.name,
+            prefix: entDisplay.prefix,
             seedNum: node.seedNum,
           } : null,
         })
@@ -225,7 +231,7 @@ export function useCrossPhaseOverrides(
 
       // Strategy 1: Recursive projection chain (handles multi-level empty phases)
       if (effectiveOriginIds.length > 0 && destinationSeeds.length > 0) {
-        const chainOverrides = await resolveProjectionChain(destinationSeeds, effectiveOriginIds[0])
+        const chainOverrides = await resolveProjectionChain(destinationSeeds, effectiveOriginIds[0], 5, isTeamEvent)
         if (chainOverrides) {
           for (const [seedNum, entrant] of chainOverrides) {
             overrides.set(seedNum, {

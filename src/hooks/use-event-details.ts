@@ -7,6 +7,7 @@ const eventDetailsQuery = graphql(`
     event(id: $eventId) {
       id
       name
+      type
       slug
       startAt
       state

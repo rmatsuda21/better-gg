@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useDebouncedValue } from '../../hooks/use-debounced-value'
 import { formatPlacement } from '../../lib/format'
 import type { TournamentParticipant } from '../../hooks/use-tournament-participants'
+import type { EventStanding } from '../../hooks/use-event-standings'
 import { Skeleton } from '../Skeleton/Skeleton'
 import { DataTable, DataTableHeader, DataTableRow } from '../DataTable/DataTable'
 import styles from './ParticipantList.module.css'
@@ -13,6 +14,7 @@ const ROW_HEIGHT = 44
 export interface EventInfo {
   id: string
   name: string
+  isTeamEvent: boolean
   phases: Array<{ id: string; phaseOrder: number | null }>
 }
 
@@ -30,6 +32,8 @@ interface ParticipantListProps {
   events: EventInfo[]
   isLoading: boolean
   viewMode?: ParticipantViewMode
+  teamEntrants?: EventStanding[]
+  teamEntrantsLoading?: boolean
 }
 
 export function ParticipantList({
@@ -37,12 +41,16 @@ export function ParticipantList({
   events,
   isLoading,
   viewMode = { kind: 'all' },
+  teamEntrants,
+  teamEntrantsLoading,
 }: ParticipantListProps) {
   'use no memo'
   const [searchInput, setSearchInput] = useState('')
   const debouncedSearch = useDebouncedValue(searchInput, 200)
   const parentRef = useRef<HTMLDivElement>(null)
 
+  const isTeamMode = viewMode.kind === 'event'
+    && events.find(e => e.id === viewMode.eventId)?.isTeamEvent === true
   const showSeed = viewMode.kind === 'event'
 
   // Reset scroll and search when viewMode changes
@@ -75,8 +83,9 @@ export function ParticipantList({
     return map
   }, [events])
 
-  // Process participants based on view mode
+  // Process participants based on view mode (non-team)
   const processedParticipants = useMemo((): ProcessedParticipant[] => {
+    if (isTeamMode) return []
     if (viewMode.kind === 'all') {
       // All mode: alphabetical by gamerTag, no seed
       const sorted = [...participants].sort((a, b) =>
@@ -101,10 +110,25 @@ export function ParticipantList({
       return a.displaySeed - b.displaySeed
     })
     return result
-  }, [participants, viewMode])
+  }, [participants, viewMode, isTeamMode])
 
-  // Filter by search
-  const filtered = useMemo(() => {
+  // Filter team entrants by search (matches team name or any member's gamerTag/prefix)
+  const filteredTeams = useMemo(() => {
+    if (!isTeamMode || !teamEntrants) return []
+    if (!debouncedSearch) return teamEntrants
+    const q = debouncedSearch.toLowerCase()
+    return teamEntrants.filter((t) => {
+      if (t.name?.toLowerCase().includes(q)) return true
+      return t.participants.some(
+        p => p.gamerTag.toLowerCase().includes(q)
+          || (p.prefix && p.prefix.toLowerCase().includes(q)),
+      )
+    })
+  }, [isTeamMode, teamEntrants, debouncedSearch])
+
+  // Filter participants by search (non-team)
+  const filteredParticipants = useMemo(() => {
+    if (isTeamMode) return []
     if (!debouncedSearch) return processedParticipants
     const q = debouncedSearch.toLowerCase()
     return processedParticipants.filter((item) => {
@@ -112,11 +136,13 @@ export function ParticipantList({
       if (item.participant.prefix && item.participant.prefix.toLowerCase().includes(q)) return true
       return false
     })
-  }, [processedParticipants, debouncedSearch])
+  }, [isTeamMode, processedParticipants, debouncedSearch])
+
+  const itemCount = isTeamMode ? filteredTeams.length : filteredParticipants.length
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
-    count: filtered.length,
+    count: itemCount,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 20,
@@ -127,18 +153,20 @@ export function ParticipantList({
   const hasRestoredRef = useRef(false)
 
   useEffect(() => {
-    if (hasRestoredRef.current || !scrollEntry?.scrollY || filtered.length === 0) return
+    if (hasRestoredRef.current || !scrollEntry?.scrollY || itemCount === 0) return
     hasRestoredRef.current = true
     requestAnimationFrame(() => {
       parentRef.current?.scrollTo({ top: scrollEntry.scrollY })
     })
-  }, [scrollEntry, filtered.length])
+  }, [scrollEntry, itemCount])
 
   const scrollToTop = useCallback(() => {
     parentRef.current?.scrollTo({ top: 0 })
   }, [])
 
-  if (isLoading) {
+  const effectiveLoading = isTeamMode ? (teamEntrantsLoading ?? true) : isLoading
+
+  if (effectiveLoading) {
     return (
       <div className={styles.container}>
         {Array.from({ length: 5 }, (_, i) => (
@@ -148,12 +176,14 @@ export function ParticipantList({
     )
   }
 
+  const selectedEventId = viewMode.kind === 'event' ? viewMode.eventId : null
+
   return (
     <div className={styles.container}>
       <input
         type="text"
         className={styles.searchInput}
-        placeholder="Search players..."
+        placeholder={isTeamMode ? 'Search teams...' : 'Search players...'}
         value={searchInput}
         onChange={(e) => {
           setSearchInput(e.target.value)
@@ -161,14 +191,14 @@ export function ParticipantList({
         }}
       />
 
-      {filtered.length === 0 ? (
-        <div className={styles.noResults}>No players found</div>
+      {itemCount === 0 ? (
+        <div className={styles.noResults}>No {isTeamMode ? 'teams' : 'players'} found</div>
       ) : (
         <DataTable>
           <DataTableHeader className={showSeed ? styles.columns : styles.columnsNoSeed}>
             {showSeed && <span>Seed</span>}
-            <span>Player</span>
-            <span>Events</span>
+            <span>{isTeamMode ? 'Team' : 'Player'}</span>
+            {isTeamMode ? <span>Place</span> : <span>Events</span>}
           </DataTableHeader>
           <div ref={parentRef} className={styles.scrollContainer} data-scroll-restoration-id="participant-list">
             <div
@@ -189,13 +219,21 @@ export function ParticipantList({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <ParticipantRow
-                    participant={filtered[virtualRow.index].participant}
-                    displaySeed={filtered[virtualRow.index].displaySeed}
-                    showSeed={showSeed}
-                    eventPhaseMap={eventPhaseMap}
-                    eventNameMap={eventNameMap}
-                  />
+                  {isTeamMode ? (
+                    <TeamRow
+                      team={filteredTeams[virtualRow.index]}
+                      eventId={selectedEventId!}
+                      phaseId={eventPhaseMap.get(selectedEventId!) ?? null}
+                    />
+                  ) : (
+                    <ParticipantRow
+                      participant={filteredParticipants[virtualRow.index].participant}
+                      displaySeed={filteredParticipants[virtualRow.index].displaySeed}
+                      showSeed={showSeed}
+                      eventPhaseMap={eventPhaseMap}
+                      eventNameMap={eventNameMap}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -287,6 +325,71 @@ function ParticipantRow({
             </Link>
           )
         })}
+      </div>
+    </DataTableRow>
+  )
+}
+
+function TeamRow({
+  team,
+  eventId,
+  phaseId,
+}: {
+  team: EventStanding
+  eventId: string
+  phaseId: string | null
+}) {
+  return (
+    <DataTableRow className={styles.rowColumns}>
+      <div className={styles.seed}>
+        {team.seed ?? '-'}
+      </div>
+      <div className={styles.teamMembers}>
+        {team.participants.length > 0 ? (
+          team.participants.map((p, i) => (
+            <span key={p.playerId ?? i} className={styles.teamMember}>
+              {i > 0 && <span className={styles.teamSeparator}>/</span>}
+              {p.playerId ? (
+                <Link
+                  to="/player/$playerId"
+                  params={{ playerId: p.playerId }}
+                  className={styles.playerLink}
+                >
+                  {p.prefix && <span className={styles.prefix}>{p.prefix}</span>}
+                  {p.gamerTag}
+                </Link>
+              ) : (
+                <span className={styles.playerLink}>
+                  {p.prefix && <span className={styles.prefix}>{p.prefix}</span>}
+                  {p.gamerTag}
+                </span>
+              )}
+            </span>
+          ))
+        ) : (
+          <span className={styles.playerLink}>{team.name ?? 'Unknown'}</span>
+        )}
+      </div>
+      <div className={styles.eventBadges}>
+        {team.placement != null && (
+          phaseId ? (
+            <Link
+              to="/event/$eventId/phase/$phaseId"
+              params={{ eventId, phaseId }}
+              className={styles.eventBadge}
+            >
+              <span className={styles.placementText}>
+                {formatPlacement(team.placement)}
+              </span>
+            </Link>
+          ) : (
+            <span className={styles.eventBadge}>
+              <span className={styles.placementText}>
+                {formatPlacement(team.placement)}
+              </span>
+            </span>
+          )
+        )}
       </div>
     </DataTableRow>
   )

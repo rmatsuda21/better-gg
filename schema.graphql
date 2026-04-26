@@ -143,6 +143,7 @@ type Event {
   slug: String
   startAt: Timestamp
   state: String
+  type: Int
   numEntrants: Int
   isOnline: Boolean
   tournament: Tournament

@@ -52,13 +52,15 @@ interface SetDetailsProps {
   characterMap: Map<number, string>
   roundLabels?: Map<string, string>
   onSetClick?: (info: SetClickInfo) => void
+  isTeamEvent?: boolean
 }
 
 function resolveEntrant(slot: SetSlot | null | undefined) {
   return slot?.entrant ?? slot?.seed?.entrant
 }
 
-function getPlayerId(entrant: EntrantData | null | undefined): string | null {
+function getPlayerId(entrant: EntrantData | null | undefined, isTeam?: boolean): string | null {
+  if (isTeam) return null
   const id = entrant?.participants?.[0]?.player?.id
   return id ?? null
 }
@@ -86,6 +88,7 @@ export function SetDetails({
   characterMap,
   roundLabels,
   onSetClick,
+  isTeamEvent,
 }: SetDetailsProps) {
   const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set())
 
@@ -122,8 +125,8 @@ export function SetDetails({
         const oppEntrant = resolveEntrant(oppSlot)
         const userName = userEntrant?.name ?? 'Unknown'
         const oppName = oppEntrant?.name ?? 'Unknown'
-        const userPlayerId = getPlayerId(userEntrant)
-        const oppPlayerId = getPlayerId(oppEntrant)
+        const userPlayerId = getPlayerId(userEntrant, isTeamEvent)
+        const oppPlayerId = getPlayerId(oppEntrant, isTeamEvent)
 
         const userEntrantNumId = Number(userEntrantId)
         const scores = parseScores(set.displayScore)
@@ -165,8 +168,8 @@ export function SetDetails({
               scores: [oppScore ?? null, userScore ?? null],
               isDQ: set.displayScore === 'DQ',
               entrants: [
-                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp), seedNum: getSeedNum(oppSlot) } : null,
-                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user), seedNum: getSeedNum(userSlot) } : null,
+                opp ? { id: String(opp.id ?? ''), name: opp.name ?? 'Unknown', playerId: getPlayerId(opp, isTeamEvent), seedNum: getSeedNum(oppSlot) } : null,
+                user ? { id: String(user.id ?? ''), name: user.name ?? 'Unknown', playerId: getPlayerId(user, isTeamEvent), seedNum: getSeedNum(userSlot) } : null,
               ],
             })
           } else if (hasGames) {

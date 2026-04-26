@@ -71,6 +71,7 @@ function PlayerEventPage() {
   }, [navigate])
 
   const event = eventData?.event ?? null
+  const isTeamEvent = event?.type === 5
 
   const sets = useMemo(
     () => (setsData?.entrant?.paginatedSets?.nodes ?? []).filter(
@@ -299,6 +300,7 @@ function PlayerEventPage() {
               eventId={eventId}
               showProjected={projected}
               onSetClick={handleSetClick}
+              isTeamEvent={isTeamEvent}
             />
           ) : (
             <CollapsiblePhaseGroups
@@ -308,6 +310,7 @@ function PlayerEventPage() {
               eventState={eventState}
               showProjected={projected}
               onSetClick={handleSetClick}
+              isTeamEvent={isTeamEvent}
             />
           )}
         </div>
@@ -326,6 +329,7 @@ function PlayerEventPage() {
             characterMap={characterMap}
             roundLabels={roundLabels}
             onSetClick={handleSetClick}
+            isTeamEvent={isTeamEvent}
           />
         )}
       </div>
@@ -368,21 +372,23 @@ function PlayerBracket({
   eventId,
   showProjected,
   onSetClick,
+  isTeamEvent,
 }: {
   phaseGroup: PhaseGroupInfo
   userEntrantId?: string
   eventId: string
   showProjected: boolean
   onSetClick?: (info: SetClickInfo) => void
+  isTeamEvent?: boolean
 }) {
   const isPool = isPoolBracketType(phaseGroup.bracketType)
   const bracketData = useMemo(
-    () => buildBracketData(phaseGroup, userEntrantId),
-    [phaseGroup, userEntrantId],
+    () => buildBracketData(phaseGroup, userEntrantId, undefined, undefined, undefined, isTeamEvent),
+    [phaseGroup, userEntrantId, isTeamEvent],
   )
   const entrantPlayerMap = useMemo(
-    () => buildEntrantPlayerMap(phaseGroup),
-    [phaseGroup],
+    () => buildEntrantPlayerMap(phaseGroup, isTeamEvent),
+    [phaseGroup, isTeamEvent],
   )
   const projectedResults = useMemo(() => {
     if (isPool || !showProjected) return null
@@ -421,6 +427,7 @@ function CollapsiblePhaseGroups({
   eventState,
   showProjected,
   onSetClick,
+  isTeamEvent,
 }: {
   phaseGroups: PhaseGroupInfo[]
   userEntrantId?: string
@@ -428,6 +435,7 @@ function CollapsiblePhaseGroups({
   eventState?: string | null
   showProjected: boolean
   onSetClick?: (info: SetClickInfo) => void
+  isTeamEvent?: boolean
 }) {
   const sorted = [...phaseGroups].sort(
     (a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0),
@@ -498,6 +506,7 @@ function CollapsiblePhaseGroups({
                 eventId={eventId}
                 showProjected={showProjected}
                 onSetClick={onSetClick}
+                isTeamEvent={isTeamEvent}
               />
             )}
           </div>

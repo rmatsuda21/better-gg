@@ -88,11 +88,27 @@ function resolveEntrant(slot: SlotNode | null | undefined) {
   return slot?.entrant ?? slot?.seed?.entrant
 }
 
+export function resolveEntrantDisplay(
+  entrant: { name?: string | null; participants?: Array<{ gamerTag?: string | null; prefix?: string | null; player?: { id?: string | null } | null } | null> | null },
+  isTeamEvent: boolean,
+): { name: string; prefix: string | null; playerId: string | null } {
+  if (isTeamEvent) {
+    return { name: entrant.name ?? 'Unknown', prefix: null, playerId: null }
+  }
+  const p = entrant.participants?.[0]
+  return {
+    name: p?.gamerTag ?? entrant.name ?? 'Unknown',
+    prefix: p?.prefix ?? null,
+    playerId: p?.player?.id ? String(p.player.id) : null,
+  }
+}
+
 function resolveEntrantInfo(
   slot: SlotNode | null | undefined,
   seedEntrantOverrides?: Map<number, BracketEntrant>,
   seedIdToSeedNum?: Map<string, number>,
   suppressEntrants?: boolean,
+  isTeamEvent?: boolean,
 ): BracketEntrant | null {
   if (suppressEntrants) return null
   // Try slot.seed.seedNum first (works for CREATED phases with direct seed assignments)
@@ -107,10 +123,11 @@ function resolveEntrantInfo(
   }
   const ent = resolveEntrant(slot)
   if (!ent?.id) return null
+  const display = resolveEntrantDisplay(ent, !!isTeamEvent)
   return {
     id: String(ent.id),
-    name: ent.participants?.[0]?.gamerTag ?? ent.name ?? 'Unknown',
-    prefix: ent.participants?.[0]?.prefix ?? null,
+    name: display.name,
+    prefix: display.prefix,
     seedNum: slot?.seed?.seedNum ?? ent.initialSeedNum ?? null,
     isProjected: false,
   }
@@ -143,6 +160,7 @@ export function buildBracketData(
   seedEntrantOverrides?: Map<number, BracketEntrant>,
   seedIdToSeedNum?: Map<string, number>,
   suppressEntrants?: boolean,
+  isTeamEvent?: boolean,
 ): BracketData {
   const allSets = phaseGroup.allSets
   const parsedSets: Array<{ set: SetNode; round: number; index: number }> = []
@@ -193,8 +211,8 @@ export function buildBracketData(
       entries.sort((a, b) => a.index - b.index)
 
       const sets: BracketSet[] = entries.map(({ set, index }) => {
-        const e0 = resolveEntrantInfo(set.slots?.[0], seedEntrantOverrides, seedIdToSeedNum, suppressEntrants)
-        const e1 = resolveEntrantInfo(set.slots?.[1], seedEntrantOverrides, seedIdToSeedNum, suppressEntrants)
+        const e0 = resolveEntrantInfo(set.slots?.[0], seedEntrantOverrides, seedIdToSeedNum, suppressEntrants, isTeamEvent)
+        const e1 = resolveEntrantInfo(set.slots?.[1], seedEntrantOverrides, seedIdToSeedNum, suppressEntrants, isTeamEvent)
         const p0 = extractPrereq(set.slots?.[0])
         const p1 = extractPrereq(set.slots?.[1])
         const involvesUser = userEntrantId != null && (e0?.id === userEntrantId || e1?.id === userEntrantId)
@@ -326,8 +344,9 @@ export interface BracketEntrantInfo {
   poolLabel: string | null
 }
 
-export function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo): Map<string, string> {
+export function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo, isTeamEvent?: boolean): Map<string, string> {
   const map = new Map<string, string>()
+  if (isTeamEvent) return map
   for (const set of phaseGroup.allSets) {
     for (const slot of set.slots ?? []) {
       const entrant = slot?.entrant ?? slot?.seed?.entrant
@@ -340,7 +359,7 @@ export function buildEntrantPlayerMap(phaseGroup: PhaseGroupInfo): Map<string, s
   return map
 }
 
-export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[]): BracketEntrantInfo[] {
+export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[], isTeamEvent?: boolean): BracketEntrantInfo[] {
   const seen = new Map<string, BracketEntrantInfo>()
 
   for (const pg of phaseGroups) {
@@ -351,11 +370,12 @@ export function extractBracketEntrants(phaseGroups: PhaseGroupInfo[]): BracketEn
         const id = String(entrant.id)
         if (seen.has(id)) continue
 
+        const display = resolveEntrantDisplay(entrant, !!isTeamEvent)
         seen.set(id, {
           entrantId: id,
-          name: entrant.name ?? 'Unknown',
+          name: display.name,
           seedNum: slot?.seed?.seedNum ?? entrant.initialSeedNum ?? null,
-          prefix: entrant.participants?.[0]?.prefix ?? null,
+          prefix: display.prefix,
           phaseGroupId: pg.phaseGroupId,
           poolLabel: pg.displayIdentifier,
         })

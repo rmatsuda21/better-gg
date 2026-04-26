@@ -122,6 +122,7 @@ function PlayersSection({
         .map((e) => ({
           id: String(e.id),
           name: e.name ?? 'Event',
+          isTeamEvent: e.type === 5,
           phases: (e.phases ?? [])
             .filter((p): p is NonNullable<typeof p> => !!p?.id)
             .map((p) => ({
@@ -144,18 +145,31 @@ function PlayersSection({
     return { kind: 'all' }
   }, [isMultiEvent, eventInfos, selectedEventId])
 
+  // Detect if current view is a team event
+  const selectedTeamEventId = viewMode.kind === 'event'
+    && eventInfos.find(e => e.id === viewMode.eventId)?.isTeamEvent
+    ? viewMode.eventId
+    : null
+
+  // Fetch standings for team events (entrant-level data)
+  const { data: teamStandings, isLoading: teamStandingsLoading } =
+    useAllEventStandings(selectedTeamEventId ?? '', !!selectedTeamEventId, true)
+
   // Compute display count based on current view
   const displayCount = useMemo(() => {
+    if (selectedTeamEventId && teamStandings) return teamStandings.length
     if (viewMode.kind === 'all') return participants.length
     return participants.filter((p) =>
       p.entrants.some((e) => e.eventId === viewMode.eventId),
     ).length
-  }, [participants, viewMode])
+  }, [participants, viewMode, selectedTeamEventId, teamStandings])
+
+  const sectionTitle = selectedTeamEventId ? 'Teams' : 'Players'
 
   return (
     <div className={styles.playerSection}>
       <div className={styles.playerSectionHeader}>
-        <h3 className={styles.sectionTitle}>Players</h3>
+        <h3 className={styles.sectionTitle}>{sectionTitle}</h3>
         {!isLoading && displayCount > 0 && (
           <span className={styles.countBadge}>
             {displayCount.toLocaleString()}
@@ -186,6 +200,8 @@ function PlayersSection({
         events={eventInfos}
         isLoading={isLoading}
         viewMode={viewMode}
+        teamEntrants={teamStandings ?? undefined}
+        teamEntrantsLoading={selectedTeamEventId ? teamStandingsLoading : undefined}
       />
     </div>
   )
@@ -204,9 +220,10 @@ function EventCard({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   const eventId = String(event.id ?? '')
+  const isTeamEvent = event.type === 5
 
   const { data: standings, isLoading: standingsLoading } =
-    useAllEventStandings(eventId, showStandings && !debouncedSearch)
+    useAllEventStandings(eventId, showStandings && !debouncedSearch, isTeamEvent)
 
   const { data: searchData, isLoading: searchLoading } =
     useEventEntrantSearch(eventId, debouncedSearch, showStandings && debouncedSearch.length >= 2)
@@ -330,11 +347,12 @@ function EventCard({
           />
 
           {isSearchMode ? (
-            <SearchResults data={searchData} isLoading={searchLoading} />
+            <SearchResults data={searchData} isLoading={searchLoading} isTeamEvent={isTeamEvent} />
           ) : (
             <VirtualizedStandings
               standings={standings ?? []}
               isLoading={standingsLoading}
+              isTeamEvent={isTeamEvent}
             />
           )}
         </div>
@@ -386,9 +404,11 @@ function StandingsRow({
 function SearchResults({
   data,
   isLoading,
+  isTeamEvent,
 }: {
   data: ReturnType<typeof useEventEntrantSearch>['data']
   isLoading: boolean
+  isTeamEvent?: boolean
 }) {
   const entrants = data?.event?.entrants?.nodes
 
@@ -397,7 +417,7 @@ function SearchResults({
   }
 
   if (!entrants || entrants.length === 0) {
-    return <p className={styles.noResults}>No players found</p>
+    return <p className={styles.noResults}>No {isTeamEvent ? 'teams' : 'players'} found</p>
   }
 
   return (
@@ -405,20 +425,24 @@ function SearchResults({
       <DataTableHeader className={styles.standingsColumns}>
         <span>Place</span>
         <span>Seed</span>
-        <span>Player</span>
+        <span>{isTeamEvent ? 'Team' : 'Player'}</span>
       </DataTableHeader>
       {entrants.map(
-        (entrant) =>
-          entrant && (
+        (entrant) => {
+          if (!entrant) return null
+          const prefix = isTeamEvent ? null : entrant.participants?.[0]?.prefix ?? null
+          const playerId = isTeamEvent ? null : (entrant.participants?.[0]?.player?.id ? String(entrant.participants[0].player.id) : null)
+          return (
             <StandingsRow
               key={entrant.id}
               placement={entrant.standing?.placement}
               seed={entrant.initialSeedNum}
               name={entrant.name}
-              prefix={entrant.participants?.[0]?.prefix}
-              playerId={entrant.participants?.[0]?.player?.id ? String(entrant.participants[0].player.id) : null}
+              prefix={prefix}
+              playerId={playerId}
             />
-          ),
+          )
+        },
       )}
     </DataTable>
   )
@@ -429,9 +453,11 @@ const STANDINGS_ROW_HEIGHT = 36
 function VirtualizedStandings({
   standings,
   isLoading,
+  isTeamEvent,
 }: {
   standings: EventStanding[]
   isLoading: boolean
+  isTeamEvent?: boolean
 }) {
   'use no memo'
   const parentRef = useRef<HTMLDivElement>(null)
@@ -463,7 +489,7 @@ function VirtualizedStandings({
         <DataTableHeader className={styles.standingsColumns}>
           <span>Place</span>
           <span>Seed</span>
-          <span>Player</span>
+          <span>{isTeamEvent ? 'Team' : 'Player'}</span>
         </DataTableHeader>
         <div ref={parentRef} className={styles.standingsScrollContainer}>
           <div

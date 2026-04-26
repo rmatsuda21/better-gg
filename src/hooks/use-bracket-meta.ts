@@ -13,6 +13,7 @@ const bracketMetaQuery = graphql(`
       state
       event {
         id
+        type
         state
         phases {
           id
@@ -47,6 +48,7 @@ export interface BracketMeta {
   phaseState: string | null
   eventState: string | null
   eventId: string | null
+  isTeamEvent: boolean
   currentPhaseOrder: number | null
   siblingPhases: SiblingPhaseInfo[]
   phaseGroupNodes: Array<{ id: string; displayIdentifier: string | null }>
@@ -89,6 +91,7 @@ export function useBracketMeta(phaseId: string) {
         phaseState: phase.state ?? null,
         eventState: phase.event?.state ?? null,
         eventId: phase.event?.id ? String(phase.event.id) : null,
+        isTeamEvent: phase.event?.type === 5,
         currentPhaseOrder: phase.phaseOrder ?? null,
         siblingPhases,
         phaseGroupNodes,

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { resolveEntrantDisplay } from '../lib/bracket-utils'
 
 const eventStandingsQuery = graphql(`
   query EventStandings($eventId: ID!, $page: Int!, $perPage: Int!) {
@@ -36,6 +37,12 @@ const eventStandingsQuery = graphql(`
   }
 `)
 
+export interface EventStandingParticipant {
+  gamerTag: string
+  prefix: string | null
+  playerId: string | null
+}
+
 export interface EventStanding {
   id: string
   placement: number | null
@@ -43,9 +50,10 @@ export interface EventStanding {
   name: string | null
   prefix: string | null
   playerId: string | null
+  participants: EventStandingParticipant[]
 }
 
-async function fetchAllStandings(eventId: string): Promise<EventStanding[]> {
+async function fetchAllStandings(eventId: string, isTeamEvent: boolean): Promise<EventStanding[]> {
   const perPage = 100
 
   const firstPage = await graphqlClient.request(eventStandingsQuery, {
@@ -76,24 +84,34 @@ async function fetchAllStandings(eventId: string): Promise<EventStanding[]> {
   const standings: EventStanding[] = []
   for (const node of allNodes) {
     if (!node?.id) continue
-    const participant = node.entrant?.participants?.[0]
+    const display = node.entrant
+      ? resolveEntrantDisplay(node.entrant, isTeamEvent)
+      : { name: 'Unknown', prefix: null, playerId: null }
+    const participants: EventStandingParticipant[] = (node.entrant?.participants ?? [])
+      .filter((p): p is NonNullable<typeof p> => p != null && !!p.gamerTag)
+      .map(p => ({
+        gamerTag: p.gamerTag!,
+        prefix: p.prefix ?? null,
+        playerId: p.player?.id ? String(p.player.id) : null,
+      }))
     standings.push({
       id: String(node.id),
       placement: node.placement ?? null,
       seed: node.entrant?.initialSeedNum ?? null,
-      name: node.entrant?.name ?? null,
-      prefix: participant?.prefix ?? null,
-      playerId: participant?.player?.id ? String(participant.player.id) : null,
+      name: display.name,
+      prefix: display.prefix,
+      playerId: display.playerId,
+      participants,
     })
   }
 
   return standings
 }
 
-export function useAllEventStandings(eventId: string, enabled: boolean) {
+export function useAllEventStandings(eventId: string, enabled: boolean, isTeamEvent = false) {
   return useQuery({
     queryKey: ['allEventStandings', eventId],
-    queryFn: () => fetchAllStandings(eventId),
+    queryFn: () => fetchAllStandings(eventId, isTeamEvent),
     enabled: enabled && !!eventId,
     staleTime: 5 * 60 * 1000,
   })

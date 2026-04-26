@@ -32,6 +32,7 @@ const tournamentDetailsQuery = graphql(`
       events(filter: { videogameId: $smashGameIds }) {
         id
         name
+        type
         slug
         startAt
         state
