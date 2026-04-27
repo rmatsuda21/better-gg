@@ -75,10 +75,10 @@ better-gg/
     lib/
       auth.ts                  # Auth store (localStorage, useSyncExternalStore)
       graphql-client.ts        # graphql-request client singleton
-      tournament-utils.ts      # categorizeTournaments (upcoming/current/past)
-      stats-utils.ts           # computeWinRate, computeCharacterUsage, computeHeadToHead, computeUpsetFactor
+      tournament-utils.ts      # categorizeTournaments, getTournamentLiveness (LIVE/countdown badges)
+      stats-utils.ts           # computeWinRate, computeCharacterUsage, computeHeadToHead, computeUpsetFactor, computeAverageSeed
       character-utils.ts       # buildCharacterMap (numeric ID -> name)
-      bracket-utils.ts         # buildBracketData, buildProjectedResults, computeProjectedStandings, computePhaseNav
+      bracket-utils.ts         # buildBracketData, buildProjectedResults, computeProjectedStandings, computePhaseNav, computePoolStandings, resolveEntrantDisplay
       round-label-utils.ts     # formatRoundLabel (bracket viz), computeEventRoundLabels (player set list "Top N")
       share-utils.ts           # Share graphic helpers
       format.ts                # formatDate, formatPlacement, formatWinRate, formatDateRange
@@ -86,6 +86,9 @@ better-gg/
       player-search-types.ts   # PlayerRecord type definitions
       player-filter.ts         # Player list filtering/sorting
       country-utils.ts         # Country code → name/flag mapping + getCountryOptions()
+      smash-games.ts           # Smash game ID constants (SSB64, MELEE, ULTIMATE, etc.) + isSmashGame()
+      startgg-url.ts           # Parse start.gg URLs/paths into tournament slugs
+      tournament-search-utils.ts  # extractApiSearchTerm, matchesAllQueryWords (multi-word search optimization)
     hooks/
       use-auth.ts
       use-current-user.ts
@@ -94,9 +97,10 @@ better-gg/
       use-event-standings.ts
       use-event-entrant-search.ts
       use-entrant-sets.ts      # Two query variants: ACTIVE/COMPLETED vs CREATED
-      use-bracket-meta.ts      # Phase metadata (name, state, PG nodes, origin phases)
+      use-bracket-meta.ts      # Phase metadata (name, state, bracketType, PG nodes, origin phases)
       use-bracket-sets.ts      # Per-PG set fetching + PhaseGroupSetResult builder (called directly, not as hook)
       use-cross-phase-overrides.ts  # Lazy cross-phase seed override resolution
+      use-origin-phase-map.ts  # Builds entrant ID → phase group mapping from origin phases (pool source tracking)
       use-set-details.ts       # Single set game-level data (for SetDetailModal)
       use-characters.ts
       use-opponent-stats.ts
@@ -105,21 +109,24 @@ better-gg/
       use-player-upcoming-events.ts
       use-player-entrant.ts
       use-player-search.ts
+      use-player-sets.ts       # Infinite query for player's sets across events
       use-tournament-details.ts
       use-tournament-participants.ts
-      use-tournament-search.ts     # Homepage autocomplete (debounced, country filter)
+      use-tournament-search.ts     # Homepage autocomplete (debounced, country filter, URL paste support)
       use-tournament-list.ts       # Infinite-scroll tournament list (useInfiniteQuery) for /tournaments page
       use-filtered-players.ts
       use-debounced-value.ts
+      use-drag-scroll.ts       # Mouse-drag-to-scroll for overflow containers (bracket viz)
     routes/
       __root.tsx               # Root layout: header + CommandPalette + MobileNav + outlet
       index.tsx                # Home: tabbed search hero (logged out) / dashboard (logged in)
       auth.callback.tsx        # OAuth callback
+      $.tsx                    # Catch-all: parses start.gg URLs and redirects to tournament pages
       player.$playerId.tsx     # Player profile
       player.$playerId_.event.$eventId.tsx  # Player event view with opponent analysis
       event.$eventId.tsx       # Event detail
-      event.$eventId_.phase.$phaseId.tsx    # Phase bracket visualization
-      tournament.$tournamentId.tsx
+      event.$eventId_.phase.$phaseId.tsx    # Phase bracket visualization (DE + pool/Swiss support)
+      tournament.$tournamentId.tsx          # Tournament detail with Events/Players tabs
       tournaments.tsx          # Tournament search/browse with filters + infinite scroll
       players.tsx              # Player list (from crawled data)
     components/
@@ -133,8 +140,9 @@ better-gg/
       TournamentSection/
       TournamentCard/          # Reused on homepage + /tournaments page (variant: compact|grid)
       TournamentSearch/        # Autocomplete with country filter + "See all results" link (inline mode for CommandPalette)
-      EventHeader/
-      BracketVisualization/    # Pure CSS Grid bracket tree (receives pre-computed bracketData + projectedResults)
+      TournamentHeader/        # Tournament/event header with banner, metadata, Google Maps links, parallax effect
+      BracketVisualization/    # Pure CSS Grid bracket tree with drag-scroll (receives pre-computed bracketData + projectedResults)
+      PoolVisualization/       # Pool/Swiss bracket display with standings table + round-by-round matchups
       BracketSearch/           # Entrant search within bracket (autocomplete)
       SetDetails/              # Set results with expandable game rows (accepts roundLabels for event-level "Top N")
       SetDetailModal/          # Modal overlay for set game-level data (characters, stocks)
@@ -217,8 +225,9 @@ Routes with search params:
 - `/` — `?online=online|offline`, `?showPast=true`
 - `/player/$playerId` — `?online=online|offline`
 - `/player/$playerId/event/$eventId` — `?expanded=id1,id2,id3` (comma-separated phase group IDs)
-- `/tournament/$tournamentId` — `?event=<eventId>` (selected event tab)
-- `/tournaments` — `?q`, `?country`, `?state`, `?online`, `?time`, `?featured`, `?regOpen`, `?sort`
+- `/tournament/$tournamentId` — `?event=<eventId>` (selected event tab), `?tab=events|players`
+- `/event/$eventId/phase/$phaseId` — `?projected` (show projected results), `?entrantId` (highlight/scroll to entrant)
+- `/tournaments` — `?q`, `?country`, `?state`, `?online`, `?status`, `?featured`, `?regOpen`, `?sort`
 - `/players` — `?q`, `?country`, `?character`
 
 ### Authentication (OAuth)
@@ -237,14 +246,16 @@ For production, `/api/auth/token` and `/api/auth/refresh` need serverless deploy
 
 ### Data Flow
 
-1. Home page (`/`): Logged-out users see tabbed hero with Players/Tournaments search. Logged-in users see their tournaments with online/offline FilterToggle + quick search trigger. Tournament search dropdown includes country filter and "See all results →" link to `/tournaments`.
-2. Tournaments page (`/tournaments`): Full search/browse with filters (name, country, US state, online/offline, upcoming/past, featured, reg open), sorting, and infinite scroll. All filters are URL search params for shareable deep links. Uses `IntersectionObserver` sentinel to trigger `fetchNextPage()` as user scrolls.
-3. Event page (`/event/$eventId`): Phase items are clickable links to the bracket route. For player-specific views, use `/player/$playerId/event/$eventId`.
-4. Phase bracket page (`/event/$eventId/phase/$phaseId`): Progressive loading: `useBracketMeta` → `useQueries` per PG (`fetchPhaseGroupSetData`) → lazy `useCrossPhaseOverrides`. Two query variants (slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). Route-level **Actual/Projected** toggle (URL-driven via `?projected`). Entrant search with auto-scroll (`?entrantId`). Multiple PGs show as collapsible pools (auto-expands user's pool).
-5. Projection: `buildProjectedResults` fills empty slots assuming higher seed wins. For CREATED events, bye-inclusive sets are lazy-fetched only when projected toggle is on. Cross-phase overrides (`useCrossPhaseOverrides`) resolve seed assignments for empty phases receiving progressions (3-strategy fallback: progressionSeedId → placeholder mapping → recursive projection chain).
-6. Player event page: Collapsible phase groups when multiple exist, per-group bracket visualization with seed badges. Clicking a set in the bracket or set results list opens a `SetDetailModal` with game-level data (characters, stocks). No projection support on this route.
-7. Round labels: Two formatting systems — **bracket visualization** uses raw API `fullRoundText` verbatim (e.g., "Winners Round 1", "Winners Semi-Final"). **Player set list** uses `computeEventRoundLabels()` which produces compact "Top N" labels (e.g., "W. T256", "WSF", "GF") based on event-level `numEntrants`. The set list approach collects all winners-side sets across phases, sorts by phase order + round, and assigns labels sequentially: K-th set gets `N = nextPow2(numEntrants) / 2^K`. Named finals (WSF, WF, GF, True Final, LF, LSF, LQF) are abbreviated; everything else (including WQF) computes "W. T{N}".
-8. Upset factor: Computed in `SetDetails` component using `computeUpsetFactor(winnerSeed, loserSeed)` from `stats-utils.ts`. Uses `deRoundsFromWinning()` — the number of DE bracket rounds a seed must win, based on standard double-elimination bracket topology. UF = `deRoundsFromWinning(winnerSeed) - deRoundsFromWinning(loserSeed)`, shown only when positive (lower seed wins). **Seeds must be event-level** (`entrant.initialSeedNum`), NOT phase-group-level (`slot.seed.seedNum`). In multi-phase events (pools → bracket), PG seeds reflect bracket re-seeding and differ from the original event seed. The `getSeedNum()` helper in SetDetails (which prefers `slot.seed.seedNum`) is only used for seed badge display in `SetClickInfo`, not for UF.
+1. Home page (`/`): Logged-out users see tabbed hero with Players/Tournaments search. Logged-in users see their tournaments with online/offline FilterToggle + quick search trigger. Tournament search dropdown includes country filter, start.gg URL paste support, and "See all results →" link to `/tournaments`.
+2. Tournaments page (`/tournaments`): Full search/browse with filters (name, country, US state, online/offline, upcoming/past, featured, reg open), sorting, and infinite scroll. Multi-word search uses `extractApiSearchTerm` for API + client-side `matchesAllQueryWords` filtering. All filters are URL search params for shareable deep links. Uses `IntersectionObserver` sentinel to trigger `fetchNextPage()` as user scrolls.
+3. Tournament page (`/tournament/$tournamentId`): Tabbed layout (Events/Players). Events tab shows Smash-game-filtered events with TournamentHeader (banner, metadata, Google Maps links). Players tab shows ParticipantList with all/event view modes. Supports lookup by slug or numeric ID.
+4. Event page (`/event/$eventId`): Phase items are clickable links to the bracket route. For player-specific views, use `/player/$playerId/event/$eventId`.
+5. Phase bracket page (`/event/$eventId/phase/$phaseId`): Progressive loading: `useBracketMeta` → `useQueries` per PG (`fetchPhaseGroupSetData`) → lazy `useCrossPhaseOverrides`. Two query variants (slim for ACTIVE/COMPLETED, full with `seed.entrant` for CREATED). Route-level **Actual/Projected** toggle (URL-driven via `?projected`). Entrant search with auto-scroll (`?entrantId`). Multiple PGs show as collapsible pools (auto-expands user's pool). Non-DE brackets (pools, Swiss, round-robin) use `PoolVisualization` instead of bracket tree. Origin phase map (`useOriginPhaseMap`) tracks which pool each entrant came from.
+6. Projection: `buildProjectedResults` fills empty slots assuming higher seed wins. For CREATED events, bye-inclusive sets are lazy-fetched only when projected toggle is on. Cross-phase overrides (`useCrossPhaseOverrides`) resolve seed assignments for empty phases receiving progressions (3-strategy fallback: progressionSeedId → placeholder mapping → recursive projection chain).
+7. Player event page: Collapsible phase groups when multiple exist, per-group bracket visualization with seed badges. Clicking a set in the bracket or set results list opens a `SetDetailModal` with game-level data (characters, stocks). Supports team events with separate display logic. No projection support on this route.
+8. Catch-all route (`$.tsx`): Parses pasted start.gg URLs/paths and redirects to the corresponding `/tournament/$slug` page.
+9. Round labels: Two formatting systems — **bracket visualization** uses raw API `fullRoundText` verbatim (e.g., "Winners Round 1", "Winners Semi-Final"). **Player set list** uses `computeEventRoundLabels()` which produces compact "Top N" labels (e.g., "W. T256", "WSF", "GF") based on event-level `numEntrants`. The set list approach collects all winners-side sets across phases, sorts by phase order + round, and assigns labels sequentially: K-th set gets `N = nextPow2(numEntrants) / 2^K`. Named finals (WSF, WF, GF, True Final, LF, LSF, LQF) are abbreviated; everything else (including WQF) computes "W. T{N}".
+10. Upset factor: Computed in `SetDetails` component using `computeUpsetFactor(winnerSeed, loserSeed)` from `stats-utils.ts`. Uses `deRoundsFromWinning()` — the number of DE bracket rounds a seed must win, based on standard double-elimination bracket topology. UF = `deRoundsFromWinning(winnerSeed) - deRoundsFromWinning(loserSeed)`, shown only when positive (lower seed wins). **Seeds must be event-level** (`entrant.initialSeedNum`), NOT phase-group-level (`slot.seed.seedNum`). In multi-phase events (pools → bracket), PG seeds reflect bracket re-seeding and differ from the original event seed. The `getSeedNum()` helper in SetDetails (which prefers `slot.seed.seedNum`) is only used for seed badge display in `SetClickInfo`, not for UF.
 
 ### Virtualization
 
