@@ -32,7 +32,17 @@ export const Route = createFileRoute('/player/$playerId')({
         : undefined,
   }),
   component: PlayerPage,
+  pendingComponent: PlayerPending,
 })
+
+function PlayerPending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      <Skeleton width="100%" height={180} borderRadius={12} />
+      <Skeleton width="100%" height={120} borderRadius={8} />
+    </div>
+  )
+}
 
 function buildPlacementsFromEvents(
   pages: Array<{

@@ -1,13 +1,23 @@
 import { createRootRoute, Link, Outlet, useMatches } from '@tanstack/react-router'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/use-auth'
 import { refreshAuthTokens } from '../lib/auth'
 import { useCurrentUser } from '../hooks/use-current-user'
 import { UserMenu } from '../components/UserMenu/UserMenu'
-import { LoginModal } from '../components/LoginModal/LoginModal'
 import { MobileNav } from '../components/MobileNav/MobileNav'
-import { CommandPalette } from '../components/CommandPalette/CommandPalette'
 import styles from './__root.module.css'
+
+const LazyLoginModal = lazy(() =>
+  import('../components/LoginModal/LoginModal').then((m) => ({
+    default: m.LoginModal,
+  })),
+)
+
+const LazyCommandPalette = lazy(() =>
+  import('../components/CommandPalette/CommandPalette').then((m) => ({
+    default: m.CommandPalette,
+  })),
+)
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -116,8 +126,12 @@ function RootLayout() {
       </header>
       <Outlet />
       <MobileNav onSearchOpen={openPalette} onLoginOpen={openLogin} />
-      <LoginModal isOpen={showLogin} onClose={closeLogin} />
-      <CommandPalette isOpen={showPalette} onClose={closePalette} />
+      <Suspense fallback={null}>
+        {showLogin && <LazyLoginModal isOpen={showLogin} onClose={closeLogin} />}
+      </Suspense>
+      <Suspense fallback={null}>
+        {showPalette && <LazyCommandPalette isOpen={showPalette} onClose={closePalette} />}
+      </Suspense>
     </div>
   )
 }

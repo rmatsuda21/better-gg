@@ -57,7 +57,22 @@ export const Route = createFileRoute('/tournaments')({
     sort: typeof search.sort === 'string' && search.sort ? search.sort : undefined,
   }),
   component: TournamentsPage,
+  pendingComponent: TournamentsPending,
 })
+
+function TournamentsPending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+      <Skeleton width={160} height={32} borderRadius={6} />
+      <Skeleton width="100%" height={44} borderRadius={8} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        {Array.from({ length: 6 }, (_, i) => (
+          <Skeleton key={i} width="100%" height={160} borderRadius={10} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function isOnlineFilter(v: unknown): v is 'all' | 'online' | 'offline' {
   return v === 'all' || v === 'online' || v === 'offline'

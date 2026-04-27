@@ -1,0 +1,84 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scrollContainer {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 70vh;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.setCard {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  overflow: hidden;
+  font-size: 0.8rem;
+  box-shadow: var(--shadow-card);
+  width: 100%;
+}
+
+.entrantRow {
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 0.5rem 0.3rem calc(0.5rem - 2px);
+  gap: 0.4rem;
+  min-height: 26px;
+  border-left: 2px solid transparent;
+}
+
+.entrantRow + .entrantRow {
+  border-top: 1px solid var(--border-subtle);
+}
+
+@keyframes bracketShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.shimmerBar {
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(99, 102, 241, 0.08) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: bracketShimmer 1.8s ease-in-out infinite;
+}
+
+.shimmerSeed {
+  composes: shimmerBar;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.shimmerName {
+  composes: shimmerBar;
+  flex: 1;
+}
+
+.shimmerScore {
+  composes: shimmerBar;
+  width: 14px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.loadingGrid {
+  display: flex;
+  gap: 2rem;
+  padding: 0.5rem 0;
+}
+
+.loadingRound {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.75rem;
+  min-width: 180px;
+}

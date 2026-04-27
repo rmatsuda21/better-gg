@@ -7,7 +7,17 @@ import styles from './event.$eventId.module.css'
 
 export const Route = createFileRoute('/event/$eventId')({
   component: EventPage,
+  pendingComponent: EventPending,
 })
+
+function EventPending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      <Skeleton width="100%" height={160} borderRadius={8} />
+      <Skeleton width="100%" height={200} borderRadius={8} />
+    </div>
+  )
+}
 
 function EventPage() {
   const { eventId } = Route.useParams()

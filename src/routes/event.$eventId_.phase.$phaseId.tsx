@@ -23,8 +23,10 @@ import {
 import { formatRoundLabel } from '../lib/round-label-utils'
 import type { BracketEntrant, PhaseNavInfo, SetClickInfo, SetProgressionInfo } from '../lib/bracket-utils'
 import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
-import { BracketVisualization, BracketLoadingState } from '../components/BracketVisualization/BracketVisualization'
-import { PoolVisualization, PoolLoadingState } from '../components/PoolVisualization/PoolVisualization'
+import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
+import { BracketLoadingState } from '../components/BracketVisualization/BracketLoadingState'
+import { PoolVisualization } from '../components/PoolVisualization/PoolVisualization'
+import { PoolLoadingState } from '../components/PoolVisualization/PoolLoadingState'
 import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
@@ -52,7 +54,18 @@ export const Route = createFileRoute('/event/$eventId_/phase/$phaseId')({
           : undefined,
   }),
   component: PhaseBracketPage,
+  pendingComponent: PhaseBracketPending,
 })
+
+function PhaseBracketPending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', animation: 'fadeIn 0.3s var(--ease-out-expo)' }}>
+      <Skeleton width="100%" height={160} borderRadius={8} />
+      <Skeleton width="40%" height={28} borderRadius={6} />
+      <BracketLoadingState />
+    </div>
+  )
+}
 
 function PhaseBracketPage() {
   const { eventId, phaseId } = Route.useParams()

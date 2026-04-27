@@ -3,6 +3,7 @@ import { parseStartGGUrl } from '../lib/startgg-url'
 
 export const Route = createFileRoute('/$')({
   component: CatchAllRedirect,
+  pendingComponent: () => null,
 })
 
 function CatchAllRedirect() {

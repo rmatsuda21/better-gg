@@ -31,7 +31,22 @@ export const Route = createFileRoute('/players')({
     character: search.character ? Number(search.character) : undefined,
   }),
   component: PlayersPage,
+  pendingComponent: PlayersPending,
 })
+
+function PlayersPending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+      <Skeleton width={120} height={32} borderRadius={6} />
+      <Skeleton width="100%" height={44} borderRadius={8} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {Array.from({ length: 10 }, (_, i) => (
+          <Skeleton key={i} width="100%" height={44} borderRadius={0} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function PlayersPage() {
   'use no memo'

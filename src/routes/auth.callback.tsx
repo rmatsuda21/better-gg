@@ -8,6 +8,7 @@ export const Route = createFileRoute('/auth/callback')({
     code: (search.code as string) || undefined,
   }),
   component: AuthCallback,
+  pendingComponent: () => null,
 })
 
 function AuthCallback() {

@@ -39,7 +39,17 @@ export const Route = createFileRoute('/player/$playerId_/event/$eventId')({
           : undefined,
   }),
   component: PlayerEventPage,
+  pendingComponent: PlayerEventPending,
 })
+
+function PlayerEventPending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      <Skeleton width="100%" height={160} borderRadius={8} />
+      <Skeleton width="100%" height={200} borderRadius={8} />
+    </div>
+  )
+}
 
 function PlayerEventPage() {
   const { playerId, eventId } = Route.useParams()

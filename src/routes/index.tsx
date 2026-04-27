@@ -35,7 +35,17 @@ export const Route = createFileRoute('/')({
     showPast: search.showPast === true || search.showPast === 'true' ? true : undefined,
   }),
   component: HomePage,
+  pendingComponent: HomePending,
 })
+
+function HomePending() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', padding: '3rem 1rem', width: '100%' }}>
+      <Skeleton width={200} height={40} borderRadius={8} />
+      <Skeleton width="100%" height={48} borderRadius={12} />
+    </div>
+  )
+}
 
 function HomePage() {
   const navigate = useNavigate({ from: '/' })
