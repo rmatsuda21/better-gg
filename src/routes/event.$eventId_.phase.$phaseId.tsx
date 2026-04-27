@@ -13,7 +13,6 @@ import { useSetDetails } from '../hooks/use-set-details'
 import { useCharacters } from '../hooks/use-characters'
 import { buildCharacterMap } from '../lib/character-utils'
 import {
-  extractBracketEntrants,
   computePhaseNav,
   buildBracketData,
   buildProjectedResults,
@@ -24,9 +23,8 @@ import {
 import { formatRoundLabel } from '../lib/round-label-utils'
 import type { BracketEntrant, PhaseNavInfo, SetClickInfo, SetProgressionInfo } from '../lib/bracket-utils'
 import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
-import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
-import { PoolVisualization } from '../components/PoolVisualization/PoolVisualization'
-import { BracketSearch } from '../components/BracketSearch/BracketSearch'
+import { BracketVisualization, BracketLoadingState } from '../components/BracketVisualization/BracketVisualization'
+import { PoolVisualization, PoolLoadingState } from '../components/PoolVisualization/PoolVisualization'
 import { SetDetailModal } from '../components/SetDetailModal/SetDetailModal'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
@@ -37,14 +35,15 @@ interface PhaseBracketSearch {
   projected?: boolean
 }
 
+function parseEntrantId(raw: unknown): string | undefined {
+  if (typeof raw === 'number') return String(raw)
+  if (typeof raw === 'string' && raw) return raw.replace(/^"|"$/g, '')
+  return undefined
+}
+
 export const Route = createFileRoute('/event/$eventId_/phase/$phaseId')({
   validateSearch: (search: Record<string, unknown>): PhaseBracketSearch => ({
-    entrantId:
-      typeof search.entrantId === 'string' && search.entrantId
-        ? search.entrantId
-        : typeof search.entrantId === 'number'
-          ? String(search.entrantId)
-          : undefined,
+    entrantId: parseEntrantId(search.entrantId),
     projected:
       search.projected === true || search.projected === 'true'
         ? true
@@ -70,7 +69,42 @@ function PhaseBracketPage() {
   const { data: charData } = useCharacters(videogameId)
   const characterMap = useMemo(() => buildCharacterMap(charData?.videogame?.characters), [charData])
 
-  // Per-PG set queries — fire as soon as meta loads
+  // Expanded/fetched state for lazy loading
+  const [expandedPgIds, setExpandedPgIds] = useState<Set<string>>(new Set())
+  const [fetchedPgIds, setFetchedPgIds] = useState<Set<string>>(new Set())
+  const hasInitializedPgs = useRef(false)
+
+  // Reset local state when URL params change (navigation to a different player/phase)
+  const [prevParams, setPrevParams] = useState({ phaseId, urlEntrantId })
+  if (prevParams.phaseId !== phaseId || prevParams.urlEntrantId !== urlEntrantId) {
+    setPrevParams({ phaseId, urlEntrantId })
+    setExpandedPgIds(new Set())
+    setFetchedPgIds(new Set())
+    hasInitializedPgs.current = false
+  }
+
+  // Initialize: expand and fetch the priority PG (user's pool or first PG)
+  useEffect(() => {
+    if (!meta?.phaseGroupNodes.length) return
+    if (hasInitializedPgs.current) return
+    hasInitializedPgs.current = true
+    const priorityId = (urlEntrantId && meta.entrantPgMap.get(urlEntrantId))
+      || meta.phaseGroupNodes[0].id
+    setExpandedPgIds(new Set([priorityId]))
+    setFetchedPgIds(new Set([priorityId]))
+  }, [meta, urlEntrantId])
+
+  const togglePg = useCallback((pgId: string) => {
+    setExpandedPgIds(prev => {
+      const next = new Set(prev)
+      if (next.has(pgId)) next.delete(pgId)
+      else next.add(pgId)
+      return next
+    })
+    setFetchedPgIds(prev => prev.has(pgId) ? prev : new Set([...prev, pgId]))
+  }, [])
+
+  // Per-PG set queries — lazy: only fire for fetched PGs
   const pgSetQueries = useQueries({
     queries: (meta?.phaseGroupNodes ?? []).map(pg => ({
       queryKey: ['bracketSets', pg.id, meta?.phaseState],
@@ -81,10 +115,48 @@ function PhaseBracketPage() {
         meta!.phaseName,
         meta!.currentPhaseOrder,
       ),
-      enabled: !!meta,
+      enabled: !!meta && fetchedPgIds.has(pg.id),
       staleTime: 5 * 60 * 1000,
     })),
   })
+
+  // Build data map and loading set for CollapsiblePools
+  const pgDataMap = useMemo(() => {
+    const map = new Map<string, PhaseGroupSetResult>()
+    for (const q of pgSetQueries) {
+      if (q.data) map.set(q.data.pgId, q.data)
+    }
+    return map
+  }, [pgSetQueries])
+
+  const pgLoadingIds = useMemo(() => {
+    const ids = new Set<string>()
+    const nodes = meta?.phaseGroupNodes ?? []
+    for (let i = 0; i < pgSetQueries.length; i++) {
+      if (pgSetQueries[i].isLoading && nodes[i]) {
+        ids.add(nodes[i].id)
+      }
+    }
+    return ids
+  }, [pgSetQueries, meta])
+
+  // Identify user's pool from meta seed mapping (instant), fallback to loaded set data
+  const userPoolId = useMemo(() => {
+    if (!urlEntrantId || !meta) return null
+    const fromMeta = meta.entrantPgMap.get(urlEntrantId)
+    if (fromMeta) return fromMeta
+    return findUserPool(
+      pgSetQueries.filter(q => q.data).map(q => q.data!),
+      urlEntrantId,
+    )
+  }, [urlEntrantId, meta, pgSetQueries])
+
+  // Auto-expand user's pool when search changes
+  useEffect(() => {
+    if (!userPoolId) return
+    setExpandedPgIds(prev => prev.has(userPoolId) ? prev : new Set([...prev, userPoolId]))
+    setFetchedPgIds(prev => prev.has(userPoolId) ? prev : new Set([...prev, userPoolId]))
+  }, [userPoolId])
 
   // Detect empty phase (no entrants populated yet)
   const hasAnyEntrants = useMemo(() => {
@@ -98,12 +170,12 @@ function PhaseBracketPage() {
       )
       if (hasEnt) return true
     }
-    // If no queries loaded yet, assume true (don't trigger overrides prematurely)
     return pgSetQueries.every(q => !q.data)
   }, [pgSetQueries])
 
   const receivesProgressions = meta?.phaseState === 'CREATED' && (meta?.originPhaseIds?.length ?? 0) > 0
   const isPoolFormat = isPoolBracketType(meta?.bracketType ?? null)
+  const isMultiPool = (meta?.phaseGroupNodes.length ?? 0) > 1
   const showProjectionToggle = meta?.phaseState !== 'COMPLETED' && !isPoolFormat
 
   // Projection toggle state (URL-driven)
@@ -131,15 +203,6 @@ function PhaseBracketPage() {
     : undefined
   const seedIdToSeedNum = crossPhaseData?.seedIdToSeedNum
 
-  // Aggregate entrants for search (from loaded PGs)
-  const allEntrants = useMemo(
-    () => extractBracketEntrants(
-      pgSetQueries.filter(q => q.data).map(q => q.data!.pgInfo),
-      isTeamEvent,
-    ),
-    [pgSetQueries, isTeamEvent],
-  )
-
   // Aggregate progressionMap across PGs
   const progressionMap = useMemo(() => {
     const merged = new Map<string, SetProgressionInfo>()
@@ -162,58 +225,23 @@ function PhaseBracketPage() {
 
   const effectiveEventId = meta?.eventId ?? eventId
 
-  // Search state
-  const [searchedEntrantId, setSearchedEntrantId] = useState<string | null>(
-    urlEntrantId ?? null,
-  )
-  const effectiveEntrantId = searchedEntrantId ?? undefined
-
-  // Auto-scroll to URL entrant on initial load
-  const initialScrollDone = useRef(false)
+  // Auto-scroll to entrant's set (handles both URL-based and search-based)
   useEffect(() => {
-    if (
-      !initialScrollDone.current &&
-      urlEntrantId &&
-      allEntrants.length > 0
-    ) {
-      initialScrollDone.current = true
-      let attempts = 0
-      const maxAttempts = 10
-      const tryScroll = () => {
-        const el = document.querySelector(
-          `[data-entrant-ids*="${urlEntrantId}"]`,
-        )
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        } else if (++attempts < maxAttempts) {
-          timer = setTimeout(tryScroll, 150)
-        }
-      }
-      let timer = setTimeout(tryScroll, 100)
-      return () => {
-        clearTimeout(timer)
-        initialScrollDone.current = false
-      }
-    }
-  }, [urlEntrantId, allEntrants.length])
-
-  // Scroll to the searched player's first set after selection
-  const scrollTarget = useRef<string | null>(null)
-  useEffect(() => {
-    if (!scrollTarget.current) return
-    const id = scrollTarget.current
-    const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-entrant-ids*="${id}"]`)
+    if (!urlEntrantId) return
+    let attempts = 0
+    const tryScroll = () => {
+      const el = document.querySelector(`[data-entrant-ids*="${urlEntrantId}"]`)
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        scrollTarget.current = null
+        return
       }
-    }, 100)
+      if (++attempts < 20) timer = setTimeout(tryScroll, 150)
+    }
+    let timer = setTimeout(tryScroll, 50)
     return () => clearTimeout(timer)
-  }, [searchedEntrantId])
+  }, [urlEntrantId, userPoolId])
 
   // Loading states
-  const allPgsLoading = pgSetQueries.length > 0 && pgSetQueries.every(q => q.isLoading)
   const anyPgError = pgSetQueries.some(q => q.isError)
 
   if (eventLoading || metaLoading) {
@@ -239,8 +267,11 @@ function PhaseBracketPage() {
   }
 
   const event = eventData?.event
-  const loadedPgs = pgSetQueries.filter(q => q.data).map(q => q.data!)
-  const hasPgs = loadedPgs.length > 0
+  const singlePgData = !isMultiPool && meta.phaseGroupNodes.length > 0
+    ? pgDataMap.get(meta.phaseGroupNodes[0].id)
+    : null
+  const singlePgLoading = !isMultiPool && meta.phaseGroupNodes.length > 0
+    && pgLoadingIds.has(meta.phaseGroupNodes[0].id)
 
   return (
     <div className={styles.container}>
@@ -280,7 +311,7 @@ function PhaseBracketPage() {
       </div>
 
       {/* Projection toggle (route-level, shared across all PGs) */}
-      {showProjectionToggle && hasPgs && (
+      {showProjectionToggle && pgDataMap.size > 0 && (
         <div className={styles.toggleRow}>
           <button
             className={`${styles.toggleBtn} ${!projected ? styles.toggleBtnActive : ''}`}
@@ -300,43 +331,24 @@ function PhaseBracketPage() {
         </div>
       )}
 
-      {/* Search */}
-      {allEntrants.length > 0 && (
-        <div className={styles.searchRow}>
-          <BracketSearch
-            entrants={allEntrants}
-            onSelect={(entrant) => {
-              setSearchedEntrantId(entrant.entrantId)
-              scrollTarget.current = entrant.entrantId
-            }}
-            onClear={() => setSearchedEntrantId(null)}
-            hasSelection={searchedEntrantId != null}
-          />
-        </div>
-      )}
-
-      {/* PG skeletons while loading */}
-      {allPgsLoading && (
-        <Skeleton width="100%" height={400} borderRadius={8} />
-      )}
-
-      {anyPgError && !allPgsLoading && (
+      {anyPgError && (
         <ErrorMessage message="Failed to load some bracket data" />
       )}
 
-      {/* Phase groups */}
-      {hasPgs && (
-        loadedPgs.length === 1 ? (
-          <div className={styles.phaseGroupSection}>
+      {/* Phase groups — single PG view */}
+      {!isMultiPool && meta.phaseGroupNodes.length > 0 && (
+        <div className={styles.phaseGroupSection}>
+          {singlePgLoading && (isPoolFormat ? <PoolLoadingState /> : <BracketLoadingState />)}
+          {singlePgData && (
             <PhaseGroupBracket
-              pgData={loadedPgs[0]}
+              pgData={singlePgData}
               bracketType={meta.bracketType}
               showProjected={projected}
               phaseState={meta.phaseState}
               receivesProgressions={receivesProgressions}
               seedOverrides={seedOverrides}
               seedIdToSeedNum={seedIdToSeedNum}
-              userEntrantId={effectiveEntrantId}
+              userEntrantId={urlEntrantId}
               eventId={effectiveEventId}
               phaseNav={phaseNav}
               progressionMap={progressionMap}
@@ -344,28 +356,36 @@ function PhaseBracketPage() {
               onSetClick={setModalInfo}
               isTeamEvent={isTeamEvent}
             />
-          </div>
-        ) : (
-          <CollapsiblePools
-            pgDataList={loadedPgs}
-            bracketType={meta.bracketType}
-            showProjected={projected}
-            phaseState={meta.phaseState}
-            receivesProgressions={receivesProgressions}
-            seedOverrides={seedOverrides}
-            seedIdToSeedNum={seedIdToSeedNum}
-            userEntrantId={effectiveEntrantId}
-            eventId={effectiveEventId}
-            phaseNav={phaseNav}
-            progressionMap={progressionMap}
-            originPhaseMap={originPhaseMap}
-            onSetClick={setModalInfo}
-            isTeamEvent={isTeamEvent}
-          />
-        )
+          )}
+        </div>
       )}
 
-      {!allPgsLoading && !hasPgs && meta.phaseGroupNodes.length === 0 && (
+      {/* Phase groups — multi-pool collapsible view */}
+      {isMultiPool && (
+        <CollapsiblePools
+          pgNodes={meta.phaseGroupNodes}
+          pgDataMap={pgDataMap}
+          pgLoadingIds={pgLoadingIds}
+          expandedPgIds={expandedPgIds}
+          onToggle={togglePg}
+          bracketType={meta.bracketType}
+          showProjected={projected}
+          phaseState={meta.phaseState}
+          receivesProgressions={receivesProgressions}
+          seedOverrides={seedOverrides}
+          seedIdToSeedNum={seedIdToSeedNum}
+          userEntrantId={urlEntrantId}
+          userPoolId={userPoolId}
+          eventId={effectiveEventId}
+          phaseNav={phaseNav}
+          progressionMap={progressionMap}
+          originPhaseMap={originPhaseMap}
+          onSetClick={setModalInfo}
+          isTeamEvent={isTeamEvent}
+        />
+      )}
+
+      {meta.phaseGroupNodes.length === 0 && (
         meta.phaseState === 'CREATED' ? (
           <div className={styles.notPublished}>
             <p className={styles.notPublishedMessage}>
@@ -528,7 +548,11 @@ function findUserPool(
 }
 
 function CollapsiblePools({
-  pgDataList,
+  pgNodes,
+  pgDataMap,
+  pgLoadingIds,
+  expandedPgIds,
+  onToggle,
   bracketType,
   showProjected,
   phaseState,
@@ -536,6 +560,7 @@ function CollapsiblePools({
   seedOverrides,
   seedIdToSeedNum,
   userEntrantId,
+  userPoolId,
   eventId,
   phaseNav,
   progressionMap,
@@ -543,7 +568,11 @@ function CollapsiblePools({
   onSetClick,
   isTeamEvent,
 }: {
-  pgDataList: PhaseGroupSetResult[]
+  pgNodes: Array<{ id: string; displayIdentifier: string | null }>
+  pgDataMap: Map<string, PhaseGroupSetResult>
+  pgLoadingIds: Set<string>
+  expandedPgIds: Set<string>
+  onToggle: (id: string) => void
   bracketType: string | null
   showProjected: boolean
   phaseState: string | null
@@ -551,6 +580,7 @@ function CollapsiblePools({
   seedOverrides?: Map<number, BracketEntrant>
   seedIdToSeedNum?: Map<string, number>
   userEntrantId?: string
+  userPoolId: string | null
   eventId: string
   phaseNav: PhaseNavInfo
   progressionMap: Map<string, SetProgressionInfo>
@@ -558,71 +588,47 @@ function CollapsiblePools({
   onSetClick: (info: SetClickInfo) => void
   isTeamEvent?: boolean
 }) {
-  const userPoolId = useMemo(
-    () => findUserPool(pgDataList, userEntrantId),
-    [pgDataList, userEntrantId],
-  )
-
-  const [expanded, setExpanded] = useState<Set<string>>(() => {
-    if (userPoolId) return new Set([userPoolId])
-    return pgDataList.length > 0
-      ? new Set([pgDataList[0].pgId])
-      : new Set()
-  })
-
-  // Auto-expand the pool when userEntrantId changes (e.g. from search)
-  const [trackedUserPoolId, setTrackedUserPoolId] = useState(userPoolId)
-  if (trackedUserPoolId !== userPoolId) {
-    setTrackedUserPoolId(userPoolId)
-    if (userPoolId && !expanded.has(userPoolId)) {
-      setExpanded(prev => new Set([...prev, userPoolId]))
-    }
-  }
-
-  const toggle = (id: string) => {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
   return (
     <>
-      {pgDataList.map((pgData) => {
-        const isOpen = expanded.has(pgData.pgId)
+      {pgNodes.map((pg) => {
+        const isOpen = expandedPgIds.has(pg.id)
+        const data = pgDataMap.get(pg.id)
+        const isLoading = pgLoadingIds.has(pg.id)
         return (
-          <div key={pgData.pgId} className={styles.phaseGroupSection}>
+          <div key={pg.id} className={styles.phaseGroupSection}>
             <button
               className={`${styles.phaseGroupToggle} ${isOpen ? styles.phaseGroupToggleOpen : ''}`}
-              onClick={() => toggle(pgData.pgId)}
+              onClick={() => onToggle(pg.id)}
             >
               <span className={styles.phaseGroupArrow}>{isOpen ? '▼' : '▶'}</span>
               <h3 className={styles.phaseGroupLabel}>
-                Pool {pgData.displayIdentifier}
+                Pool {pg.displayIdentifier}
               </h3>
-              {userPoolId === pgData.pgId && (
+              {userPoolId === pg.id && (
                 <span className={styles.userPoolBadge}>Your Pool</span>
               )}
             </button>
             {isOpen && (
-              <PhaseGroupBracket
-                pgData={pgData}
-                bracketType={bracketType}
-                showProjected={showProjected}
-                phaseState={phaseState}
-                receivesProgressions={receivesProgressions}
-                seedOverrides={seedOverrides}
-                seedIdToSeedNum={seedIdToSeedNum}
-                userEntrantId={userEntrantId}
-                eventId={eventId}
-                phaseNav={phaseNav}
-                progressionMap={progressionMap}
-                originPhaseMap={originPhaseMap}
-                onSetClick={onSetClick}
-                isTeamEvent={isTeamEvent}
-              />
+              isLoading ? (
+                isPoolBracketType(bracketType) ? <PoolLoadingState /> : <BracketLoadingState />
+              ) : data ? (
+                <PhaseGroupBracket
+                  pgData={data}
+                  bracketType={bracketType}
+                  showProjected={showProjected}
+                  phaseState={phaseState}
+                  receivesProgressions={receivesProgressions}
+                  seedOverrides={seedOverrides}
+                  seedIdToSeedNum={seedIdToSeedNum}
+                  userEntrantId={userEntrantId}
+                  eventId={eventId}
+                  phaseNav={phaseNav}
+                  progressionMap={progressionMap}
+                  originPhaseMap={originPhaseMap}
+                  onSetClick={onSetClick}
+                  isTeamEvent={isTeamEvent}
+                />
+              ) : null
             )}
           </div>
         )

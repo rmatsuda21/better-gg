@@ -32,8 +32,10 @@ const bracketMetaQuery = graphql(`
         origin
         numProgressing
       }
-      seeds(query: { page: 1, perPage: 5 }) {
+      seeds(query: { page: 1, perPage: 100 }) {
         nodes {
+          entrant { id }
+          phaseGroup { id }
           progressionSource {
             originPhase { id name }
           }
@@ -54,6 +56,7 @@ export interface BracketMeta {
   siblingPhases: SiblingPhaseInfo[]
   phaseGroupNodes: Array<{ id: string; displayIdentifier: string | null }>
   originPhaseIds: string[]
+  entrantPgMap: Map<string, string>
 }
 
 export function useBracketMeta(phaseId: string) {
@@ -84,7 +87,15 @@ export function useBracketMeta(phaseId: string) {
 
       const phaseGroupNodes = (phase.phaseGroups?.nodes ?? [])
         .filter((pg): pg is NonNullable<typeof pg> => pg != null && pg.id != null)
-        .map(pg => ({ id: pg.id!, displayIdentifier: pg.displayIdentifier ?? null }))
+        .map(pg => ({ id: String(pg.id!), displayIdentifier: pg.displayIdentifier ?? null }))
+
+      // Build entrant → phaseGroup mapping from seeds
+      const entrantPgMap = new Map<string, string>()
+      for (const seed of phase.seeds?.nodes ?? []) {
+        if (seed?.entrant?.id != null && seed?.phaseGroup?.id != null) {
+          entrantPgMap.set(String(seed.entrant.id), String(seed.phaseGroup.id))
+        }
+      }
 
       return {
         phaseName: phase.name ?? null,
@@ -97,6 +108,7 @@ export function useBracketMeta(phaseId: string) {
         siblingPhases,
         phaseGroupNodes,
         originPhaseIds,
+        entrantPgMap,
       }
     },
     enabled: !!phaseId,

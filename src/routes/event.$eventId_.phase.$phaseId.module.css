@@ -52,11 +52,6 @@
   color: var(--accent);
 }
 
-.searchRow {
-  display: flex;
-  align-items: center;
-}
-
 .phaseGroupSection {
   display: flex;
   flex-direction: column;

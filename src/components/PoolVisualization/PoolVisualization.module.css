@@ -238,3 +238,52 @@
   color: var(--text-secondary);
   opacity: 0.7;
 }
+
+/* Shimmer loading bars */
+@keyframes poolShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.shimmerBar {
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(99, 102, 241, 0.08) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: poolShimmer 1.8s ease-in-out infinite;
+}
+
+.shimmerRank {
+  composes: shimmerBar;
+  width: 20px;
+  margin: 0 auto;
+}
+
+.shimmerPlayerName {
+  composes: shimmerBar;
+  width: 80%;
+}
+
+.shimmerStat {
+  composes: shimmerBar;
+  width: 20px;
+  margin: 0 auto;
+}
+
+.shimmerSeed {
+  composes: shimmerBar;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.shimmerName {
+  composes: shimmerBar;
+  flex: 1;
+}
+
+.shimmerScore {
+  composes: shimmerBar;
+  width: 14px;
+  margin-left: auto;
+  flex-shrink: 0;
+}

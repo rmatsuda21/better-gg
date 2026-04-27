@@ -196,6 +196,53 @@
   font-style: italic;
 }
 
+/* Shimmer loading bars for skeleton state */
+@keyframes bracketShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.shimmerBar {
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(99, 102, 241, 0.08) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: bracketShimmer 1.8s ease-in-out infinite;
+}
+
+.shimmerSeed {
+  composes: shimmerBar;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.shimmerName {
+  composes: shimmerBar;
+  flex: 1;
+}
+
+.shimmerScore {
+  composes: shimmerBar;
+  width: 14px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Loading grid layout */
+.loadingGrid {
+  display: flex;
+  gap: 2rem;
+  padding: 0.5rem 0;
+}
+
+.loadingRound {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.75rem;
+  min-width: 180px;
+}
+
 .entrantNameProjected {
   color: var(--accent);
 }
