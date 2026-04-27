@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatDateRange } from '../../lib/format'
 import { getTournamentLiveness } from '../../lib/tournament-utils'
+import { LAYOUT } from '../../lib/constants'
 import styles from './TournamentCard.module.css'
 
 export interface TournamentCardData {
@@ -34,7 +35,7 @@ interface TournamentCardProps {
   style?: CSSProperties
 }
 
-const MAX_VISIBLE_EVENTS = 3
+const MAX_VISIBLE_EVENTS = LAYOUT.MAX_VISIBLE_EVENTS
 
 function EventPills({
   events,

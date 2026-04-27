@@ -16,6 +16,7 @@ import type { EventStanding } from '../hooks/use-event-standings'
 import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
 import { formatPlacement } from '../lib/format'
 import type { TournamentDetailsQuery } from '../gql/graphql'
+import { ACTIVITY_STATE, LAYOUT, THRESHOLDS, TIMING_MS } from '../lib/constants'
 import styles from './tournament.$tournamentId.module.css'
 
 export const Route = createFileRoute('/tournament/$tournamentId')({
@@ -262,24 +263,24 @@ function EventCard({
     useAllEventStandings(eventId, showStandings && !debouncedSearch, isTeamEvent)
 
   const { data: searchData, isLoading: searchLoading } =
-    useEventEntrantSearch(eventId, debouncedSearch, showStandings && debouncedSearch.length >= 2)
+    useEventEntrantSearch(eventId, debouncedSearch, showStandings && debouncedSearch.length >= THRESHOLDS.MIN_PLAYER_SEARCH_LENGTH)
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       setDebouncedSearch(value)
-    }, 300)
+    }, TIMING_MS.TOURNAMENT_SEARCH_DEBOUNCE)
   }, [])
 
   const stateClass =
-    event.state === 'ACTIVE'
+    event.state === ACTIVITY_STATE.ACTIVE
       ? styles.stateActive
-      : event.state === 'COMPLETED'
+      : event.state === ACTIVITY_STATE.COMPLETED
         ? styles.stateCompleted
         : styles.stateCreated
 
-  const isSearchMode = debouncedSearch.length >= 2
+  const isSearchMode = debouncedSearch.length >= THRESHOLDS.MIN_PLAYER_SEARCH_LENGTH
 
   return (
     <div
@@ -296,9 +297,9 @@ function EventCard({
             {event.state && (
               <span
                 className={`${styles.stateBadge} ${
-                  event.state === 'ACTIVE'
+                  event.state === ACTIVITY_STATE.ACTIVE
                     ? styles.active
-                    : event.state === 'COMPLETED'
+                    : event.state === ACTIVITY_STATE.COMPLETED
                       ? styles.completed
                       : ''
                 }`}
@@ -341,9 +342,9 @@ function EventCard({
                     {phase.state && (
                       <span
                         className={`${styles.phaseState} ${
-                          phase.state === 'ACTIVE'
+                          phase.state === ACTIVITY_STATE.ACTIVE
                             ? styles.phaseActive
-                            : phase.state === 'COMPLETED'
+                            : phase.state === ACTIVITY_STATE.COMPLETED
                               ? styles.phaseCompleted
                               : ''
                         }`}
@@ -358,7 +359,7 @@ function EventCard({
         </div>
       )}
 
-      {event.state !== 'CREATED' && (
+      {event.state !== ACTIVITY_STATE.CREATED && (
         <button
           className={styles.standingsToggle}
           onClick={() => setShowStandings(!showStandings)}
@@ -367,8 +368,8 @@ function EventCard({
             &#9654;
           </span>
           {showStandings
-            ? event.state === 'ACTIVE' ? 'Hide current standings' : 'Hide standings'
-            : event.state === 'ACTIVE' ? 'Show current standings' : 'Show standings'}
+            ? event.state === ACTIVITY_STATE.ACTIVE ? 'Hide current standings' : 'Hide standings'
+            : event.state === ACTIVITY_STATE.ACTIVE ? 'Show current standings' : 'Show standings'}
         </button>
       )}
 
@@ -484,7 +485,7 @@ function SearchResults({
   )
 }
 
-const STANDINGS_ROW_HEIGHT = 36
+const STANDINGS_ROW_HEIGHT = LAYOUT.STANDINGS_ROW_HEIGHT
 
 function VirtualizedStandings({
   standings,
@@ -503,7 +504,7 @@ function VirtualizedStandings({
     count: standings.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => STANDINGS_ROW_HEIGHT,
-    overscan: 20,
+    overscan: LAYOUT.VIRTUALIZER_OVERSCAN,
   })
 
   if (isLoading) {

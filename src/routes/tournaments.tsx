@@ -8,6 +8,7 @@ import { FilterToggle } from '../components/FilterToggle/FilterToggle'
 import type { OnlineFilter } from '../components/FilterToggle/FilterToggle'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { FilterSelect } from '../components/FilterSelect/FilterSelect'
+import { THRESHOLDS } from '../lib/constants'
 import styles from './tournaments.module.css'
 
 type StatusFilter = 'all' | 'upcoming' | 'past'
@@ -132,7 +133,7 @@ function TournamentsPage() {
           fetchNextPage()
         }
       },
-      { rootMargin: '200px' },
+      { rootMargin: THRESHOLDS.LAZY_LOAD_ROOT_MARGIN },
     )
     observer.observe(el)
     return () => observer.disconnect()

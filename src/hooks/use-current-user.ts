@@ -3,6 +3,7 @@ import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 import { getAuthToken, setAuthUser } from '../lib/auth'
 import type { AuthUser } from '../lib/auth'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const currentUserQuery = graphql(`
   query CurrentUser {
@@ -44,6 +45,6 @@ export function useCurrentUser() {
       return data
     },
     enabled: !!getAuthToken(),
-    staleTime: 30 * 60 * 1000,
+    staleTime: STALE_TIME_MS.CURRENT_USER,
   })
 }

@@ -6,6 +6,7 @@ import type { OriginSeedEntrant } from '../lib/projection-utils'
 import type { BracketEntrant } from '../lib/bracket-utils'
 import { buildBracketData, buildProjectedResults, getWinnerFromProjected, getLoserFromProjected, resolveEntrantDisplay } from '../lib/bracket-utils'
 import { fetchPhaseGroupSetData } from './use-bracket-sets'
+import { ACTIVITY_STATE, PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 // Fetch phase seeds with progression data for cross-phase projection
 const phaseSeedsQuery = graphql(`
@@ -60,7 +61,7 @@ export interface CrossPhaseOverrides {
 
 type SeedNode = NonNullable<Awaited<ReturnType<typeof fetchPhaseSeeds>>[number]>
 
-async function fetchPhaseSeeds(phaseId: string, perPage = 80) {
+async function fetchPhaseSeeds(phaseId: string, perPage: number = PAGINATION.CROSS_PHASE_SEEDS) {
   const firstPage = await graphqlClient.request(phaseSeedsQuery, {
     phaseId,
     page: 1,
@@ -261,7 +262,7 @@ export function useCrossPhaseOverrides(
           const pgResult = await fetchPhaseGroupSetData(
             originPgId,
             null,
-            'ACTIVE', // Treat as active for fetching
+            ACTIVITY_STATE.ACTIVE, // Treat as active for fetching
             phaseName,
             phaseOrder,
           )
@@ -295,6 +296,6 @@ export function useCrossPhaseOverrides(
       return { seedOverrides: overrides, seedIdToSeedNum }
     },
     enabled: enabled && !!phaseId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

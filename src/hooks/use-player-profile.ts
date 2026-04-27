@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const playerProfileQuery = graphql(`
   query PlayerProfile($playerId: ID!, $videogameId: ID) {
@@ -47,6 +48,6 @@ export function usePlayerProfile(
         videogameId: videogameId ?? null,
       }),
     enabled: !!playerId,
-    staleTime: 15 * 60 * 1000,
+    staleTime: STALE_TIME_MS.PLAYER_PROFILE,
   })
 }

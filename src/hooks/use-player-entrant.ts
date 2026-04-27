@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const playerGamerTagQuery = graphql(`
   query PlayerGamerTag($playerId: ID!) {
@@ -45,7 +46,7 @@ export function usePlayerEntrant(playerId: string, eventId: string) {
       return result.player?.gamerTag ?? null
     },
     enabled: !!playerId,
-    staleTime: Infinity,
+    staleTime: STALE_TIME_MS.NEVER,
   })
 
   const gamerTag = playerQuery.data
@@ -76,7 +77,7 @@ export function usePlayerEntrant(playerId: string, eventId: string) {
       return null
     },
     enabled: !!playerId && !!eventId && !!gamerTag,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 
   // Combine loading states: pending while either query is still resolving

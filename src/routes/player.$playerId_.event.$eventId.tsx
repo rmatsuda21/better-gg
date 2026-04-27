@@ -8,6 +8,7 @@ import { useCharacters } from '../hooks/use-characters'
 import { useSetDetails } from '../hooks/use-set-details'
 import type { SetClickInfo } from '../lib/bracket-utils'
 import { buildBracketData, buildProjectedResults, buildEntrantPlayerMap, buildEntrantParticipantsMap, isPoolBracketType } from '../lib/bracket-utils'
+import { ACTIVITY_STATE } from '../lib/constants'
 import { computeEventRoundLabels } from '../lib/round-label-utils'
 import { buildCharacterMap } from '../lib/character-utils'
 import { computeWinRate, computeCharacterUsage, computeUpsetFactor } from '../lib/stats-utils'
@@ -93,7 +94,7 @@ function PlayerEventPage() {
   const phaseGroups = setsData?.phaseGroups ?? []
   const showBracket = entrantData && phaseGroups.length > 0
   const hasNonPoolBracket = phaseGroups.some(pg => !isPoolBracketType(pg.bracketType))
-  const showProjectionToggle = eventState !== 'COMPLETED' && hasNonPoolBracket && showBracket
+  const showProjectionToggle = eventState !== ACTIVITY_STATE.COMPLETED && hasNonPoolBracket && showBracket
 
   // Compute event-level round labels (Top N using event numEntrants + phase offsets)
   const roundLabels = useMemo(() => {
@@ -274,9 +275,9 @@ function PlayerEventPage() {
                 {eventState && (
                   <span
                     className={`${styles.phaseState} ${
-                      eventState === 'COMPLETED'
+                      eventState === ACTIVITY_STATE.COMPLETED
                         ? styles.completed
-                        : eventState === 'ACTIVE'
+                        : eventState === ACTIVITY_STATE.ACTIVE
                           ? styles.active
                           : ''
                     }`}
@@ -501,9 +502,9 @@ function CollapsiblePhaseGroups({
               {eventState && (
                 <span
                   className={`${styles.phaseState} ${
-                    eventState === 'COMPLETED'
+                    eventState === ACTIVITY_STATE.COMPLETED
                       ? styles.completed
-                      : eventState === 'ACTIVE'
+                      : eventState === ACTIVITY_STATE.ACTIVE
                         ? styles.active
                         : ''
                   }`}

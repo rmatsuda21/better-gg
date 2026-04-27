@@ -1,9 +1,10 @@
 import { useCallback, useRef } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatDateRange } from '../../lib/format'
+import { LAYOUT } from '../../lib/constants'
 import styles from './TournamentHeader.module.css'
 
-const DESKTOP_MQ = '(min-width: 641px)'
+const DESKTOP_MQ = LAYOUT.DESKTOP_MQ
 
 interface TournamentData {
   id?: string | number | null

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const userTournamentsQuery = graphql(`
   query UserTournaments($slug: String!, $perPage: Int!, $videogameId: [ID]) {
@@ -48,10 +49,10 @@ export function useUserTournaments(discriminator: string) {
     queryFn: () =>
       graphqlClient.request(userTournamentsQuery, {
         slug,
-        perPage: 20,
+        perPage: PAGINATION.USER_TOURNAMENTS,
         videogameId: ALL_SMASH_VIDEOGAME_IDS,
       }),
     enabled: !!discriminator,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

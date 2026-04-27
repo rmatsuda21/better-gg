@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const playerUpcomingEventsQuery = graphql(`
   query PlayerUpcomingEvents($playerId: ID!, $perPage: Int!, $videogameId: [ID]) {
@@ -50,10 +51,10 @@ export function usePlayerUpcomingEvents(
     queryFn: () =>
       graphqlClient.request(playerUpcomingEventsQuery, {
         playerId: playerId!,
-        perPage: 8,
+        perPage: PAGINATION.UPCOMING_EVENTS,
         videogameId: ALL_SMASH_VIDEOGAME_IDS,
       }),
     enabled: !!playerId && !!userId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

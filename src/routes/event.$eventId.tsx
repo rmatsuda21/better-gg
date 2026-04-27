@@ -3,6 +3,7 @@ import { useEventDetails } from '../hooks/use-event-details'
 import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
+import { ACTIVITY_STATE } from '../lib/constants'
 import styles from './event.$eventId.module.css'
 
 export const Route = createFileRoute('/event/$eventId')({
@@ -79,7 +80,7 @@ function EventPage() {
             </a>
           )}
         </div>
-      ) : event.phases.every(p => p?.state === 'CREATED') ? (
+      ) : event.phases.every(p => p?.state === ACTIVITY_STATE.CREATED) ? (
         <div className={styles.notPublished}>
           <p className={styles.notPublishedMessage}>
             This event hasn&apos;t started yet.
@@ -111,9 +112,9 @@ function EventPage() {
                       {phase.state && (
                         <span
                           className={`${styles.phaseState} ${
-                            phase.state === 'COMPLETED'
+                            phase.state === ACTIVITY_STATE.COMPLETED
                               ? styles.completed
-                              : phase.state === 'ACTIVE'
+                              : phase.state === ACTIVITY_STATE.ACTIVE
                                 ? styles.active
                                 : ''
                           }`}

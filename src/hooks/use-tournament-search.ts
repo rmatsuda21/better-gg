@@ -5,6 +5,7 @@ import { graphqlClient } from '../lib/graphql-client'
 import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
 import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
+import { PAGINATION, STALE_TIME_MS, THRESHOLDS, TIMING_MS } from '../lib/constants'
 
 const tournamentSearchQuery = graphql(`
   query TournamentSearch($perPage: Int!, $filter: TournamentPageFilter) {
@@ -27,7 +28,7 @@ interface TournamentSearchOptions {
 }
 
 export function useTournamentSearch(query: string, options?: TournamentSearchOptions) {
-  const debouncedQuery = useDebouncedValue(query.trim(), 300)
+  const debouncedQuery = useDebouncedValue(query.trim(), TIMING_MS.TOURNAMENT_SEARCH_DEBOUNCE)
   const countryCode = options?.countryCode
 
   const apiTerm = debouncedQuery ? extractApiSearchTerm(debouncedQuery) : ''
@@ -43,12 +44,12 @@ export function useTournamentSearch(query: string, options?: TournamentSearchOpt
       if (countryCode) filter.countryCode = countryCode
       return graphqlClient.request({
         document: tournamentSearchQuery,
-        variables: { perPage: isMultiWord ? 30 : 8, filter },
+        variables: { perPage: isMultiWord ? PAGINATION.TOURNAMENT_SEARCH_MULTI_WORD : PAGINATION.TOURNAMENT_SEARCH, filter },
         signal,
       })
     },
-    enabled: debouncedQuery.length >= 3,
-    staleTime: 5 * 60 * 1000,
+    enabled: debouncedQuery.length >= THRESHOLDS.MIN_TOURNAMENT_SEARCH_LENGTH,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 
   const rawNodes = data?.tournaments?.nodes ?? []

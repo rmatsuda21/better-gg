@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const videogameCharactersQuery = graphql(`
   query VideogameCharacters($videogameId: ID!) {
@@ -23,6 +24,6 @@ export function useCharacters(videogameId: string | undefined) {
         videogameId: videogameId!,
       }),
     enabled: !!videogameId,
-    staleTime: 24 * 60 * 60 * 1000,
+    staleTime: STALE_TIME_MS.CHARACTERS,
   })
 }

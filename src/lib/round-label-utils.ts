@@ -1,4 +1,5 @@
 import type { BracketData } from './bracket-utils'
+import { BRACKET_TYPE } from './constants'
 
 // --- Per-PG bracket formatting (used by BracketVisualization) ---
 
@@ -168,11 +169,11 @@ export function computeEventRoundLabels(
   // Label pool-format sets (Swiss / Round Robin) with flat labels
   // Label losers / named finals first (these don't depend on order)
   for (const set of allUserSets) {
-    if (set.bracketType === 'SWISS') {
+    if (set.bracketType === BRACKET_TYPE.SWISS) {
       labels.set(set.id, 'Swiss')
       continue
     }
-    if (set.bracketType === 'ROUND_ROBIN') {
+    if (set.bracketType === BRACKET_TYPE.ROUND_ROBIN) {
       labels.set(set.id, 'RR')
       continue
     }

@@ -21,6 +21,7 @@ import {
   isPoolBracketType,
 } from '../lib/bracket-utils'
 import { formatRoundLabel } from '../lib/round-label-utils'
+import { ACTIVITY_STATE, BRACKET_SCROLL_MAX_ATTEMPTS, STALE_TIME_MS, TIMING_MS } from '../lib/constants'
 import type { BracketEntrant, PhaseNavInfo, SetClickInfo, SetProgressionInfo } from '../lib/bracket-utils'
 import { TournamentHeader } from '../components/TournamentHeader/TournamentHeader'
 import { BracketVisualization } from '../components/BracketVisualization/BracketVisualization'
@@ -129,7 +130,7 @@ function PhaseBracketPage() {
         meta!.currentPhaseOrder,
       ),
       enabled: !!meta && fetchedPgIds.has(pg.id),
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE_TIME_MS.DEFAULT,
     })),
   })
 
@@ -186,10 +187,10 @@ function PhaseBracketPage() {
     return pgSetQueries.every(q => !q.data)
   }, [pgSetQueries])
 
-  const receivesProgressions = meta?.phaseState === 'CREATED' && (meta?.originPhaseIds?.length ?? 0) > 0
+  const receivesProgressions = meta?.phaseState === ACTIVITY_STATE.CREATED && (meta?.originPhaseIds?.length ?? 0) > 0
   const isPoolFormat = isPoolBracketType(meta?.bracketType ?? null)
   const isMultiPool = (meta?.phaseGroupNodes.length ?? 0) > 1
-  const showProjectionToggle = meta?.phaseState !== 'COMPLETED' && !isPoolFormat
+  const showProjectionToggle = meta?.phaseState !== ACTIVITY_STATE.COMPLETED && !isPoolFormat
 
   // Projection toggle state (URL-driven)
   const hasOverrides = !hasAnyEntrants && receivesProgressions
@@ -248,9 +249,9 @@ function PhaseBracketPage() {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         return
       }
-      if (++attempts < 20) timer = setTimeout(tryScroll, 150)
+      if (++attempts < BRACKET_SCROLL_MAX_ATTEMPTS) timer = setTimeout(tryScroll, TIMING_MS.BRACKET_SCROLL_RETRY)
     }
-    let timer = setTimeout(tryScroll, 50)
+    let timer = setTimeout(tryScroll, TIMING_MS.BRACKET_SCROLL_RETRY_FAST)
     return () => clearTimeout(timer)
   }, [urlEntrantId, userPoolId])
 
@@ -310,9 +311,9 @@ function PhaseBracketPage() {
           {meta.phaseState && (
             <span
               className={`${styles.phaseState} ${
-                meta.phaseState === 'COMPLETED'
+                meta.phaseState === ACTIVITY_STATE.COMPLETED
                   ? styles.completed
-                  : meta.phaseState === 'ACTIVE'
+                  : meta.phaseState === ACTIVITY_STATE.ACTIVE
                     ? styles.active
                     : ''
               }`}
@@ -399,7 +400,7 @@ function PhaseBracketPage() {
       )}
 
       {meta.phaseGroupNodes.length === 0 && (
-        meta.phaseState === 'CREATED' ? (
+        meta.phaseState === ACTIVITY_STATE.CREATED ? (
           <div className={styles.notPublished}>
             <p className={styles.notPublishedMessage}>
               This phase has not been published yet.
@@ -492,12 +493,12 @@ function PhaseGroupBracket({
   // Lazy: bye-inclusive sets for projection (needed for both CREATED and ACTIVE
   // phases because the regular query omits hidden bye rounds, causing losers
   // bracket prereqs to fail resolution)
-  const needsByeSets = !isPool && showProjected && phaseState !== 'COMPLETED'
+  const needsByeSets = !isPool && showProjected && phaseState !== ACTIVITY_STATE.COMPLETED
   const { data: byeSets } = useQuery({
     queryKey: ['bracketByeSets', pgData.pgId, phaseState],
     queryFn: () => fetchPhaseGroupSetsWithByes(pgData.pgId, 35),
     enabled: needsByeSets,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 
   // Lazy: projection computation (skip for pool formats)

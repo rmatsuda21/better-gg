@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const eventDetailsQuery = graphql(`
   query EventDetails($eventId: ID!) {
@@ -52,6 +53,6 @@ export function useEventDetails(eventId: string) {
     queryFn: () =>
       graphqlClient.request(eventDetailsQuery, { eventId }),
     enabled: !!eventId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

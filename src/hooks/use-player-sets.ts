@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const playerSetsQuery = graphql(`
   query PlayerSets($playerId: ID!, $page: Int!, $perPage: Int!) {
@@ -56,7 +57,7 @@ export function usePlayerSets(
       graphqlClient.request(playerSetsQuery, {
         playerId: playerId!,
         page: pageParam,
-        perPage: 25,
+        perPage: PAGINATION.PLAYER_SETS,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
@@ -72,6 +73,6 @@ export function usePlayerSets(
       return (pageInfo.page ?? 0) + 1
     },
     enabled: !!playerId,
-    staleTime: 10 * 60 * 1000,
+    staleTime: STALE_TIME_MS.PLAYER_SETS,
   })
 }

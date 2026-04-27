@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { BracketData, BracketSet, BracketEntrant, SetClickInfo, SetClickParticipant, PhaseNavInfo } from '../../lib/bracket-utils'
 import { computePoolStandings } from '../../lib/bracket-utils'
+import { BRACKET_TYPE } from '../../lib/constants'
 import { DataTable, DataTableHeader, DataTableRow } from '../DataTable/DataTable'
 import styles from './PoolVisualization.module.css'
 
@@ -42,7 +43,7 @@ export function PoolVisualization({
       {bracketData.winnersRounds.map((round) => (
         <div key={round.round} className={styles.roundSection}>
           <div className={styles.roundLabel}>
-            {bracketType === 'SWISS'
+            {bracketType === BRACKET_TYPE.SWISS
               ? `Swiss Round ${round.round}`
               : round.label ?? `Round ${round.round}`}
           </div>

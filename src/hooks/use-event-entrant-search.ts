@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const eventEntrantSearchQuery = graphql(`
   query EventEntrantSearch($eventId: ID!, $name: String!) {
@@ -39,6 +40,6 @@ export function useEventEntrantSearch(
     queryFn: () =>
       graphqlClient.request(eventEntrantSearchQuery, { eventId, name }),
     enabled: enabled && !!eventId && name.length >= 2,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

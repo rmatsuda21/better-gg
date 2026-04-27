@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const playerRecentEventsQuery = graphql(`
   query PlayerRecentEvents(
@@ -58,7 +59,7 @@ export function usePlayerRecentEvents(
         playerId: playerId!,
         userId: userId!,
         page: pageParam,
-        perPage: 15,
+        perPage: PAGINATION.RECENT_EVENTS,
         videogameId: videogameIds ?? null,
       }),
     initialPageParam: 1,
@@ -70,6 +71,6 @@ export function usePlayerRecentEvents(
       return (pageInfo.page ?? 0) + 1
     },
     enabled: !!playerId && !!userId,
-    staleTime: 10 * 60 * 1000,
+    staleTime: STALE_TIME_MS.RECENT_EVENTS,
   })
 }

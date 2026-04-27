@@ -3,13 +3,14 @@ import { useDebouncedValue } from './use-debounced-value'
 import { getAllPlayers, searchPlayersAll } from '../lib/player-search'
 import { filterPlayers, sortPlayersByActivity } from '../lib/player-filter'
 import type { PlayerRecord } from '../lib/player-search-types'
+import { STALE_TIME_MS, THRESHOLDS } from '../lib/constants'
 
 export function useFilteredPlayers(options: {
   query: string
   country?: string
   characterId?: number
 }): { players: PlayerRecord[]; total: number; isLoading: boolean } {
-  const debouncedQuery = useDebouncedValue(options.query.trim(), 200)
+  const debouncedQuery = useDebouncedValue(options.query.trim())
 
   const { data, isLoading } = useQuery({
     queryKey: [
@@ -20,7 +21,7 @@ export function useFilteredPlayers(options: {
     ],
     queryFn: async (): Promise<PlayerRecord[]> => {
       let players: PlayerRecord[]
-      if (debouncedQuery.length >= 2) {
+      if (debouncedQuery.length >= THRESHOLDS.MIN_PLAYER_SEARCH_LENGTH) {
         players = await searchPlayersAll(debouncedQuery)
       } else {
         players = sortPlayersByActivity(await getAllPlayers())
@@ -30,7 +31,7 @@ export function useFilteredPlayers(options: {
         characterId: options.characterId,
       })
     },
-    staleTime: Infinity,
+    staleTime: STALE_TIME_MS.NEVER,
   })
 
   const players = data ?? []

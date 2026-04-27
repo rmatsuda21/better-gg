@@ -4,6 +4,7 @@ import { graphqlClient } from '../lib/graphql-client'
 import type { PhaseGroupInfo } from './use-entrant-sets'
 import type { SetProgressionInfo } from '../lib/bracket-utils'
 import { computeBracketSizeFromSets } from '../lib/round-label-utils'
+import { ACTIVITY_STATE, PAGINATION } from '../lib/constants'
 
 // ACTIVE/COMPLETED: slot.entrant is always populated, no need for seed.entrant
 const bracketSetsActiveQuery = graphql(`
@@ -284,9 +285,9 @@ export async function fetchPhaseGroupSetData(
   phaseName: string | null,
   phaseOrder: number | null,
 ): Promise<PhaseGroupSetResult> {
-  const isStarted = phaseState === 'ACTIVE' || phaseState === 'COMPLETED'
+  const isStarted = phaseState === ACTIVITY_STATE.ACTIVE || phaseState === ACTIVITY_STATE.COMPLETED
   const query = isStarted ? bracketSetsActiveQuery : bracketSetsCreatedQuery
-  const perPage = isStarted ? 50 : 35
+  const perPage = isStarted ? PAGINATION.ACTIVE_SETS : PAGINATION.CREATED_SETS
 
   const nodes = await fetchPhaseGroupSets(pgId, query, perPage)
 

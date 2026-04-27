@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const setDetailsQuery = graphql(`
   query SetDetails($setId: ID!) {
@@ -51,6 +52,6 @@ export function useSetDetails(setId: string | null) {
     queryKey: ['setDetails', setId],
     queryFn: () => graphqlClient.request(setDetailsQuery, { setId: setId! }),
     enabled: !!setId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

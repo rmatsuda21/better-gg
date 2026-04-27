@@ -1,4 +1,5 @@
 import type { UserTournamentsQuery } from '../gql/graphql'
+import { TIME_WINDOWS } from './constants'
 
 type TournamentNode = NonNullable<
   NonNullable<
@@ -19,7 +20,7 @@ export interface TournamentLiveness {
   label: string
 }
 
-const SOON_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+const SOON_THRESHOLD_MS = TIME_WINDOWS.SOON_THRESHOLD_MS
 
 /** Returns liveness info if happening now or starting within 7 days, else null. */
 export function getTournamentLiveness(

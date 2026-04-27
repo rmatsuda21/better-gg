@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { formatPlacement } from '../../lib/format'
 import { getCharacterStockIcon } from '../../lib/character-utils'
+import { TIMING_MS } from '../../lib/constants'
 import styles from './PlacementList.module.css'
 
 export interface PlacementEntry {
@@ -40,7 +41,7 @@ export function PlacementList({ placements, isLoadingMore }: PlacementListProps)
           <div
             key={p.eventId ?? i}
             className={`${styles.item} ${isNew ? styles.itemAnimated : ''}`}
-            style={isNew ? { animationDelay: `${(i - animateOffset) * 40}ms` } : undefined}
+            style={isNew ? { animationDelay: `${(i - animateOffset) * TIMING_MS.STAGGER_ANIMATION}ms` } : undefined}
           >
             <span className={`${styles.placement} ${p.placement === 1 ? styles.placementGold : p.placement === 2 ? styles.placementSilver : p.placement === 3 ? styles.placementBronze : ''}`}>{formatPlacement(p.placement)}</span>
             {p.characterIds && p.characterIds.length > 0 && (

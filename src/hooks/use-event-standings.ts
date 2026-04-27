@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 import { resolveEntrantDisplay } from '../lib/bracket-utils'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const eventStandingsQuery = graphql(`
   query EventStandings($eventId: ID!, $page: Int!, $perPage: Int!) {
@@ -54,7 +55,7 @@ export interface EventStanding {
 }
 
 async function fetchAllStandings(eventId: string, isTeamEvent: boolean): Promise<EventStanding[]> {
-  const perPage = 100
+  const perPage = PAGINATION.EVENT_STANDINGS
 
   const firstPage = await graphqlClient.request(eventStandingsQuery, {
     eventId,
@@ -113,6 +114,6 @@ export function useAllEventStandings(eventId: string, enabled: boolean, isTeamEv
     queryKey: ['allEventStandings', eventId],
     queryFn: () => fetchAllStandings(eventId, isTeamEvent),
     enabled: enabled && !!eventId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

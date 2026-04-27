@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
 import type { SiblingPhaseInfo } from '../lib/bracket-utils'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const bracketMetaQuery = graphql(`
   query PhaseBracketMeta($phaseId: ID!) {
@@ -112,6 +113,6 @@ export function useBracketMeta(phaseId: string) {
       }
     },
     enabled: !!phaseId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

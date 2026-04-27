@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const originPhaseSeedsQuery = graphql(`
   query OriginPhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
@@ -39,7 +40,7 @@ export function useOriginPhaseMap(originPhaseId: string | null, enabled: boolean
     queryFn: async (): Promise<Map<string, OriginPhaseGroupInfo>> => {
       if (!originPhaseId) return new Map()
 
-      const perPage = 100
+      const perPage = PAGINATION.PHASE_SEEDS
       const firstPage = await graphqlClient.request(originPhaseSeedsQuery, {
         phaseId: originPhaseId,
         page: 1,
@@ -75,6 +76,6 @@ export function useOriginPhaseMap(originPhaseId: string | null, enabled: boolean
       return map
     },
     enabled: enabled && originPhaseId != null,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

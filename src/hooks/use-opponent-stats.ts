@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { STALE_TIME_MS } from '../lib/constants'
 
 const playerStatsQuery = graphql(`
   query PlayerStats($playerId: ID!, $setsPage: Int!, $setsPerPage: Int!, $videogameId: ID) {
@@ -71,6 +72,6 @@ export function useOpponentStats(
         videogameId: videogameId ?? null,
       }),
     enabled: !!playerId && enabled,
-    staleTime: 10 * 60 * 1000,
+    staleTime: STALE_TIME_MS.OPPONENT_STATS,
   })
 }

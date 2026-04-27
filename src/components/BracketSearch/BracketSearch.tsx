@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { BracketEntrantInfo } from '../../lib/bracket-utils'
+import { LAYOUT, THRESHOLDS } from '../../lib/constants'
 import styles from './BracketSearch.module.css'
 
 interface BracketSearchProps {
@@ -10,7 +11,7 @@ interface BracketSearchProps {
   hasSelection: boolean
 }
 
-const MAX_RESULTS = 20
+const MAX_RESULTS = LAYOUT.MAX_BRACKET_SEARCH_RESULTS
 
 export function BracketSearch({ entrants, onSelect, onClear, hasSelection }: BracketSearchProps) {
   const [query, setQuery] = useState('')
@@ -26,7 +27,7 @@ export function BracketSearch({ entrants, onSelect, onClear, hasSelection }: Bra
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (q.length < 1) return []
+    if (q.length < THRESHOLDS.MIN_BRACKET_SEARCH_LENGTH) return []
     return entrants
       .filter(e =>
         e.name.toLowerCase().includes(q) ||

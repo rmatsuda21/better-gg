@@ -6,8 +6,9 @@ import { graphqlClient } from '../lib/graphql-client'
 import { ALL_SMASH_VIDEOGAME_IDS } from '../lib/smash-games'
 import { extractApiSearchTerm, matchesAllQueryWords } from '../lib/tournament-search-utils'
 import { useDebouncedValue } from './use-debounced-value'
+import { PAGINATION, STALE_TIME_MS, TIMING_MS, TIME_WINDOWS } from '../lib/constants'
 
-const THREE_YEARS_CUTOFF_S = Math.floor(Date.now() / 1000) + 3 * 365.25 * 24 * 60 * 60
+const THREE_YEARS_CUTOFF_S = Math.floor(Date.now() / 1000) + TIME_WINDOWS.THREE_YEARS_S
 
 const tournamentListQuery = graphql(`
   query TournamentList($page: Int!, $perPage: Int!, $sortBy: String, $filter: TournamentPageFilter, $smashGameIds: [ID]) {
@@ -49,13 +50,13 @@ export function useTournamentList(options: TournamentListOptions) {
     featured,
     regOpen,
     sortBy = 'startAt desc',
-    perPage = 24,
+    perPage = PAGINATION.TOURNAMENT_LIST,
   } = options
 
-  const debouncedName = useDebouncedValue(name?.trim() ?? '', 300)
+  const debouncedName = useDebouncedValue(name?.trim() ?? '', TIMING_MS.TOURNAMENT_SEARCH_DEBOUNCE)
   const apiTerm = debouncedName ? extractApiSearchTerm(debouncedName) : ''
   const isMultiWord = debouncedName.includes(' ')
-  const effectivePerPage = isMultiWord ? Math.max(perPage, 60) : perPage
+  const effectivePerPage = isMultiWord ? Math.max(perPage, PAGINATION.TOURNAMENT_LIST_MULTI_WORD) : perPage
 
   const queryKey = [
     'tournamentList', debouncedName, countryCode, addrState,
@@ -100,7 +101,7 @@ export function useTournamentList(options: TournamentListOptions) {
       if (pageInfo.page != null && pageInfo.totalPages != null && pageInfo.page >= pageInfo.totalPages) return undefined
       return (pageInfo.page ?? 0) + 1
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME_MS.TOURNAMENT_LIST,
   })
 
   const tournaments = useMemo(() => {

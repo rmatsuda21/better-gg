@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { graphql } from '../gql'
 import { graphqlClient } from '../lib/graphql-client'
+import { PAGINATION, STALE_TIME_MS } from '../lib/constants'
 
 const tournamentParticipantsQuery = graphql(`
   query TournamentParticipants($tournamentId: ID!, $page: Int!, $perPage: Int!) {
@@ -51,7 +52,7 @@ export interface TournamentParticipant {
 async function fetchAllParticipants(
   tournamentId: string,
 ): Promise<TournamentParticipant[]> {
-  const perPage = 50
+  const perPage = PAGINATION.TOURNAMENT_PARTICIPANTS
 
   const firstPage = await graphqlClient.request(tournamentParticipantsQuery, {
     tournamentId,
@@ -124,6 +125,6 @@ export function useTournamentParticipants(tournamentId: string) {
     queryKey: ['tournamentParticipants', tournamentId],
     queryFn: () => fetchAllParticipants(tournamentId),
     enabled: !!tournamentId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS.DEFAULT,
   })
 }

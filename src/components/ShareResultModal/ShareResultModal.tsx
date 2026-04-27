@@ -8,6 +8,7 @@ import {
 } from '../../lib/share-utils'
 import { ResultGraphic } from './ResultGraphic'
 import type { SetSummary, CharacterEntry } from './ResultGraphic'
+import { TIMING_MS } from '../../lib/constants'
 import styles from './ShareResultModal.module.css'
 
 type ModalState = 'generating' | 'ready' | 'error'
@@ -182,7 +183,7 @@ export function ShareResultModal({
     try {
       await copyImageToClipboard(blob)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => setCopied(false), TIMING_MS.COPY_FEEDBACK)
     } catch {
       // Clipboard write failed — try download instead
       await downloadImage(blob, filename)

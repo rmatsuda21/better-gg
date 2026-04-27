@@ -12,8 +12,9 @@ import { FilterSelect } from '../components/FilterSelect/FilterSelect'
 import { DataTable, DataTableHeader } from '../components/DataTable/DataTable'
 import { dataTableStyles } from '../components/DataTable/dataTableStyles'
 import { ULTIMATE_VIDEOGAME_ID } from '../lib/smash-games'
+import { LAYOUT } from '../lib/constants'
 import styles from './players.module.css'
-const ROW_HEIGHT = 44
+const ROW_HEIGHT = LAYOUT.PLAYER_ROW_HEIGHT
 
 interface PlayersSearch {
   q?: string

@@ -7,9 +7,10 @@ import type { TournamentParticipant } from '../../hooks/use-tournament-participa
 import type { EventStanding } from '../../hooks/use-event-standings'
 import { Skeleton } from '../Skeleton/Skeleton'
 import { DataTable, DataTableHeader, DataTableRow } from '../DataTable/DataTable'
+import { LAYOUT } from '../../lib/constants'
 import styles from './ParticipantList.module.css'
 
-const ROW_HEIGHT = 44
+const ROW_HEIGHT = LAYOUT.PARTICIPANT_ROW_HEIGHT
 
 export interface EventInfo {
   id: string
@@ -46,7 +47,7 @@ export function ParticipantList({
 }: ParticipantListProps) {
   'use no memo'
   const [searchInput, setSearchInput] = useState('')
-  const debouncedSearch = useDebouncedValue(searchInput, 200)
+  const debouncedSearch = useDebouncedValue(searchInput)
   const parentRef = useRef<HTMLDivElement>(null)
 
   const isTeamMode = viewMode.kind === 'event'

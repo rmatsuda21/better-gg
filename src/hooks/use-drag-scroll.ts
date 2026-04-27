@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from 'react'
+import { THRESHOLDS } from '../lib/constants'
 
-const DRAG_THRESHOLD = 5
+const DRAG_THRESHOLD = THRESHOLDS.DRAG_PX
 
 export function useDragScroll(ref: RefObject<HTMLDivElement | null>): void {
   useEffect(() => {

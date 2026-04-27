@@ -1,4 +1,5 @@
 import type { PhaseGroupInfo } from '../hooks/use-entrant-sets'
+import { BRACKET_TYPE } from './constants'
 
 export interface SiblingPhaseInfo {
   id: string
@@ -585,7 +586,7 @@ export interface PoolStanding {
 }
 
 export function isPoolBracketType(bracketType: string | null): boolean {
-  return bracketType === 'ROUND_ROBIN' || bracketType === 'SWISS'
+  return bracketType === BRACKET_TYPE.ROUND_ROBIN || bracketType === BRACKET_TYPE.SWISS
 }
 
 export function computePoolStandings(data: BracketData): PoolStanding[] {
