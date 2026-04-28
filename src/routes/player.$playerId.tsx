@@ -15,9 +15,9 @@ import { formatWinRate } from '../lib/format'
 import { PlayerProfileHeader } from '../components/PlayerProfileHeader/PlayerProfileHeader'
 import { CharacterBar } from '../components/CharacterBar/CharacterBar'
 import { PlacementList } from '../components/PlacementList/PlacementList'
-import type { PlacementEntry } from '../components/PlacementList/PlacementList'
 import { FilterToggle } from '../components/FilterToggle/FilterToggle'
 import type { OnlineFilter } from '../components/FilterToggle/FilterToggle'
+import { buildPlacementsFromEvents } from '../lib/placement-utils'
 import { TournamentCard } from '../components/TournamentCard/TournamentCard'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
@@ -42,60 +42,6 @@ function PlayerPending() {
       <Skeleton width="100%" height={120} borderRadius={8} />
     </div>
   )
-}
-
-function buildPlacementsFromEvents(
-  pages: Array<{
-    player?: {
-      user?: {
-        tournaments?: {
-          nodes?: Array<{
-            name?: string | null
-            startAt?: unknown
-            isOnline?: boolean | null
-            events?: Array<{
-              id?: string | null
-              name?: string | null
-              numEntrants?: number | null
-              userEntrant?: {
-                standing?: { placement?: number | null } | null
-              } | null
-            } | null> | null
-          } | null> | null
-        } | null
-      } | null
-    } | null
-  }>,
-  playerId: string,
-  onlineFilter: OnlineFilter = 'all',
-  perEventChars?: Map<string, number[]>,
-): PlacementEntry[] {
-  const entries: PlacementEntry[] = []
-
-  for (const page of pages) {
-    const tournaments = page?.player?.user?.tournaments?.nodes ?? []
-    for (const tournament of tournaments) {
-      if (!tournament) continue
-      if (onlineFilter === 'online' && !tournament.isOnline) continue
-      if (onlineFilter === 'offline' && tournament.isOnline) continue
-      for (const event of tournament.events ?? []) {
-        if (!event) continue
-        const placement = event.userEntrant?.standing?.placement
-        if (placement == null) continue
-        entries.push({
-          placement,
-          eventName: event.name ?? '',
-          tournamentName: tournament.name ?? '',
-          numEntrants: event.numEntrants,
-          eventId: event.id ?? null,
-          playerId,
-          characterIds: event.id ? perEventChars?.get(event.id) : undefined,
-        })
-      }
-    }
-  }
-
-  return entries
 }
 
 function PlayerPage() {

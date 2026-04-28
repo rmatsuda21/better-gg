@@ -25,6 +25,7 @@ const playerSetsQuery = graphql(`
           slots {
             entrant {
               id
+              name
               participants {
                 player {
                   id

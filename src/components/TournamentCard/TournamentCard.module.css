@@ -130,8 +130,8 @@
 }
 
 .cardGrid:hover {
-  transform: scale(1.015);
-  box-shadow: var(--shadow-elevated), 0 0 20px var(--accent-glow);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-elevated), 0 0 24px var(--accent-glow);
 }
 
 /* Image wrapper — contains banner + icon + title overlay */

@@ -7,6 +7,7 @@ interface SetNode {
   slots?: Array<{
     entrant?: {
       id?: string | null
+      name?: string | null
       participants?: Array<{
         player?: { id?: string | null } | null
       } | null> | null
@@ -205,6 +206,73 @@ export function computePerEventCharacters(
     result.set(eventId, sorted)
   }
   return result
+}
+
+export interface RivalEntry {
+  opponentPlayerId: string | null
+  opponentEntrantId: string
+  opponentName: string
+  wins: number
+  losses: number
+  encounters: number
+  firstEncounterIndex: number
+}
+
+export function computeRecentRivals(
+  sets: SetNode[],
+  playerId: string,
+  limit = 5,
+): RivalEntry[] {
+  const byKey = new Map<string, RivalEntry>()
+
+  sets.forEach((set, index) => {
+    const slots = set.slots ?? []
+    const playerSlot = slots.find((slot) =>
+      slot?.entrant?.participants?.some(
+        (p) => p?.player?.id != null && String(p.player.id) === playerId,
+      ),
+    )
+    const playerEntrantId = playerSlot?.entrant?.id
+    if (!playerEntrantId) return
+
+    const opponentSlot = slots.find(
+      (slot) => slot?.entrant?.id != null && slot.entrant.id !== playerEntrantId,
+    )
+    const opponentEntrant = opponentSlot?.entrant
+    if (!opponentEntrant?.id) return
+
+    const opponentPlayerId = opponentEntrant.participants?.[0]?.player?.id
+      ? String(opponentEntrant.participants[0].player.id)
+      : null
+    const key = opponentPlayerId ?? `entrant:${opponentEntrant.id}`
+
+    const existing = byKey.get(key)
+    const isWin = set.winnerId != null && set.winnerId === Number(playerEntrantId)
+    const isLoss = set.winnerId != null && set.winnerId === Number(opponentEntrant.id)
+
+    if (existing) {
+      existing.encounters += 1
+      if (isWin) existing.wins += 1
+      else if (isLoss) existing.losses += 1
+    } else {
+      byKey.set(key, {
+        opponentPlayerId,
+        opponentEntrantId: String(opponentEntrant.id),
+        opponentName: opponentEntrant.name ?? 'Unknown',
+        wins: isWin ? 1 : 0,
+        losses: isLoss ? 1 : 0,
+        encounters: 1,
+        firstEncounterIndex: index,
+      })
+    }
+  })
+
+  return Array.from(byKey.values())
+    .sort((a, b) => {
+      if (b.encounters !== a.encounters) return b.encounters - a.encounters
+      return a.firstEncounterIndex - b.firstEncounterIndex
+    })
+    .slice(0, limit)
 }
 
 export function computeUpsetFactor(

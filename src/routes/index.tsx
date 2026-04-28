@@ -8,6 +8,10 @@ import { FilterToggle } from '../components/FilterToggle/FilterToggle'
 import type { OnlineFilter } from '../components/FilterToggle/FilterToggle'
 import { Skeleton } from '../components/Skeleton/Skeleton'
 import { ErrorMessage } from '../components/ErrorMessage/ErrorMessage'
+import { WelcomeHero } from '../components/WelcomeHero/WelcomeHero'
+import { RecentFormCard } from '../components/RecentFormCard/RecentFormCard'
+import { RecentRivalsCard } from '../components/RecentRivalsCard/RecentRivalsCard'
+import { FeaturedEventsCard } from '../components/FeaturedEventsCard/FeaturedEventsCard'
 import type { PlayerRecord } from '../lib/player-search-types'
 import type { TournamentSearchQuery } from '../gql/graphql'
 
@@ -72,8 +76,23 @@ function HomePage() {
     <>
       {isAuthenticated ? (
         <>
-          <WelcomeBar />
+          <WelcomeHero />
           <QuickSearchTrigger />
+          {authUser?.playerId && (
+            <div className={styles.widgetGrid}>
+              <div className={styles.leftStack}>
+                <div className={styles.widgetSlot} style={{ '--stagger': 0 } as React.CSSProperties}>
+                  <RecentFormCard playerId={authUser.playerId} />
+                </div>
+                <div className={styles.widgetSlot} style={{ '--stagger': 1 } as React.CSSProperties}>
+                  <RecentRivalsCard playerId={authUser.playerId} />
+                </div>
+              </div>
+              <div className={`${styles.widgetSlot} ${styles.widgetFeatured}`} style={{ '--stagger': 2 } as React.CSSProperties}>
+                <FeaturedEventsCard />
+              </div>
+            </div>
+          )}
           {authUser?.discriminator && (
             <TournamentHub
               discriminator={authUser.discriminator}
@@ -207,35 +226,6 @@ function Features() {
           <p className={styles.featureDesc}>Interactive bracket visualization with projected results.</p>
         </div>
       </div>
-    </div>
-  )
-}
-
-/* ================================================================
-   Logged-in: Welcome bar
-   ================================================================ */
-
-function WelcomeBar() {
-  const { user: authUser } = useAuth()
-  const displayName = authUser?.gamerTag ?? authUser?.name ?? 'Player'
-
-  return (
-    <div className={styles.welcomeBar}>
-      <span className={styles.welcomeText}>
-        Welcome back, <strong>{displayName}</strong>
-      </span>
-      {authUser?.playerId && (
-        <Link
-          to="/player/$playerId"
-          params={{ playerId: authUser.playerId }}
-          className={styles.profilePill}
-        >
-          Your Profile
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
-        </Link>
-      )}
     </div>
   )
 }
