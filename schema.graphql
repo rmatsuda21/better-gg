@@ -169,6 +169,9 @@ input SetFilters {
   entrantIds: [ID]
   state: [Int]
   showByes: Boolean
+  hideEmpty: Boolean
+  phaseIds: [ID]
+  phaseGroupIds: [ID]
 }
 
 input StandingPaginationQuery {

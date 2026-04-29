@@ -1,51 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
-import { graphql } from '../gql'
-import { graphqlClient } from '../lib/graphql-client'
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { mapSeedsByPlaceholder, mapSeedsByProgressionId } from '../lib/projection-utils'
 import type { OriginSeedEntrant } from '../lib/projection-utils'
 import type { BracketEntrant } from '../lib/bracket-utils'
 import { buildBracketData, buildProjectedResults, getWinnerFromProjected, getLoserFromProjected, resolveEntrantDisplay } from '../lib/bracket-utils'
-import { fetchPhaseGroupSetData } from './use-bracket-sets'
-import { ACTIVITY_STATE, PAGINATION, STALE_TIME_MS } from '../lib/constants'
-
-// Fetch phase seeds with progression data for cross-phase projection
-const phaseSeedsQuery = graphql(`
-  query PhaseSeeds($phaseId: ID!, $page: Int!, $perPage: Int!) {
-    phase(id: $phaseId) {
-      seeds(query: { page: $page, perPage: $perPage }) {
-        pageInfo {
-          total
-          totalPages
-        }
-        nodes {
-          id
-          seedNum
-          progressionSeedId
-          placeholderName
-          phaseGroup {
-            id
-            displayIdentifier
-          }
-          progressionSource {
-            id
-            originPhase { id name }
-          }
-          entrant {
-            id
-            name
-            initialSeedNum
-            participants {
-              id
-              gamerTag
-              prefix
-              player { id }
-            }
-          }
-        }
-      }
-    }
-  }
-`)
+import { fetchOriginPhaseSetsByPg, phaseSetsByPhaseIdsKey } from './use-bracket-sets'
+import { fetchPhaseSeeds, phaseSeedsQueryKey, type PhaseSeedNode } from '../lib/phase-seeds'
+import { STALE_TIME_MS } from '../lib/constants'
 
 interface DestinationSeed {
   seedNum: number
@@ -59,38 +19,36 @@ export interface CrossPhaseOverrides {
   seedIdToSeedNum: Map<string, number>
 }
 
-type SeedNode = NonNullable<Awaited<ReturnType<typeof fetchPhaseSeeds>>[number]>
-
-async function fetchPhaseSeeds(phaseId: string, perPage: number = PAGINATION.CROSS_PHASE_SEEDS) {
-  const firstPage = await graphqlClient.request(phaseSeedsQuery, {
-    phaseId,
-    page: 1,
-    perPage,
+/** Fetch via React Query cache so repeated calls (across hooks/strategies) dedupe. */
+function fetchPhaseSeedsCached(queryClient: QueryClient, phaseId: string) {
+  return queryClient.fetchQuery({
+    queryKey: phaseSeedsQueryKey(phaseId),
+    queryFn: () => fetchPhaseSeeds(phaseId),
+    staleTime: STALE_TIME_MS.BRACKET,
   })
+}
 
-  const allNodes = [...(firstPage.phase?.seeds?.nodes ?? [])]
-  const totalPages = firstPage.phase?.seeds?.pageInfo?.totalPages ?? 1
-
-  if (totalPages > 1) {
-    const remaining = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) =>
-        graphqlClient.request(phaseSeedsQuery, {
-          phaseId,
-          page: i + 2,
-          perPage,
-        })
-      )
-    )
-    for (const r of remaining) {
-      allNodes.push(...(r.phase?.seeds?.nodes ?? []))
-    }
-  }
-
-  return allNodes
+/**
+ * Fetch every set in a phase via `event.sets(filters: { phaseIds })` (one paginated
+ * chain) and group results by phase group. Replaces N parallel per-PG queries with
+ * a single phase-level fetch — important for large origin phases (e.g., 5+ pools).
+ */
+function fetchOriginPhaseSetsCached(
+  queryClient: QueryClient,
+  eventId: string,
+  originPhaseId: string,
+  phaseName: string | null,
+  phaseOrder: number | null,
+) {
+  return queryClient.fetchQuery({
+    queryKey: phaseSetsByPhaseIdsKey(eventId, originPhaseId),
+    queryFn: () => fetchOriginPhaseSetsByPg(eventId, originPhaseId, phaseName, phaseOrder),
+    staleTime: STALE_TIME_MS.BRACKET,
+  })
 }
 
 /** Extract the origin phase ID from seed nodes' progressionSource */
-function findOriginPhaseId(seedNodes: Array<SeedNode | null>): string | null {
+function findOriginPhaseId(seedNodes: Array<PhaseSeedNode | null>): string | null {
   for (const node of seedNodes) {
     const originId = node?.progressionSource?.originPhase?.id
     if (originId != null) return String(originId)
@@ -103,6 +61,7 @@ function findOriginPhaseId(seedNodes: Array<SeedNode | null>): string | null {
  * the progression chain via placeholderName until a phase with entrants is found.
  */
 async function resolveProjectionChain(
+  queryClient: QueryClient,
   destSeeds: DestinationSeed[],
   originPhaseId: string,
   maxDepth = 5,
@@ -110,7 +69,7 @@ async function resolveProjectionChain(
 ): Promise<Map<number, OriginSeedEntrant> | null> {
   if (maxDepth <= 0) return null
 
-  const originSeedNodes = await fetchPhaseSeeds(originPhaseId)
+  const originSeedNodes = await fetchPhaseSeedsCached(queryClient, originPhaseId)
   const hasEntrants = originSeedNodes.some(n => n?.entrant?.id != null)
 
   if (hasEntrants) {
@@ -153,7 +112,7 @@ async function resolveProjectionChain(
       entrant: null,
     }))
 
-  const deeperOverrides = await resolveProjectionChain(intermediateDest, deeperOriginId, maxDepth - 1, isTeamEvent)
+  const deeperOverrides = await resolveProjectionChain(queryClient, intermediateDest, deeperOriginId, maxDepth - 1, isTeamEvent)
   if (!deeperOverrides || deeperOverrides.size === 0) return null
 
   const resolvedOriginSeeds = originSeedNodes
@@ -186,12 +145,15 @@ export function useCrossPhaseOverrides(
   phaseOrder: number | null,
   enabled: boolean,
   isTeamEvent?: boolean,
+  eventId?: string | null,
 ) {
+  const queryClient = useQueryClient()
+
   return useQuery({
-    queryKey: ['crossPhaseOverrides', phaseId, originPhaseIds],
+    queryKey: ['crossPhaseOverrides', phaseId, originPhaseIds, eventId ?? null],
     queryFn: async (): Promise<CrossPhaseOverrides> => {
-      // Fetch destination seeds for this phase
-      const destSeedNodes = await fetchPhaseSeeds(phaseId)
+      // Fetch destination seeds for this phase (cached/deduped)
+      const destSeedNodes = await fetchPhaseSeedsCached(queryClient, phaseId)
 
       // Build seedIdToSeedNum map
       const seedIdToSeedNum = new Map<string, number>()
@@ -232,7 +194,7 @@ export function useCrossPhaseOverrides(
 
       // Strategy 1: Recursive projection chain (handles multi-level empty phases)
       if (effectiveOriginIds.length > 0 && destinationSeeds.length > 0) {
-        const chainOverrides = await resolveProjectionChain(destinationSeeds, effectiveOriginIds[0], 5, isTeamEvent)
+        const chainOverrides = await resolveProjectionChain(queryClient, destinationSeeds, effectiveOriginIds[0], 5, isTeamEvent)
         if (chainOverrides) {
           for (const [seedNum, entrant] of chainOverrides) {
             overrides.set(seedNum, {
@@ -247,26 +209,20 @@ export function useCrossPhaseOverrides(
       }
 
       // Strategy 2: progressionMap-based fallback (for ACTIVE/COMPLETED origins)
-      if (overrides.size < destinationSeeds.length && effectiveOriginIds.length > 0) {
-        // Fetch all PGs for the origin phase to get progressionMap
+      if (overrides.size < destinationSeeds.length && effectiveOriginIds.length > 0 && eventId) {
         const originPhaseId = effectiveOriginIds[0]
-        const originSeedNodes = await fetchPhaseSeeds(originPhaseId)
 
-        // Get origin phase's PG IDs from seed nodes
-        const originPgIds = new Set<string>()
-        for (const node of originSeedNodes) {
-          if (node?.phaseGroup?.id) originPgIds.add(node.phaseGroup.id)
-        }
+        // Single phase-level fetch (paginated) returns sets for all PGs in the
+        // origin phase. Replaces N parallel per-PG queries.
+        const pgResultsByPgId = await fetchOriginPhaseSetsCached(
+          queryClient,
+          eventId,
+          originPhaseId,
+          phaseName,
+          phaseOrder,
+        )
 
-        for (const originPgId of originPgIds) {
-          const pgResult = await fetchPhaseGroupSetData(
-            originPgId,
-            null,
-            ACTIVITY_STATE.ACTIVE, // Treat as active for fetching
-            phaseName,
-            phaseOrder,
-          )
-
+        for (const pgResult of pgResultsByPgId.values()) {
           const bracket = buildBracketData(pgResult.pgInfo)
           const projected = buildProjectedResults(bracket)
 
@@ -296,6 +252,6 @@ export function useCrossPhaseOverrides(
       return { seedOverrides: overrides, seedIdToSeedNum }
     },
     enabled: enabled && !!phaseId,
-    staleTime: STALE_TIME_MS.DEFAULT,
+    staleTime: STALE_TIME_MS.BRACKET,
   })
 }

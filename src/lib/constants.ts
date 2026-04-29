@@ -54,9 +54,15 @@ export const STALE_TIME_MS = {
   PLAYER_SETS: 10 * 60 * 1000,
   OPPONENT_STATS: 10 * 60 * 1000,
   RECENT_EVENTS: 10 * 60 * 1000,
+  BRACKET: 30 * 60 * 1000,
+  BRACKET_COMPLETED: 24 * 60 * 60 * 1000,
   DEFAULT: 5 * 60 * 1000,
   TOURNAMENT_LIST: 2 * 60 * 1000,
   NEVER: Infinity,
+} as const
+
+export const GC_TIME_MS = {
+  DEFAULT: 60 * 60 * 1000,
 } as const
 
 // ============================================================================

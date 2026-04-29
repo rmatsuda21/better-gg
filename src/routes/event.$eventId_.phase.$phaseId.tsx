@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { useEventDetails } from '../hooks/use-event-details'
 import { useBracketMeta } from '../hooks/use-bracket-meta'
-import { fetchPhaseGroupSetData, fetchPhaseGroupSetsWithByes } from '../hooks/use-bracket-sets'
+import { fetchPhaseGroupSetData, fetchPhaseGroupSetsWithByes, bracketSetsQueryKey, bracketByeSetsQueryKey } from '../hooks/use-bracket-sets'
 import type { PhaseGroupSetResult } from '../hooks/use-bracket-sets'
 import { useCrossPhaseOverrides } from '../hooks/use-cross-phase-overrides'
 import { useOriginPhaseMap } from '../hooks/use-origin-phase-map'
@@ -119,9 +119,11 @@ function PhaseBracketPage() {
   }, [])
 
   // Per-PG set queries — lazy: only fire for fetched PGs
+  const isPhaseCompleted = meta?.phaseState === ACTIVITY_STATE.COMPLETED
+  const bracketStaleTime = isPhaseCompleted ? STALE_TIME_MS.BRACKET_COMPLETED : STALE_TIME_MS.BRACKET
   const pgSetQueries = useQueries({
     queries: (meta?.phaseGroupNodes ?? []).map(pg => ({
-      queryKey: ['bracketSets', pg.id, meta?.phaseState],
+      queryKey: bracketSetsQueryKey(pg.id, meta?.phaseState ?? null),
       queryFn: () => fetchPhaseGroupSetData(
         pg.id,
         pg.displayIdentifier,
@@ -130,7 +132,7 @@ function PhaseBracketPage() {
         meta!.currentPhaseOrder,
       ),
       enabled: !!meta && fetchedPgIds.has(pg.id),
-      staleTime: STALE_TIME_MS.DEFAULT,
+      staleTime: bracketStaleTime,
     })),
   })
 
@@ -210,6 +212,7 @@ function PhaseBracketPage() {
     meta?.currentPhaseOrder ?? null,
     projected && !hasAnyEntrants && (meta?.originPhaseIds?.length ?? 0) > 0,
     isTeamEvent,
+    meta?.eventId ?? eventId,
   )
 
   const seedOverrides = crossPhaseData?.seedOverrides?.size
@@ -495,10 +498,10 @@ function PhaseGroupBracket({
   // bracket prereqs to fail resolution)
   const needsByeSets = !isPool && showProjected && phaseState !== ACTIVITY_STATE.COMPLETED
   const { data: byeSets } = useQuery({
-    queryKey: ['bracketByeSets', pgData.pgId, phaseState],
+    queryKey: bracketByeSetsQueryKey(pgData.pgId, phaseState),
     queryFn: () => fetchPhaseGroupSetsWithByes(pgData.pgId, 35),
     enabled: needsByeSets,
-    staleTime: STALE_TIME_MS.DEFAULT,
+    staleTime: STALE_TIME_MS.BRACKET,
   })
 
   // Lazy: projection computation (skip for pool formats)

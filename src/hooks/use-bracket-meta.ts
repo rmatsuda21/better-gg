@@ -113,6 +113,6 @@ export function useBracketMeta(phaseId: string) {
       }
     },
     enabled: !!phaseId,
-    staleTime: STALE_TIME_MS.DEFAULT,
+    staleTime: STALE_TIME_MS.BRACKET,
   })
 }
