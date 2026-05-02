@@ -58,6 +58,45 @@
   transition: border-color var(--duration-fast);
 }
 
+/* Inputs with leading icon */
+.searchInputWrap {
+  position: relative;
+  display: inline-flex;
+  flex: 1;
+  min-width: 180px;
+}
+
+.numericInputWrap,
+.dateInputWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.dateField {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.inputLeadingIcon {
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+  display: inline-flex;
+}
+
 .searchInput::placeholder {
   color: var(--text-secondary);
 }
@@ -68,6 +107,137 @@
 
 .filterSelect {
   min-width: 120px;
+}
+
+/* Sort group — visually separated from filters via right-align + label */
+.sortGroup {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.sortSelect {
+  min-width: 150px;
+}
+
+.numericInput,
+.dateInput {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--duration-fast);
+}
+
+.numericInput::placeholder {
+  color: var(--text-secondary);
+}
+
+.numericInput:focus,
+.dateInput:focus {
+  border-color: var(--accent);
+}
+
+.numericInput {
+  width: 110px;
+}
+
+.dateInput {
+  min-width: 140px;
+  color-scheme: dark;
+}
+
+/* Padding override for inputs that host a leading icon. Must come after the
+   base .numericInput/.dateInput/.zipInput shorthand padding so it wins. */
+.searchInputWithIcon,
+.inputWithIcon {
+  padding-left: 2rem;
+  width: 100%;
+}
+
+/* Filters toggle button */
+.filtersToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast);
+}
+
+.filtersToggle:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.filtersToggleOpen {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.rightActions {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.clearFiltersButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.clearFiltersButton:not(:disabled):hover {
+  color: var(--error);
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.clearFiltersButton:not(:disabled):hover svg {
+  color: var(--error);
+}
+
+.filtersBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.filtersChevron {
+  transition: transform var(--duration-fast);
+}
+
+.filtersChevronOpen {
+  transform: rotate(180deg);
+}
+
+.filtersPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 /* Checkbox pills */
@@ -92,6 +262,15 @@
 .checkPill:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.05);
+}
+
+.checkPill svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.checkPillActive svg {
+  color: #fff;
 }
 
 .checkPillActive {
@@ -208,5 +387,32 @@
 
   .filterSelect {
     min-width: 0;
+  }
+
+  .numericInput,
+  .dateInput {
+    width: 100%;
+  }
+
+  .searchInputWrap,
+  .numericInputWrap,
+  .dateInputWrap {
+    width: 100%;
+  }
+
+  .dateField {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sortGroup {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    width: 100%;
+  }
+
+  .rightActions {
+    flex-wrap: wrap;
   }
 }

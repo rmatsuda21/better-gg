@@ -43,6 +43,12 @@
   text-overflow: ellipsis;
 }
 
+.triggerIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
 /* Hero variant */
 .hero {
   padding: 0.65rem 0.9rem;

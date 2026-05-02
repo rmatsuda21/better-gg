@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { graphql } from '../gql'
 import type { TournamentPageFilter } from '../gql/graphql'
 import { graphqlClient } from '../lib/graphql-client'
@@ -9,6 +9,7 @@ import { useDebouncedValue } from './use-debounced-value'
 import { PAGINATION, STALE_TIME_MS, TIMING_MS, TIME_WINDOWS } from '../lib/constants'
 
 const THREE_YEARS_CUTOFF_S = Math.floor(Date.now() / 1000) + TIME_WINDOWS.THREE_YEARS_S
+const LIVE_WINDOW_S = 30 * 24 * 60 * 60
 
 const tournamentListQuery = graphql(`
   query TournamentList($page: Int!, $perPage: Int!, $sortBy: String, $filter: TournamentPageFilter, $smashGameIds: [ID]) {
@@ -33,9 +34,15 @@ export interface TournamentListOptions {
   countryCode?: string
   addrState?: string
   online?: 'all' | 'online' | 'offline'
-  status?: 'all' | 'upcoming' | 'past'
+  status?: 'all' | 'upcoming' | 'live' | 'past'
   featured?: boolean
   regOpen?: boolean
+  staffPicks?: boolean
+  hasBanner?: boolean
+  minEntrants?: number
+  after?: number
+  before?: number
+  game?: string
   sortBy?: string
   perPage?: number
 }
@@ -49,6 +56,12 @@ export function useTournamentList(options: TournamentListOptions) {
     status = 'all',
     featured,
     regOpen,
+    staffPicks,
+    hasBanner,
+    minEntrants,
+    after,
+    before,
+    game,
     sortBy = 'startAt desc',
     perPage = PAGINATION.TOURNAMENT_LIST,
   } = options
@@ -58,9 +71,21 @@ export function useTournamentList(options: TournamentListOptions) {
   const isMultiWord = debouncedName.includes(' ')
   const effectivePerPage = isMultiWord ? Math.max(perPage, PAGINATION.TOURNAMENT_LIST_MULTI_WORD) : perPage
 
+  const gameIds = game ? [game] : ALL_SMASH_VIDEOGAME_IDS
+
+  const [nowSec] = useState(() => Math.floor(Date.now() / 1000))
+
+  // 'live' isn't an API flag — narrow the API window to recently-started tournaments
+  // (and ignore the user's after/before in that mode); the client-side memo below
+  // then keeps only ones still in progress.
+  const isLive = status === 'live'
+  const effectiveAfter = isLive ? nowSec - LIVE_WINDOW_S : after
+  const effectiveBefore = isLive ? nowSec : before
+
   const queryKey = [
     'tournamentList', debouncedName, countryCode, addrState,
-    online, status, featured, regOpen, sortBy, perPage,
+    online, status, featured, regOpen, staffPicks, hasBanner,
+    effectiveAfter, effectiveBefore, game, sortBy, perPage,
   ]
 
   const {
@@ -76,7 +101,7 @@ export function useTournamentList(options: TournamentListOptions) {
     queryKey,
     queryFn: ({ pageParam, signal }) => {
       const filter: TournamentPageFilter = {
-        videogameIds: ALL_SMASH_VIDEOGAME_IDS,
+        videogameIds: gameIds,
       }
 
       if (debouncedName) filter.name = apiTerm
@@ -87,10 +112,14 @@ export function useTournamentList(options: TournamentListOptions) {
       if (status === 'past') filter.past = true
       if (featured) filter.isFeatured = true
       if (regOpen) filter.regOpen = true
+      if (staffPicks) filter.staffPicks = true
+      if (hasBanner) filter.hasBannerImages = true
+      if (effectiveAfter) filter.afterDate = effectiveAfter
+      if (effectiveBefore) filter.beforeDate = effectiveBefore
 
       return graphqlClient.request({
         document: tournamentListQuery,
-        variables: { page: pageParam, perPage: effectivePerPage, sortBy, filter, smashGameIds: ALL_SMASH_VIDEOGAME_IDS },
+        variables: { page: pageParam, perPage: effectivePerPage, sortBy, filter, smashGameIds: gameIds },
         signal,
       })
     },
@@ -118,10 +147,25 @@ export function useTournamentList(options: TournamentListOptions) {
     filtered = filtered.filter(
       (t) => !t?.startAt || t.startAt < THREE_YEARS_CUTOFF_S,
     )
-    return filtered
-  }, [data?.pages, isMultiWord, debouncedName, online])
 
-  const isClientFiltered = isMultiWord && !!debouncedName
+    if (minEntrants && minEntrants > 0) {
+      filtered = filtered.filter((t) =>
+        (t?.events ?? []).some((e) => (e?.numEntrants ?? 0) >= minEntrants),
+      )
+    }
+
+    if (status === 'live') {
+      filtered = filtered.filter(
+        (t) => t?.startAt != null && t?.endAt != null && t.startAt <= nowSec && t.endAt >= nowSec,
+      )
+    }
+
+    return filtered
+  }, [data?.pages, isMultiWord, debouncedName, online, minEntrants, status, nowSec])
+
+  const hasMinEntrants = !!(minEntrants && minEntrants > 0)
+  const isLiveFilter = status === 'live'
+  const isClientFiltered = (isMultiWord && !!debouncedName) || hasMinEntrants || isLiveFilter
   const apiTotal = data?.pages[0]?.tournaments?.pageInfo?.total ?? 0
   const total = isClientFiltered ? tournaments.length : apiTotal
 

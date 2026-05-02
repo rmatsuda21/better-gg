@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, useId } from 'react'
 import { createPortal } from 'react-dom'
-import type { CSSProperties, KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
 import styles from './FilterSelect.module.css'
 
 interface FilterSelectOption {
@@ -18,6 +18,7 @@ interface FilterSelectProps {
   style?: CSSProperties
   placeholder?: string
   searchThreshold?: number
+  leadingIcon?: ReactNode
   'aria-label'?: string
 }
 
@@ -32,6 +33,7 @@ export function FilterSelect({
   style,
   placeholder = 'Select...',
   searchThreshold = 8,
+  leadingIcon,
   'aria-label': ariaLabel,
 }: FilterSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -150,6 +152,7 @@ export function FilterSelect({
         onClick={() => isOpen ? close() : setIsOpen(true)}
         onKeyDown={handleTriggerKeyDown}
       >
+        {leadingIcon && <span className={styles.triggerIcon}>{leadingIcon}</span>}
         <span className={styles.triggerLabel}>{selectedLabel}</span>
         <svg
           className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}
