@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useFeaturedEvents, FEATURED_MIN_ENTRANTS } from '../../hooks/use-featured-events'
 import { TournamentCard } from '../TournamentCard/TournamentCard'
 import type { TournamentCardData } from '../TournamentCard/TournamentCard'
@@ -10,22 +10,7 @@ import styles from './FeaturedEventsCard.module.css'
 const MAX_DISPLAYED = 12
 
 export function FeaturedEventsCard() {
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useFeaturedEvents()
-
-  useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  const { data, isLoading, isError, error, refetch } = useFeaturedEvents()
 
   const tournaments = useMemo(() => {
     const nodes = data?.pages.flatMap((p) => p?.tournaments?.nodes ?? []) ?? []
@@ -80,7 +65,7 @@ export function FeaturedEventsCard() {
           message={error instanceof Error ? error.message : 'Failed to load featured events'}
           onRetry={() => refetch()}
         />
-      ) : tournaments.length === 0 && !isFetchingNextPage ? (
+      ) : tournaments.length === 0 ? (
         <p className={styles.empty}>No featured events right now. Check back soon.</p>
       ) : (
         <div className={styles.scroller}>

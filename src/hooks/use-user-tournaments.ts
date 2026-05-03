@@ -53,6 +53,6 @@ export function useUserTournaments(discriminator: string) {
         videogameId: ALL_SMASH_VIDEOGAME_IDS,
       }),
     enabled: !!discriminator,
-    staleTime: STALE_TIME_MS.DEFAULT,
+    staleTime: STALE_TIME_MS.USER_TOURNAMENTS,
   })
 }

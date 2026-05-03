@@ -55,6 +55,6 @@ export function usePlayerUpcomingEvents(
         videogameId: ALL_SMASH_VIDEOGAME_IDS,
       }),
     enabled: !!playerId && !!userId,
-    staleTime: STALE_TIME_MS.DEFAULT,
+    staleTime: STALE_TIME_MS.UPCOMING_EVENTS,
   })
 }

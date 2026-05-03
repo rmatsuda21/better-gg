@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
+import { useAuth } from '../../hooks/use-auth'
 import { usePlayerSets } from '../../hooks/use-player-sets'
-import { usePlayerProfile } from '../../hooks/use-player-profile'
 import { usePlayerRecentEvents } from '../../hooks/use-player-recent-events'
 import { useCharacters } from '../../hooks/use-characters'
 import { computeWinRate, computeCharacterUsage } from '../../lib/stats-utils'
@@ -17,9 +17,9 @@ interface RecentFormCardProps {
 }
 
 export function RecentFormCard({ playerId }: RecentFormCardProps) {
+  const { user: authUser } = useAuth()
+  const userId = authUser?.id ?? undefined
   const setsQuery = usePlayerSets(playerId, 1)
-  const { data: profileData } = usePlayerProfile(playerId, ULTIMATE_VIDEOGAME_ID)
-  const userId = profileData?.player?.user?.id ?? undefined
   const recentEventsQuery = usePlayerRecentEvents(playerId, userId, ALL_SMASH_VIDEOGAME_IDS)
   const { data: charData } = useCharacters(ULTIMATE_VIDEOGAME_ID)
 

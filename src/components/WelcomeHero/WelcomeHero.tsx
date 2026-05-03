@@ -121,7 +121,7 @@ export function WelcomeHero() {
   const greeting = useMemo(() => getGreeting(new Date(mountedAt)), [mountedAt])
 
   const { data: profileData } = usePlayerProfile(playerId, ULTIMATE_VIDEOGAME_ID)
-  const userId = profileData?.player?.user?.id ?? undefined
+  const userId = authUser?.id ?? undefined
   const avatarUrl = profileData?.player?.user?.images?.[0]?.url ?? authUser?.profileImageUrl ?? null
   const topRanking = profileData?.player?.rankings?.[0]
 
